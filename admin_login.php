@@ -25,7 +25,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $error_message = "All fields are required.";
     } else {
         if ($role === "admin") {
-            $sql = "SELECT Admin_id, Admin_username, Admin_email, Admin_password FROM Admin WHERE Admin_username = ? OR Admin_email = ?";
+            $sql = "SELECT Admin_username, Admin_email, Admin_password FROM Admin WHERE Admin_username = ? OR Admin_email = ?";
         } elseif ($role === "staff") {
             $sql = "SELECT Staff_id, Staff_Username, Staff_Email, Staff_Password FROM Staff WHERE Staff_Username = ? OR Staff_Email = ?";
         } elseif ($role === "customer") {
@@ -57,7 +57,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     if ($password === $db_password) { // In production, use hashed passwords!
                         $_SESSION['role'] = $role;
                         if ($role === "admin") {
-                            $_SESSION['admin_id'] = $db_admin_id;
                             $_SESSION['username'] = $db_username;
                             $_SESSION['email'] = $db_email;
                             $redirect_url = "admin_homepage.php";
