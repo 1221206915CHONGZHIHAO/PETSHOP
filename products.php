@@ -52,10 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
       <?php while ($row = $result->fetch_assoc()) { ?>
         <div class="col-md-4 mb-3">
           <div class="card h-100">
-            <img src="<?php echo $row['product_image']; ?>" class="card-img-top" alt="<?php echo htmlspecialchars($row['product_name']); ?>">
+            <img src="<?php echo htmlspecialchars($row['image_url']); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($row['product_name']); ?>">
             <div class="card-body">
               <h5 class="card-title"><?php echo htmlspecialchars($row['product_name']); ?></h5>
-              <p class="card-text">$<?php echo number_format($row['product_price'], 2); ?></p>
+              <p class="card-text">$<?php echo number_format($row['price'], 2); ?></p>
               <a href="product_detail.php?id=<?php echo $row['product_id']; ?>" class="btn btn-primary">View Details</a>
             </div>
           </div>
@@ -63,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
       <?php } ?>
     </div>
   </div>
+  <?php $conn->close(); ?>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
