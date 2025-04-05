@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// 数据库连接设置
+
 $servername  = "localhost";
 $db_username = "root";
 $db_password = "";
@@ -12,9 +12,7 @@ if ($conn->connect_error) {
     die("数据库连接失败: " . $conn->connect_error);
 }
 
-// 登录验证代码：如果有 POST 提交了用户名和密码，则进行验证并设置 session 变量
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset($_POST['password'])) {
-    // 注意：生产环境建议使用预处理语句和密码哈希验证
     $username = $conn->real_escape_string($_POST['username']);
     $password = $conn->real_escape_string($_POST['password']);
     
