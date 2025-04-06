@@ -1,167 +1,191 @@
 <?php
 session_start();
-require 'PHPMailer/PHPMailer.php';
-require 'PHPMailer/Exception.php';
-require 'PHPMailer/SMTP.php';
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
-// Database Configuration
-$host = "localhost";
-$username_db = "root";
-$password_db = "";
-$database = "petshop";
-
-$conn = new mysqli($host, $username_db, $password_db, $database);
-if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
+$conn = new mysqli("localhost", "root", "", "petshop");
 
 $error = "";
-$success = "";
-
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST['email'];
-    $role = $_POST['role'];
     
-    if (empty($email) || empty($role)) {
-        $error = "All fields are required!";
+    $stmt = $conn->prepare("SELECT Customer_ID FROM Customer WHERE Customer_Email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $user_id = $result->fetch_assoc()['Customer_ID'];
+        $_SESSION['reset_user_id'] = $user_id; 
+        header("Location: reset_password.php"); 
+        exit();
     } else {
-        // Check if email exists in the correct table
-        if ($role === "staff") {
-            $sql = "SELECT Staff_ID, Staff_Username, Staff_Email FROM Staff WHERE Staff_Email = ?";
-        } elseif ($role === "customer") {
-            $sql = "SELECT Customer_ID, Customer_Name, Customer_Email FROM Customer WHERE Customer_Email = ?";
-        } else {
-            $error = "Invalid role selected!";
-        }
-
-        if (empty($error)) {
-            $stmt = $conn->prepare($sql);
-            if ($stmt) {
-                $stmt->bind_param("s", $email);
-                $stmt->execute();
-                $stmt->store_result();
-                
-                if ($stmt->num_rows > 0) {
-                    // Generate token
-                    $token = bin2hex(random_bytes(32));
-                    $expires = date("Y-m-d H:i:s", time() + 3600); // 1 hour expiry
-                    
-                    // Bind results (including email)
-                    if ($role === "staff") {
-                        $stmt->bind_result($user_id, $username, $user_email);
-                    } else {
-                        $stmt->bind_result($user_id, $username, $user_email);
-                    }
-                    $stmt->fetch();
-                    
-                    // Update database with token
-                    $update_sql = ($role === "staff") 
-                        ? "UPDATE Staff SET reset_token=?, reset_token_expires=? WHERE Staff_Email=?" 
-                        : "UPDATE Customer SET reset_token=?, reset_token_expires=? WHERE Customer_Email=?";
-                    
-                    $update_stmt = $conn->prepare($update_sql);
-                    if ($update_stmt) {
-                        $update_stmt->bind_param("sss", $token, $expires, $email);
-                        if ($update_stmt->execute()) {
-                            // Send email to the user's registered email
-                            try {
-                                $mail = new PHPMailer(true);
-                                
-                                // SMTP Configuration (Gmail Example)
-                                $mail->isSMTP();
-                                $mail->Host = 'smtp.gmail.com';
-                                $mail->SMTPAuth = true;
-                                $mail->Username = 'your@gmail.com'; // Your service email
-                                $mail->Password = 'your-app-password'; // App password
-                                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                                $mail->Port = 587;
-                                
-                                // Email Content
-                                $mail->setFrom('no-reply@petshop.com', 'PetShop');
-                                $mail->addAddress($user_email, $username); // Dynamic email from DB
-                                $mail->isHTML(false);
-                                $mail->Subject = 'Password Reset Request';
-                                
-                                $reset_link = "http://" . $_SERVER['HTTP_HOST'] . "/reset_password.php?token=$token&role=$role";
-                                $mail->Body = "Hello $username,\n\n"
-                                           . "Click to reset your password (valid for 1 hour):\n"
-                                           . "$reset_link\n\n"
-                                           . "If you didn't request this, please ignore this email.";
-                                
-                                $mail->send();
-                                $success = "Password reset link sent to your registered email!";
-                            } catch (Exception $e) {
-                                $error = "Failed to send email: " . $e->getMessage();
-                            }
-                        } else {
-                            $error = "Database update failed!";
-                        }
-                        $update_stmt->close();
-                    }
-                } else {
-                    $error = "Email not found for selected role!";
-                }
-                $stmt->close();
-            } else {
-                $error = "Database error!";
-            }
-        }
+        $error = "This email address is not registered in our system";
     }
 }
-$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password</title>
+    <title>Forgot Password - PetShop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .login-container {
-            max-width: 400px;
+        :root {
+            --primary-color: #6d4c41;
+            --secondary-color: #ffab91;
+            --accent-color: #5d4037;
+        }
+        
+        body {
+            background-color: #f9f5f0;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M30,15 Q50,5 70,15 Q80,30 70,45 Q50,55 30,45 Q20,30 30,15 Z" fill="%23ffab91" opacity="0.1"/></svg>');
+            background-size: 150px;
+        }
+        
+        .pet-container {
+            max-width: 450px;
             margin: 50px auto;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            background-color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 2px solid var(--secondary-color);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pet-header {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        .pet-header i {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: var(--secondary-color);
+        }
+        
+        .pet-header h2 {
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 0.25rem rgba(255, 171, 145, 0.25);
+        }
+        
+        .btn-pet {
+            background-color: var(--primary-color);
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .btn-pet:hover {
+            background-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+        
+        .pet-footer {
+            text-align: center;
+            margin-top: 20px;
+            color: var(--primary-color);
+        }
+        
+        .pet-footer a {
+            color: var(--secondary-color);
+            font-weight: bold;
+            text-decoration: none;
+        }
+        
+        .pet-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .pet-paw-print {
+            position: absolute;
+            opacity: 0.1;
+            z-index: 0;
+        }
+        
+        .paw-1 {
+            top: 20px;
+            right: 20px;
+            transform: rotate(30deg);
+            font-size: 40px;
+        }
+        
+        .paw-2 {
+            bottom: 20px;
+            left: 20px;
+            transform: rotate(-20deg);
+            font-size: 30px;
+        }
+        
+        .input-group-text {
+            background-color: #ffab91;
+            color: white;
+            border: none;
+        }
+        
+        .alert-danger {
+            background-color: #ffebee;
+            border-color: #ef9a9a;
         }
     </style>
 </head>
 <body>
-<div class="login-container">
-    <h2 class="text-center mb-4">Forgot Password</h2>
-    
-    <?php if (!empty($error)): ?>
-        <div class="alert alert-danger"><?php echo $error; ?></div>
-    <?php endif; ?>
-
-    <?php if (!empty($success)): ?>
-        <div class="alert alert-success"><?php echo $success; ?></div>
-    <?php endif; ?>
-
-    <form method="POST">
-        <div class="mb-3">
-            <label class="form-label">Select Role:</label>
-            <select name="role" class="form-select" required>
-                <option value="">-- Select --</option>
-                <option value="staff">Staff</option>
-                <option value="customer">Customer</option>
-            </select>
+<div class="container">
+    <div class="pet-container">
+        <i class="fas fa-paw pet-paw-print paw-1"></i>
+        <i class="fas fa-paw pet-paw-print paw-2"></i>
+        
+        <div class="pet-header">
+            <i class="fas fa-question-circle"></i>
+            <h2>Forgot Your Password?</h2>
+            <p>Enter your email to reset your password</p>
         </div>
+        
+        <?php if ($error): ?>
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-2"></i><?= $error ?>
+            </div>
+        <?php endif; ?>
+        
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">Your Email Address</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                    <input type="email" name="email" class="form-control" placeholder="meow@example.com" required>
+                </div>
+                <small class="text-muted">Enter the email you used to register</small>
+            </div>
 
-        <div class="mb-3">
-            <label class="form-label">Registered Email:</label>
-            <input type="email" name="email" class="form-control" required>
+            <button type="submit" class="btn btn-pet btn-primary w-100">
+                <i class="fas fa-paper-plane me-2"></i> Verify Email
+            </button>
+        </form>
+
+        <div class="pet-footer">
+            Remembered your password? <a href="admin_login.php">Login here</a>
         </div>
-
-        <button type="submit" class="btn btn-primary w-100">Send  Reset Link</button>
-    </form>
-
-    <p class="text-center mt-3">
-        Remember password? <a href="admin_login.php">Login here</a>
-    </p>
+    </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
