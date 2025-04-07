@@ -43,7 +43,7 @@ include('db_connection.php');
     </div>
     <div>
         <span class="text-light me-3">Welcome, Admin</span>
-        <a href="admin_login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 
@@ -225,9 +225,11 @@ include('db_connection.php');
                                             <a href="edit_staff.php?id=<?php echo $row['Staff_ID']; ?>" class="btn btn-sm btn-primary">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <a href="activate_staff.php?id=<?php echo $row['Staff_ID']; ?>" class="btn btn-sm btn-success">
+                                            <a href="activate_staff.php?id=<?php echo $row['Staff_ID']; ?>" 
+                                                class="btn btn-sm btn-success"
+                                                onclick="return confirm('Reactivating will send a temporary password. Continue?')">
                                                 <i class="fas fa-user-check"></i> Reactivate
-                                            </a>
+                                                </a>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>

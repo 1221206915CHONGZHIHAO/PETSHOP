@@ -2,7 +2,7 @@
 include('db_connection.php');
 session_start();
 
-// Verify admin is logged in
+// Verify admin authentication
 if (!isset($_SESSION['admin_logged_in'])) {
     header("Location: admin_login.php");
     exit();
@@ -11,7 +11,7 @@ if (!isset($_SESSION['admin_logged_in'])) {
 if (isset($_GET['id'])) {
     $id = intval($_GET['id']);
     
-    // Generate temporary password and token
+    // Generate temporary password and reset token
     $temp_password = bin2hex(random_bytes(8));
     $hashed_password = password_hash($temp_password, PASSWORD_DEFAULT);
     $reset_token = bin2hex(random_bytes(32));
@@ -30,7 +30,7 @@ if (isset($_GET['id'])) {
     $stmt->bind_param("ssi", $hashed_password, $reset_token, $id);
     
     if ($stmt->execute()) {
-        // Get staff email for notification
+        // Send email with temporary password
         $email_sql = "SELECT Staff_Email, Staff_name FROM Staff WHERE Staff_ID = ?";
         $email_stmt = $conn->prepare($email_sql);
         $email_stmt->bind_param("i", $id);
@@ -38,22 +38,21 @@ if (isset($_GET['id'])) {
         $result = $email_stmt->get_result();
         $staff = $result->fetch_assoc();
         
-        // Send reactivation email (in production, use PHPMailer or similar)
+        // Email configuration (pseudo-code)
         $to = $staff['Staff_Email'];
-        $subject = "Your PetShop Account Has Been Reactivated";
+        $subject = "Account Reactivation - PetShop";
         $message = "Hello " . $staff['Staff_name'] . ",\n\n";
-        $message .= "Your account has been reactivated. Please use the following temporary password to login:\n\n";
+        $message .= "Your account has been reactivated. Use this temporary password to login:\n\n";
         $message .= "Temporary Password: " . $temp_password . "\n\n";
-        $message .= "You will be required to set a new password upon first login.\n\n";
-        $message .= "Login here: http://yourpetshop.com/staff_login.php\n\n";
-        $message .= "This temporary password will expire in 24 hours.";
-        $headers = "From: admin@yourpetshop.com";
+        $message .= "You must reset your password after login.\n";
+        $message .= "Login: http://yourdomain.com/login.php";
+        $headers = "From: noreply@yourdomain.com";
         
         mail($to, $subject, $message, $headers);
         
-        $_SESSION['success_message'] = "Staff account reactivated successfully. Temporary password sent to staff email.";
+        $_SESSION['success'] = "Account reactivated. Temporary password sent to staff email.";
     } else {
-        $_SESSION['error_message'] = "Error reactivating account: " . $conn->error;
+        $_SESSION['error'] = "Error reactivating account: " . $conn->error;
     }
     
     header("Location: manage_staff.php");
