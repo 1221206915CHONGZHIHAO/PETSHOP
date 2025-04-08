@@ -148,11 +148,7 @@
       <!-- Brands -->
       <h5>Brands</h5>
       <ul class="list-group mb-4">
-        <li class="list-group-item"><a href="#">Acana</a></li>
-        <li class="list-group-item"><a href="#">Aplus</a></li>
-        <li class="list-group-item"><a href="#">Armaniov</a></li>
-        <li class="list-group-item"><a href="#">Araton</a></li>
-        <li class="list-group-item"><a href="#">+ More</a></li>
+        <li class="list-group-item"><a href="#">ProBalance</a></li>
       </ul>
     </aside>
 
@@ -178,9 +174,9 @@
         <!-- 示例卡片 1 -->
         <div class="col">
           <div class="card product-card h-100">
-            <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Probalance Pouch 100g">
+            <img src="ProBalance_tenderlamb.png" class="card-img-top" alt="Probalance Pouch Tender Lamb 100g">
             <div class="card-body">
-              <h5 class="card-title">Probalance Pouch 100g</h5>
+              <h5 class="card-title">Probalance Pouch Tender Lamb 100g</h5>
               <p class="card-text">With Veggie in Gravy Wet Dog Food</p>
             </div>
             <div class="card-footer bg-white">
