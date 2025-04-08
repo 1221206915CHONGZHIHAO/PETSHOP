@@ -29,11 +29,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Admin login
         if ($role === "admin" && $login_input === "ADMIN" && $password === "PETSHOP1") {
             $_SESSION['role'] = "admin";
+            $_SESSION['admin_logged_in'] = true; 
             $_SESSION['username'] = "ADMIN";
             $_SESSION['email'] = "admin@petshop.com";
             $success_message = "Login successful! Redirecting...";
             $redirect_url = "admin_homepage.php";
-        } else {
+        }
+        else {
             // Staff and customer login
             if ($role === "staff") {
                 $sql = "SELECT Staff_id, Staff_Username, Staff_Email, Staff_Password, status, password_reset_token 
