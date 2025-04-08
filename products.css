@@ -1,66 +1,53 @@
-/* Products Page - Fancy Design */
+/* 全局设置 */
+body {
+  font-family: 'Poppins', sans-serif;
+  background: url('pet-background.jpg') no-repeat center center fixed;
+  background-size: cover;
+  margin: 0;
+  padding: 0;
+  color: #333;
+}
 
-/* Container for the products section */
-.products-container {
-    padding: 2rem 0;
-    background: #f5f5f5;
-  }
-  
-  /* Product Card Styles */
-  .products-container .card {
-    border: none;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    background-color: #ffffff;
-    margin-bottom: 2rem;
-  }
-  
-  .products-container .card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  }
-  
-  /* Image inside the card */
-  .products-container .card-img-top {
-    height: 250px;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-  }
-  
-  .products-container .card:hover .card-img-top {
-    transform: scale(1.05);
-  }
-  
-  /* Card body styling */
-  .products-container .card-body {
-    padding: 1rem;
-  }
-  
-  /* Product title styling */
-  .products-container .card-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 0.5rem;
-  }
-  
-  /* Product text (price) styling */
-  .products-container .card-text {
-    font-size: 1rem;
-    color: #888;
-    margin-bottom: 1rem;
-  }
-  
-  /* Button styling */
-  .products-container .btn-primary {
-    background-color: #ff6600;
-    border: none;
-    transition: background 0.3s ease;
-  }
-  
-  .products-container .btn-primary:hover {
-    background-color: #e05500;
-  }
-  
+/* 自定义导航栏 */
+.custom-nav {
+  background-color: #343a40;
+}
+
+/* 过滤栏样式 */
+.filter-section h5 {
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.filter-section .list-group-item {
+  border: none;
+  padding: 0.3rem 0;
+}
+
+.filter-section .list-group-item a {
+  text-decoration: none;
+  color: #333;
+}
+
+.filter-section .list-group-item a:hover {
+  color: #007bff;
+}
+
+/* 商品卡片效果 */
+.product-card {
+  transition: transform 0.2s;
+}
+
+.product-card:hover {
+  transform: scale(1.02);
+}
+
+.card-img-top {
+  height: 200px;
+  object-fit: cover;
+}
+
+/* 调整顶部排序区域 */
+#sortSelect {
+  width: auto;
+}
