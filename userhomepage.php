@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pet Shop - Home</title>
+  <title>Hachi Pet Shop - Home</title>
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- Bootstrap CSS -->
@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
     <!-- Brand on the left -->
     <a class="navbar-brand" href="userhomepage.php">
       <img src="cat_paw.png" alt="Pet Shop" width="50">
-      <span>Pet Shop</span>
+      <span>Hachi Pet Shop</span>
     </a>
     
     <!-- Toggler for mobile view -->
@@ -281,7 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
         <a href="#" class="text-white me-3">Twitter</a>
         <a href="#" class="text-white">Instagram</a>
       </div>
-      <p>&copy; 2025 Pet Shop. All rights reserved.</p>
+      <p>&copy; 2025 Hachi Pet Shop. All rights reserved.</p>
       <p>Email: <a href="mailto:info@petshop.com" class="text-decoration-none text-white">info@petshop.com</a></p>
     </div>
   </footer>

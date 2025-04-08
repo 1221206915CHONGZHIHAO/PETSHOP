@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>About Us - Pet Shop</title>
+  <title>About Us - Hachi Pet Shop</title>
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- Bootstrap CSS -->
@@ -20,7 +20,7 @@
     <!-- Brand on the left -->
     <a class="navbar-brand" href="userhomepage.php">
       <img src="cat_paw.png" alt="Pet Shop" width="50">
-      <span>Pet Shop</span>
+      <span>Hachi Pet Shop</span>
     </a>
     
     <!-- Toggler for mobile view -->

@@ -1,149 +1,225 @@
-<?php
-require_once 'db.php';
-
-// =========== FETCH DISTINCT CATEGORIES ===========
-// If you store categories in the `Category` column, you can fetch them like this:
-$categoryStmt = $pdo->query("SELECT DISTINCT Category FROM products");
-$categories = $categoryStmt->fetchAll(PDO::FETCH_COLUMN);
-
-// =========== FILTERING LOGIC ===========
-// We'll capture any category filter from GET parameters
-$selectedCategory = isset($_GET['category']) ? $_GET['category'] : '';
-
-// We'll capture any sorting parameter from GET
-$sort = isset($_GET['sort']) ? $_GET['sort'] : 'best_selling';
-
-// Base query
-$query = "SELECT * FROM products";
-
-// If a category is selected, add a WHERE clause
-if ($selectedCategory) {
-    $query .= " WHERE Category = :cat";
-}
-
-// Add sorting
-switch ($sort) {
-    case 'price_asc':
-        $query .= " ORDER BY price ASC";
-        break;
-    case 'price_desc':
-        $query .= " ORDER BY price DESC";
-        break;
-    default:
-        // 'best_selling' is just a placeholder. If you have a field or logic for "best selling",
-        // you'd order by that field. Otherwise, let's default to newest or product_name, etc.
-        $query .= " ORDER BY product_id DESC";
-        break;
-}
-
-$stmt = $pdo->prepare($query);
-
-// Bind category if needed
-if ($selectedCategory) {
-    $stmt->bindValue(':cat', $selectedCategory);
-}
-
-$stmt->execute();
-$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Pet Shop - Product Listing</title>
-    <!-- Bootstrap 5 CSS (CDN) -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom CSS (optional) -->
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pet Shop - Product List</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <!-- Custom CSS（如有需要可自行创建） -->
+  <link rel="stylesheet" href="userhomepage.css">
+  
+  <style>
+    /* 你可以在此处编写特定的定制样式，也可在单独的 CSS 文件中编写 */
+    .custom-nav {
+      background-color: #343a40; /* 与 userhomepage.css 保持一致或按需修改 */
+    }
+    .filter-section h5 {
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    .filter-section .list-group-item {
+      border: none; /* 移除默认边框，风格可自行调整 */
+      padding: 0.3rem 0;
+    }
+    .filter-section .list-group-item a {
+      text-decoration: none;
+      color: #333;
+    }
+    .filter-section .list-group-item a:hover {
+      color: #007bff;
+    }
+    .product-card {
+      transition: transform 0.2s;
+    }
+    .product-card:hover {
+      transform: scale(1.02);
+    }
+    .card-img-top {
+      height: 200px; /* 示例固定高度，实际可根据需求调整 */
+      object-fit: cover;
+    }
+    /* 面包屑、筛选区域等可根据需求调整 */
+  </style>
 </head>
 <body>
 
-<!-- NAVBAR -->
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="#">Pet Shop</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
-       aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-       <span class="navbar-toggler-icon"></span>
-    </button>
-  </div>
-</nav>
+<!-- ========== NAVBAR (from userhomepage.php) ========== -->
+<nav class="navbar navbar-expand-lg navbar-dark custom-nav">
+  <div class="container">
+    <!-- Brand on the left -->
+    <a class="navbar-brand" href="userhomepage.php">
+      <img src="cat_paw.png" alt="Pet Shop" width="50">
+      <span>Pet Shop</span>
+    </a>
 
-<!-- MAIN CONTAINER -->
-<div class="container-fluid mt-4">
-  <div class="row">
-    <!-- SIDEBAR -->
-    <div class="col-md-3">
-      <h5>Categories</h5>
-      <ul class="list-group mb-4">
-        <?php foreach ($categories as $cat): ?>
-          <li class="list-group-item <?php if($cat === $selectedCategory) echo 'active'; ?>">
-            <a href="?category=<?= urlencode($cat) ?>" 
-               class="<?php if($cat === $selectedCategory) echo 'text-white'; ?>">
-              <?= htmlspecialchars($cat) ?>
-            </a>
-          </li>
-        <?php endforeach; ?>
-        <!-- Optional: A link to clear the filter -->
-        <li class="list-group-item">
-          <a href="index.php">All Categories</a>
-        </li>
+    <!-- Toggler for mobile view -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <!-- Main nav links centered -->
+      <ul class="navbar-nav mx-auto">
+        <li class="nav-item"><a class="nav-link active" href="userhomepage.php">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Shop</a></li>
+        <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Product</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
       </ul>
 
-      <!-- If you had a brand filter, you could replicate a similar structure here. -->
-      <!-- <h5>Brands</h5>
-      <ul class="list-group">
-        ...
-      </ul> -->
-    </div>
+      <!-- Icons on the right -->
+      <ul class="navbar-nav ms-auto">
+        <!-- Search Icon with Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-search" style="font-size: 1.2rem;"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="searchDropdown" style="min-width: 250px;">
+            <form class="d-flex">
+              <input class="form-control me-2" type="search" placeholder="Search..." aria-label="Search">
+              <button class="btn btn-primary" type="submit">Go</button>
+            </form>
+          </ul>
+        </li>
 
-    <!-- PRODUCT LISTING -->
+        <!-- Cart Icon with Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#" id="cartDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-cart" style="font-size: 1.2rem;"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="cartDropdown">
+            <li><a class="dropdown-item" href="#">Your cart is empty</a></li>
+          </ul>
+        </li>
+
+        <!-- User Icon with Dynamic Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person" style="font-size: 1.2rem;"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <?php if(isset($_SESSION['customer_id'])): ?>
+              <li class="dropdown-item-text">
+                <?php echo htmlspecialchars($_SESSION['customer_name']); ?>
+              </li>
+              <li><a class="dropdown-item" href="account_setting.php">Account Settings</a></li>
+              <li><a class="dropdown-item" href="logout.php">Logout</a></li>
+            <?php else: ?>
+              <li><a class="dropdown-item" href="admin_login.php">Login</a></li>
+              <li><a class="dropdown-item" href="admin_register.php">Register</a></li>
+            <?php endif; ?>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<!-- ========== END NAVBAR ========== -->
+
+<!-- Main Container -->
+<div class="container py-4">
+  <!-- 如果需要面包屑，可自行添加： 
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="userhomepage.php">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Shop</li>
+    </ol>
+  </nav>
+  -->
+
+  <!-- 左侧过滤栏 + 右侧商品列表 -->
+  <div class="row">
+    <!-- 过滤栏 -->
+    <aside class="col-md-3 filter-section">
+      <!-- Categories -->
+      <h5>Categories</h5>
+      <ul class="list-group mb-4">
+        <li class="list-group-item"><a href="#">Dog > Dry Food</a></li>
+        <li class="list-group-item"><a href="#">Dog > Freeze Dried &amp; Air Dried</a></li>
+        <li class="list-group-item"><a href="#">Dog > Treats</a></li>
+        <li class="list-group-item"><a href="#">Dog > Wet Food</a></li>
+      </ul>
+
+      <!-- Brands -->
+      <h5>Brands</h5>
+      <ul class="list-group mb-4">
+        <li class="list-group-item"><a href="#">ProBalance</a></li>
+      </ul>
+    </aside>
+
+    <!-- 右侧商品列表 -->
     <div class="col-md-9">
+      <!-- 顶部信息与排序 -->
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h4 mb-0">Products</h2>
-        <form method="get" class="d-flex">
-          <?php if ($selectedCategory): ?>
-            <input type="hidden" name="category" value="<?= htmlspecialchars($selectedCategory) ?>">
-          <?php endif; ?>
-          <label for="sort" class="me-2 align-self-center">Sort By:</label>
-          <select name="sort" id="sort" class="form-select" onchange="this.form.submit()">
-            <option value="best_selling" <?php if($sort === 'best_selling') echo 'selected'; ?>>Best Selling</option>
-            <option value="price_asc" <?php if($sort === 'price_asc') echo 'selected'; ?>>Price: Low to High</option>
-            <option value="price_desc" <?php if($sort === 'price_desc') echo 'selected'; ?>>Price: High to Low</option>
+        <p class="mb-0">814 items found for Food &amp; Treats</p>
+        
+        <div class="d-flex align-items-center">
+          <label for="sortSelect" class="me-2">Sort By:</label>
+          <select id="sortSelect" class="form-select form-select-sm" style="width: auto;">
+            <option value="best-selling">Best Selling</option>
+            <option value="lowest-price">Lowest Price</option>
+            <option value="highest-price">Highest Price</option>
+            <option value="new-arrivals">New Arrivals</option>
           </select>
-        </form>
+        </div>
       </div>
 
-      <div class="row row-cols-1 row-cols-md-3 g-4">
-        <?php if($products): ?>
-          <?php foreach ($products as $product): ?>
-            <div class="col">
-              <div class="card h-100">
-                <img src="<?= htmlspecialchars($product['image_url']) ?>" 
-                     class="card-img-top" 
-                     alt="<?= htmlspecialchars($product['product_name']) ?>" 
-                     style="object-fit: cover; height: 200px;">
-                <div class="card-body d-flex flex-column">
-                  <h5 class="card-title"><?= htmlspecialchars($product['product_name']) ?></h5>
-                  <p class="card-text text-muted mb-2">$<?= number_format($product['price'], 2) ?></p>
-                  <p class="card-text small text-truncate"><?= htmlspecialchars($product['description']) ?></p>
-                  <div class="mt-auto">
-                    <a href="product.php?id=<?= $product['product_id'] ?>" 
-                       class="btn btn-primary w-100">View Details</a>
-                  </div>
-                </div>
-              </div>
+      <!-- 商品卡片列表：Bootstrap Cards -->
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+        <!-- 示例卡片 1 -->
+        <div class="col">
+          <div class="card product-card h-100">
+            <img src="ProBalance_tenderlamb.png" class="card-img-top" alt="Probalance Pouch Tender Lamb 100g">
+            <div class="card-body">
+              <h5 class="card-title">Probalance Pouch Tender Lamb 100g</h5>
+              <p class="card-text">With Veggie in Gravy Wet Dog Food</p>
             </div>
-          <?php endforeach; ?>
-        <?php else: ?>
-          <p>No products found.</p>
-        <?php endif; ?>
+            <div class="card-footer bg-white">
+              <button class="btn btn-primary w-100">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 示例卡片 2 -->
+        <div class="col">
+          <div class="card product-card h-100">
+            <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Probalance Gourmet">
+            <div class="card-body">
+              <h5 class="card-title">Probalance Gourmet</h5>
+              <p class="card-text">Selection 100g Wet Dog Food</p>
+            </div>
+            <div class="card-footer bg-white">
+              <button class="btn btn-primary w-100">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 示例卡片 3 -->
+        <div class="col">
+          <div class="card product-card h-100">
+            <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Probalance 700g">
+            <div class="card-body">
+              <h5 class="card-title">Probalance 700g</h5>
+              <p class="card-text">In Loaf Wet Dog Food</p>
+            </div>
+            <div class="card-footer bg-white">
+              <button class="btn btn-primary w-100">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 你可以根据数据库动态加载更多商品卡片 -->
       </div>
     </div>
   </div>
 </div>
 
-<!-- Bootstrap 5 JS (CDN) -->
+<!-- Bootstrap JS (necessary for dropdown, etc.) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
