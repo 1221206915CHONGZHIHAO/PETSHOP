@@ -8,9 +8,21 @@ body {
   color: #333;
 }
 
-/* 自定义导航栏 */
+/* Navigation (Function Bar) */
 .custom-nav {
-  background-color: #343a40;
+  background-color: #6b6565; /* Dark background */
+  border-bottom: 4px solid #ff6600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Hover Dropdown: show .dropdown-menu when parent .dropdown-hover is hovered */
+.dropdown-hover:hover > .dropdown-menu {
+  display: block;
+}
+
+/* Ensures dropdown is positioned properly when shown on hover */
+.dropdown-menu {
+  margin-top: 0;
 }
 
 /* 过滤栏样式 */
