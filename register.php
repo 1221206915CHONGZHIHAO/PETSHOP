@@ -55,7 +55,7 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Register</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="adminRegister.css">
+    <link rel="stylesheet" href="Register.css">
 </head>
 <body>
 <div class="register-container">
@@ -93,7 +93,7 @@ $conn->close();
         <button type="submit" class="btn btn-primary w-100">Register</button>
     </form>
 
-    <p class="text-center mt-3">Already have an account? <a href="admin_login.php">Login here</a></p>
+    <p class="text-center mt-3">Already have an account? <a href="login.php">Login here</a></p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

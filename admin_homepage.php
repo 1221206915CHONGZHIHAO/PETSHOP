@@ -32,7 +32,7 @@
     </div>
     <div>
         <span class="text-light me-3">Welcome, Admin</span>
-        <a href="admin_login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 
@@ -102,7 +102,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light" href="#">
+                        <a class="nav-link text-light" href="admin_setting.php">
                             <i class="fas fa-cog me-2"></i>Settings
                         </a>
                     </li>

@@ -1,8 +1,5 @@
 <?php
 include('db_connection.php');
-
-$sql = "SELECT * FROM Staff";
-$result = $conn->query($sql);
 ?>
 
 <!DOCTYPE html>
@@ -15,17 +12,23 @@ $result = $conn->query($sql);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin_home.css">
     <style>
-        /* Only adding modal-specific styles */
-        .delete-modal .modal-header {
-            background-color: #dc3545;
-            color: white;
+        .deactivate-modal .modal-header {
+            background-color: #ffc107;
+            color: #000;
         }
-        .delete-modal .modal-title i {
+        .deactivate-modal .modal-title i {
             margin-right: 8px;
         }
-        .delete-modal .staff-name {
-            color: #dc3545;
+        .deactivate-modal .staff-name {
+            color: #ffc107;
             font-weight: 600;
+        }
+        .nav-tabs .nav-link.active {
+            font-weight: bold;
+            border-bottom: 3px solid #0d6efd;
+        }
+        .tab-pane {
+            padding-top: 20px;
         }
     </style>
 </head>
@@ -40,7 +43,7 @@ $result = $conn->query($sql);
     </div>
     <div>
         <span class="text-light me-3">Welcome, Admin</span>
-        <a href="admin_login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 
@@ -129,78 +132,138 @@ $result = $conn->query($sql);
                 </div>
             </div>
 
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Username</th>
-                            <th>Email</th>
-                            <th>Position</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php while ($row = $result->fetch_assoc()): ?>
-                            <tr>
-                                <td><?php echo $row['Staff_ID']; ?></td>
-                                <td><?php echo $row['Staff_name']; ?></td>
-                                <td><?php echo $row['Staff_Username']; ?></td>
-                                <td><?php echo $row['Staff_Email']; ?></td>
-                                <td><?php echo $row['position']; ?></td>
-                                <td>
-                                    <span class="badge bg-<?php 
-                                        echo ($row['status'] == 'Active') ? 'success' : 
-                                             (($row['status'] == 'Inactive') ? 'danger' : 'warning'); 
-                                    ?>">
-                                        <?php echo $row['status']; ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <a href="edit_staff.php?id=<?php echo $row['Staff_ID']; ?>" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <button class="btn btn-sm btn-danger delete-btn" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#deleteModal"
-                                            data-staff-id="<?php echo $row['Staff_ID']; ?>"
-                                            data-staff-name="<?php echo htmlspecialchars($row['Staff_name']); ?>">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        <?php endwhile; ?>
-                    </tbody>
-                </table>
+            <!-- Tabs Navigation -->
+            <ul class="nav nav-tabs" id="staffTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active-staff" type="button" role="tab">
+                        <i class="fas fa-user-check me-1"></i> Active Staff
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="inactive-tab" data-bs-toggle="tab" data-bs-target="#inactive-staff" type="button" role="tab">
+                        <i class="fas fa-user-slash me-1"></i> Inactive Staff
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tabs Content -->
+            <div class="tab-content" id="staffTabsContent">
+                <!-- Active Staff Tab -->
+                <div class="tab-pane fade show active" id="active-staff" role="tabpanel" aria-labelledby="active-tab">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Position</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php 
+                                $sql_active = "SELECT * FROM Staff WHERE status = 'Active'";
+                                $result_active = $conn->query($sql_active);
+                                while ($row = $result_active->fetch_assoc()): ?>
+                                    <tr>
+                                        <td><?php echo $row['Staff_ID']; ?></td>
+                                        <td><?php echo $row['Staff_name']; ?></td>
+                                        <td><?php echo $row['Staff_Username']; ?></td>
+                                        <td><?php echo $row['Staff_Email']; ?></td>
+                                        <td><?php echo $row['position']; ?></td>
+                                        <td><span class="badge bg-success">Active</span></td>
+                                        <td>
+                                            <a href="edit_staff.php?id=<?php echo $row['Staff_ID']; ?>" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button class="btn btn-sm btn-warning deactivate-btn" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deactivateModal"
+                                                    data-staff-id="<?php echo $row['Staff_ID']; ?>"
+                                                    data-staff-name="<?php echo htmlspecialchars($row['Staff_name']); ?>">
+                                                <i class="fas fa-user-slash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Inactive Staff Tab -->
+                <div class="tab-pane fade" id="inactive-staff" role="tabpanel" aria-labelledby="inactive-tab">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Position</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php 
+                                $sql_inactive = "SELECT * FROM Staff WHERE status = 'Inactive'";
+                                $result_inactive = $conn->query($sql_inactive);
+                                while ($row = $result_inactive->fetch_assoc()): ?>
+                                    <tr>
+                                        <td><?php echo $row['Staff_ID']; ?></td>
+                                        <td><?php echo $row['Staff_name']; ?></td>
+                                        <td><?php echo $row['Staff_Username']; ?></td>
+                                        <td><?php echo $row['Staff_Email']; ?></td>
+                                        <td><?php echo $row['position']; ?></td>
+                                        <td><span class="badge bg-danger">Inactive</span></td>
+                                        <td>
+                                            <a href="edit_staff.php?id=<?php echo $row['Staff_ID']; ?>" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="activate_staff.php?id=<?php echo $row['Staff_ID']; ?>" 
+                                                class="btn btn-sm btn-success"
+                                                onclick="return confirm('Reactivating will send a temporary password. Continue?')">
+                                                <i class="fas fa-user-check"></i> Reactivate
+                                                </a>
+                                        </td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
 </div>
 
-<!-- Delete Confirmation Modal (NEW ADDITION) -->
-<div class="modal fade delete-modal" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+<!-- Deactivate Confirmation Modal -->
+<div class="modal fade deactivate-modal" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="deleteModalLabel">
-                    <i class="fas fa-exclamation-triangle"></i> Confirm Deletion
+                <h5 class="modal-title" id="deactivateModalLabel">
+                    <i class="fas fa-exclamation-triangle"></i> Confirm Deactivation
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to delete the following staff member?</p>
+                <p>Are you sure you want to deactivate the following staff member?</p>
                 <p><strong>ID:</strong> <span id="modalStaffId"></span></p>
                 <p><strong>Name:</strong> <span class="staff-name" id="modalStaffName"></span></p>
-                <p class="text-danger"><small>This action cannot be undone!</small></p>
+                <p class="text-danger"><small>This staff member will no longer be able to access the system!</small></p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times"></i> Cancel
                 </button>
-                <a id="confirmDeleteBtn" href="#" class="btn btn-danger">
-                    <i class="fas fa-trash-alt"></i> Confirm Delete
+                <a id="confirmDeactivateBtn" href="#" class="btn btn-warning">
+                    <i class="fas fa-user-slash"></i> Confirm Deactivate
                 </a>
             </div>
         </div>
@@ -209,17 +272,16 @@ $result = $conn->query($sql);
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// Only new JavaScript added for modal functionality
 document.addEventListener('DOMContentLoaded', function() {
-    var deleteModal = document.getElementById('deleteModal');
-    deleteModal.addEventListener('show.bs.modal', function(event) {
+    var deactivateModal = document.getElementById('deactivateModal');
+    deactivateModal.addEventListener('show.bs.modal', function(event) {
         var button = event.relatedTarget;
         var staffId = button.getAttribute('data-staff-id');
         var staffName = button.getAttribute('data-staff-name');
         
         document.getElementById('modalStaffId').textContent = staffId;
         document.getElementById('modalStaffName').textContent = staffName;
-        document.getElementById('confirmDeleteBtn').href = 'delete_staff.php?id=' + staffId;
+        document.getElementById('confirmDeactivateBtn').href = 'deactivate_staff.php?id=' + staffId;
     });
 });
 </script>
