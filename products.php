@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hachi Pet Shop - Product List</title>
+  <title>Hachi Pet Shop - Home</title>
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-  <!-- Custom CSS（如有需要可自行创建） -->
+  <!-- Custom CSS -->
   <link rel="stylesheet" href="products.css">
 </head>
 <body>
-
+<!-- Navigation -->
 <nav class="navbar navbar-expand-lg navbar-dark custom-nav">
   <div class="container">
     <!-- Brand on the left -->
@@ -22,7 +22,7 @@
       <img src="cat_paw.png" alt="Pet Shop" width="50">
       <span>Hachi Pet Shop</span>
     </a>
-
+    
     <!-- Toggler for mobile view -->
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
@@ -70,12 +70,14 @@
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
             <?php if(isset($_SESSION['customer_id'])): ?>
+              <!-- If user is logged in, show username and account links -->
               <li class="dropdown-item-text">
                 <?php echo htmlspecialchars($_SESSION['customer_name']); ?>
               </li>
               <li><a class="dropdown-item" href="account_setting.php">Account Settings</a></li>
               <li><a class="dropdown-item" href="logout.php">Logout</a></li>
             <?php else: ?>
+              <!-- If not logged in, show login/register links -->
               <li><a class="dropdown-item" href="admin_login.php">Login</a></li>
               <li><a class="dropdown-item" href="admin_register.php">Register</a></li>
             <?php endif; ?>
@@ -85,7 +87,6 @@
     </div>
   </div>
 </nav>
-<!-- ========== END NAVBAR ========== -->
 
 <!-- Main Container -->
 <div class="container py-4">
