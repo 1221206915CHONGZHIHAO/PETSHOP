@@ -11,9 +11,7 @@
   <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
   <!-- Custom CSS（如有需要可自行创建） -->
-  <link rel="stylesheet" href="product.css">
-</head>
-<body>
+  <link rel="stylesheet" href="userhomepage.css">
 
 <!-- ========== NAVBAR (from userhomepage.php) ========== -->
 <nav class="navbar navbar-expand-lg navbar-dark custom-nav">
