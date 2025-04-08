@@ -1,114 +1,229 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>宠物产品列表</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pet Shop - Product List</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <!-- Custom CSS（如有需要可自行创建） -->
+  <link rel="stylesheet" href="userhomepage.css">
+  
   <style>
-    /* 全局样式，选用优雅的 Georgia 字体，背景使用宠物主题的图片 */
-    body {
-      font-family: 'Georgia', serif;
-      background: url('pet-background.jpg') no-repeat center center fixed;
-      background-size: cover;
-      margin: 0;
-      padding: 0;
+    /* 你可以在此处编写特定的定制样式，也可在单独的 CSS 文件中编写 */
+    .custom-nav {
+      background-color: #343a40; /* 与 userhomepage.css 保持一致或按需修改 */
+    }
+    .filter-section h5 {
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    .filter-section .list-group-item {
+      border: none; /* 移除默认边框，风格可自行调整 */
+      padding: 0.3rem 0;
+    }
+    .filter-section .list-group-item a {
+      text-decoration: none;
       color: #333;
     }
-    /* 页面头部 */
-    .header {
-      background-color: rgba(255, 255, 255, 0.85);
-      padding: 20px;
-      text-align: center;
-      border-bottom: 2px solid #eee;
+    .filter-section .list-group-item a:hover {
+      color: #007bff;
     }
-    .header h1 {
-      margin: 0;
-      font-size: 2.5em;
-    }
-    /* 主体容器 */
-    .container {
-      max-width: 1200px;
-      margin: 40px auto;
-      padding: 20px;
-      background-color: rgba(255,255,255,0.95);
-      border-radius: 8px;
-    }
-    /* 产品列表使用 CSS Grid 布局 */
-    .product-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-    }
-    /* 单个产品卡片 */
     .product-card {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      background-color: #fff;
-      transition: transform 0.3s;
+      transition: transform 0.2s;
     }
     .product-card:hover {
-      transform: scale(1.03);
+      transform: scale(1.02);
     }
-    /* 产品图片区域 */
-    .product-image img {
-      width: 100%;
-      height: auto;
+    .card-img-top {
+      height: 200px; /* 示例固定高度，实际可根据需求调整 */
+      object-fit: cover;
     }
-    /* 产品详情 */
-    .product-details {
-      padding: 15px;
-    }
-    .product-details h3 {
-      margin: 0 0 10px;
-      font-size: 1.4em;
-      color: #555;
-    }
-    .product-details p {
-      font-size: 1em;
-      margin: 0 0 15px;
-      line-height: 1.5;
-    }
-    /* 按钮样式 */
-    .btn {
-      display: inline-block;
-      padding: 10px 20px;
-      background-color: #5a8f7b;
-      color: #fff;
-      text-decoration: none;
-      border-radius: 5px;
-      transition: background-color 0.3s;
-    }
-    .btn:hover {
-      background-color: #487a67;
-    }
+    /* 面包屑、筛选区域等可根据需求调整 */
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>高尚宠物商店</h1>
-  </div>
+
+<!-- ========== NAVBAR (from userhomepage.php) ========== -->
+<nav class="navbar navbar-expand-lg navbar-dark custom-nav">
   <div class="container">
-    <div class="product-grid">
-      <!-- 以下部分为示例代码，实际中请用循环遍历从数据库中获取的产品数据 -->
-      <div class="product-card">
-        <div class="product-image">
-          <!-- 替换成数据库中产品图片的路径 -->
-          <img src="path/to/product-image.jpg" alt="宠物玩具">
-        </div>
-        <div class="product-details">
-          <!-- 替换为产品名称 -->
-          <h3>宠物玩具</h3>
-          <!-- 替换为产品描述 -->
-          <p>精选优质材料制作，适合各种宠物使用，安全健康。</p>
-          <!-- 替换为产品价格 -->
-          <p>价格：¥120</p>
-          <!-- “加入购物车”按钮，可配置为相应的后端链接或JS函数 -->
-          <a href="shopping-cart.html?product_id=1" class="btn">加入购物车</a>
-        </div>
-      </div>
-      <!-- 可根据数据库记录添加更多产品卡片 -->
+    <!-- Brand on the left -->
+    <a class="navbar-brand" href="userhomepage.php">
+      <img src="cat_paw.png" alt="Pet Shop" width="50">
+      <span>Pet Shop</span>
+    </a>
+
+    <!-- Toggler for mobile view -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <!-- Main nav links centered -->
+      <ul class="navbar-nav mx-auto">
+        <li class="nav-item"><a class="nav-link active" href="userhomepage.php">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Shop</a></li>
+        <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Product</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
+      </ul>
+
+      <!-- Icons on the right -->
+      <ul class="navbar-nav ms-auto">
+        <!-- Search Icon with Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-search" style="font-size: 1.2rem;"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="searchDropdown" style="min-width: 250px;">
+            <form class="d-flex">
+              <input class="form-control me-2" type="search" placeholder="Search..." aria-label="Search">
+              <button class="btn btn-primary" type="submit">Go</button>
+            </form>
+          </ul>
+        </li>
+
+        <!-- Cart Icon with Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#" id="cartDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-cart" style="font-size: 1.2rem;"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="cartDropdown">
+            <li><a class="dropdown-item" href="#">Your cart is empty</a></li>
+          </ul>
+        </li>
+
+        <!-- User Icon with Dynamic Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person" style="font-size: 1.2rem;"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <?php if(isset($_SESSION['customer_id'])): ?>
+              <li class="dropdown-item-text">
+                <?php echo htmlspecialchars($_SESSION['customer_name']); ?>
+              </li>
+              <li><a class="dropdown-item" href="account_setting.php">Account Settings</a></li>
+              <li><a class="dropdown-item" href="logout.php">Logout</a></li>
+            <?php else: ?>
+              <li><a class="dropdown-item" href="admin_login.php">Login</a></li>
+              <li><a class="dropdown-item" href="admin_register.php">Register</a></li>
+            <?php endif; ?>
+          </ul>
+        </li>
+      </ul>
     </div>
   </div>
+</nav>
+<!-- ========== END NAVBAR ========== -->
+
+<!-- Main Container -->
+<div class="container py-4">
+  <!-- 如果需要面包屑，可自行添加： 
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="userhomepage.php">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Shop</li>
+    </ol>
+  </nav>
+  -->
+
+  <!-- 左侧过滤栏 + 右侧商品列表 -->
+  <div class="row">
+    <!-- 过滤栏 -->
+    <aside class="col-md-3 filter-section">
+      <!-- Categories -->
+      <h5>Categories</h5>
+      <ul class="list-group mb-4">
+        <li class="list-group-item"><a href="#">Dog > Dry Food</a></li>
+        <li class="list-group-item"><a href="#">Dog > Freeze Dried &amp; Air Dried</a></li>
+        <li class="list-group-item"><a href="#">Dog > Treats</a></li>
+        <li class="list-group-item"><a href="#">Dog > Wet Food</a></li>
+      </ul>
+
+      <!-- Brands -->
+      <h5>Brands</h5>
+      <ul class="list-group mb-4">
+        <li class="list-group-item"><a href="#">Acana</a></li>
+        <li class="list-group-item"><a href="#">Aplus</a></li>
+        <li class="list-group-item"><a href="#">Armaniov</a></li>
+        <li class="list-group-item"><a href="#">Araton</a></li>
+        <li class="list-group-item"><a href="#">+ More</a></li>
+      </ul>
+    </aside>
+
+    <!-- 右侧商品列表 -->
+    <div class="col-md-9">
+      <!-- 顶部信息与排序 -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <p class="mb-0">814 items found for Food &amp; Treats</p>
+        
+        <div class="d-flex align-items-center">
+          <label for="sortSelect" class="me-2">Sort By:</label>
+          <select id="sortSelect" class="form-select form-select-sm" style="width: auto;">
+            <option value="best-selling">Best Selling</option>
+            <option value="lowest-price">Lowest Price</option>
+            <option value="highest-price">Highest Price</option>
+            <option value="new-arrivals">New Arrivals</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 商品卡片列表：Bootstrap Cards -->
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+        <!-- 示例卡片 1 -->
+        <div class="col">
+          <div class="card product-card h-100">
+            <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Probalance Pouch 100g">
+            <div class="card-body">
+              <h5 class="card-title">Probalance Pouch 100g</h5>
+              <p class="card-text">With Veggie in Gravy Wet Dog Food</p>
+            </div>
+            <div class="card-footer bg-white">
+              <button class="btn btn-primary w-100">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 示例卡片 2 -->
+        <div class="col">
+          <div class="card product-card h-100">
+            <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Probalance Gourmet">
+            <div class="card-body">
+              <h5 class="card-title">Probalance Gourmet</h5>
+              <p class="card-text">Selection 100g Wet Dog Food</p>
+            </div>
+            <div class="card-footer bg-white">
+              <button class="btn btn-primary w-100">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 示例卡片 3 -->
+        <div class="col">
+          <div class="card product-card h-100">
+            <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Probalance 700g">
+            <div class="card-body">
+              <h5 class="card-title">Probalance 700g</h5>
+              <p class="card-text">In Loaf Wet Dog Food</p>
+            </div>
+            <div class="card-footer bg-white">
+              <button class="btn btn-primary w-100">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 你可以根据数据库动态加载更多商品卡片 -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS (necessary for dropdown, etc.) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
