@@ -7,10 +7,27 @@ body {
   
   /* Custom Navigation */
   .custom-nav {
-    background-color:  #343a40;      /* Dark background */
+    background-color: #343a40;
     border-bottom: 4px solid #ff6600;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+    /* 调整导航栏高度与内边距 */
+    min-height: 80px;       /* 导航栏最小高度，可根据需求调大或调小 */
+    padding: 10px 20px;     /* 内边距，上下10px，左右20px */
   }
+  
+  .custom-nav .navbar-brand img {
+    /* 统一 Logo 大小 */
+    height: 50px;     /* 或者使用 width，根据你的实际图片比例设置 */
+    width: auto;
+  }
+  
+  .custom-nav .nav-link {
+    /* 统一导航链接的字体与内外边距 */
+    font-size: 1rem;
+    padding: 8px 12px;
+  }
+  
   
   /* Hero Section for About Page */
   .hero-section-about {

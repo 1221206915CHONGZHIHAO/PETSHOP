@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pet Shop - Product List</title>
+  <title>Hachi Pet Shop - Product List</title>
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- Bootstrap CSS -->
@@ -20,7 +20,7 @@
     <!-- Brand on the left -->
     <a class="navbar-brand" href="userhomepage.php">
       <img src="cat_paw.png" alt="Pet Shop" width="50">
-      <span>Pet Shop</span>
+      <span>Hachi Pet Shop</span>
     </a>
 
     <!-- Toggler for mobile view -->
@@ -32,7 +32,7 @@
       <!-- Main nav links centered -->
       <ul class="navbar-nav mx-auto">
         <li class="nav-item"><a class="nav-link active" href="userhomepage.php">Home</a></li>
-        <li class="nav-item"><a class="nav-link" href="#">Shop</a></li>
+        <li class="nav-item"><a class="nav-link" href="products.php">Shop</a></li>
         <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
         <li class="nav-item"><a class="nav-link" href="#">Product</a></li>
         <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
@@ -134,7 +134,7 @@
             <img src="ProBalance_tenderlamb.png" class="card-img-top" alt="Probalance Pouch Tender Lamb 100g">
             <div class="card-body">
               <h5 class="card-title">Probalance Pouch Tender Lamb 100g</h5>
-              <p class="product-price">Price: $120</p>
+              <p class="product-price">Price: RM4.50</p>
             </div>
             <div class="card-footer bg-white">
               <button class="btn btn-primary w-100">Add to Cart</button>

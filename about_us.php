@@ -32,7 +32,7 @@
       <!-- Main nav links centered -->
       <ul class="navbar-nav mx-auto">
         <li class="nav-item"><a class="nav-link active" href="userhomepage.php">Home</a></li>
-        <li class="nav-item"><a class="nav-link" href="#">Shop</a></li>
+        <li class="nav-item"><a class="nav-link" href="products.php">Shop</a></li>
         <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
         <li class="nav-item"><a class="nav-link" href="#">Product</a></li>
         <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
