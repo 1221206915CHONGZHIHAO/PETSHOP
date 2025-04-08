@@ -59,7 +59,7 @@
             <i class="bi bi-cart" style="font-size: 1.2rem;"></i>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="cartDropdown">
-            <li><a class="dropdown-item" href="#">Your cart is empty</a></li>
+            <li><a class="dropdown-item" href="cart.php">Your cart is empty</a></li>
           </ul>
         </li>
 
