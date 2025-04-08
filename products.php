@@ -11,44 +11,10 @@
   <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
   <!-- Custom CSS（如有需要可自行创建） -->
-  <link rel="stylesheet" href="userhomepage.css">
-  
-  <style>
-    /* 你可以在此处编写特定的定制样式，也可在单独的 CSS 文件中编写 */
-    .custom-nav {
-      background-color: #343a40; /* 与 userhomepage.css 保持一致或按需修改 */
-    }
-    .filter-section h5 {
-      margin-bottom: 1rem;
-      font-weight: 600;
-    }
-    .filter-section .list-group-item {
-      border: none; /* 移除默认边框，风格可自行调整 */
-      padding: 0.3rem 0;
-    }
-    .filter-section .list-group-item a {
-      text-decoration: none;
-      color: #333;
-    }
-    .filter-section .list-group-item a:hover {
-      color: #007bff;
-    }
-    .product-card {
-      transition: transform 0.2s;
-    }
-    .product-card:hover {
-      transform: scale(1.02);
-    }
-    .card-img-top {
-      height: 200px; /* 示例固定高度，实际可根据需求调整 */
-      object-fit: cover;
-    }
-    /* 面包屑、筛选区域等可根据需求调整 */
-  </style>
+  <link rel="stylesheet" href="products.css">
 </head>
 <body>
 
-<!-- ========== NAVBAR (from userhomepage.php) ========== -->
 <nav class="navbar navbar-expand-lg navbar-dark custom-nav">
   <div class="container">
     <!-- Brand on the left -->
@@ -123,16 +89,7 @@
 
 <!-- Main Container -->
 <div class="container py-4">
-  <!-- 如果需要面包屑，可自行添加： 
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="userhomepage.php">Home</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Shop</li>
-    </ol>
-  </nav>
-  -->
 
-  <!-- 左侧过滤栏 + 右侧商品列表 -->
   <div class="row">
     <!-- 过滤栏 -->
     <aside class="col-md-3 filter-section">
@@ -156,7 +113,7 @@
     <div class="col-md-9">
       <!-- 顶部信息与排序 -->
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <p class="mb-0">814 items found for Food &amp; Treats</p>
+        <p class="mb-0">3 items found for Food &amp; Treats</p>
         
         <div class="d-flex align-items-center">
           <label for="sortSelect" class="me-2">Sort By:</label>
@@ -177,7 +134,7 @@
             <img src="ProBalance_tenderlamb.png" class="card-img-top" alt="Probalance Pouch Tender Lamb 100g">
             <div class="card-body">
               <h5 class="card-title">Probalance Pouch Tender Lamb 100g</h5>
-              <p class="card-text">With Veggie in Gravy Wet Dog Food</p>
+              <p class="product-price">Price: $120</p>
             </div>
             <div class="card-footer bg-white">
               <button class="btn btn-primary w-100">Add to Cart</button>
@@ -191,7 +148,6 @@
             <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Probalance Gourmet">
             <div class="card-body">
               <h5 class="card-title">Probalance Gourmet</h5>
-              <p class="card-text">Selection 100g Wet Dog Food</p>
             </div>
             <div class="card-footer bg-white">
               <button class="btn btn-primary w-100">Add to Cart</button>
@@ -205,7 +161,6 @@
             <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Probalance 700g">
             <div class="card-body">
               <h5 class="card-title">Probalance 700g</h5>
-              <p class="card-text">In Loaf Wet Dog Food</p>
             </div>
             <div class="card-footer bg-white">
               <button class="btn btn-primary w-100">Add to Cart</button>
