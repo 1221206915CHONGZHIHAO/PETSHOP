@@ -193,7 +193,6 @@ include('db_connection.php');
                         </table>
                     </div>
                 </div>
-
                 <!-- Inactive Staff Tab -->
                 <div class="tab-pane fade" id="inactive-staff" role="tabpanel" aria-labelledby="inactive-tab">
                     <div class="table-responsive">
@@ -227,9 +226,10 @@ include('db_connection.php');
                                             </a>
                                             <a href="activate_staff.php?id=<?php echo $row['Staff_ID']; ?>" 
                                                 class="btn btn-sm btn-success"
-                                                onclick="return confirm('Reactivating will send a temporary password. Continue?')">
+                                                onclick="return confirm('Are you sure you want to reactivate this account?')">
                                                 <i class="fas fa-user-check"></i> Reactivate
-                                                </a>
+                                            </a>
+
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
