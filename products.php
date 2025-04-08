@@ -1,189 +1,197 @@
-<?php
-session_start();
-require 'db_connection.php';
-
-// 处理筛选参数
-$category = isset($_GET['category']) ? $_GET['category'] : 'all';
-$sort = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
-$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
-$per_page = 12;
-
-// 构建基础查询
-$query = "SELECT * FROM products WHERE 1=1";
-$params = [];
-$types = '';
-
-// 添加分类筛选
-if($category != 'all') {
-    $query .= " AND Category = ?";
-    $params[] = $category;
-    $types .= 's';
-}
-
-// 添加排序
-$sort_options = [
-    'newest' => 'created_at DESC',
-    'price_asc' => 'price ASC',
-    'price_desc' => 'price DESC'
-];
-$order_by = $sort_options[$sort] ?? 'created_at DESC';
-
-// 分页计算
-$count_query = "SELECT COUNT(*) as total FROM products" . ($category != 'all' ? " WHERE Category = ?" : "");
-$stmt = $conn->prepare($count_query);
-if($category != 'all') $stmt->bind_param('s', $category);
-$stmt->execute();
-$total = $stmt->get_result()->fetch_assoc()['total'];
-$total_pages = ceil($total / $per_page);
-
-// 获取产品数据
-$query .= " ORDER BY $order_by LIMIT ? OFFSET ?";
-$params[] = $per_page;
-$params[] = ($page - 1) * $per_page;
-$types .= 'ii';
-
-$stmt = $conn->prepare($query);
-if($types) $stmt->bind_param($types, ...$params);
-$stmt->execute();
-$products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>产品列表 | Pet Shop</title>
-    <link rel="stylesheet" href="css/userhomepage.css">
+    <title>Pet Paradise - 宠物商城</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&family=Nunito+Sans:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* 保持原有样式不变 */
-        .product-listing { padding: 4rem 0; }
-        .filter-sidebar { background: var(--background); padding: 2rem; border-radius: 15px; }
-        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 2rem; }
-        .pagination { display: flex; justify-content: center; margin-top: 3rem; gap: 0.5rem; }
+    :root {
+        --primary-green: #5C8D89;
+        --accent-orange: #F4A261;
+        --light-beige: #E9E2D0;
+        --deep-blue: #3D5A6C;
+    }
+
+    /* 基础样式 */
+    body {
+        font-family: 'Nunito Sans', sans-serif;
+        margin: 0;
+        background: var(--light-beige);
+    }
+
+    /* 产品列表页样式 */
+    .product-list {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2rem;
+        padding: 2rem;
+    }
+
+    .product-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .product-image {
+        height: 250px;
+        background-size: cover;
+        position: relative;
+    }
+
+    .paw-button {
+        background: var(--accent-orange);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .paw-button::after {
+        content: '';
+        background: url('data:image/svg+xml,<svg ...>') no-repeat; /* 爪印SVG */
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        top: 8px;
+        left: 8px;
+    }
+
+    /* 购物车样式 */
+    .cart-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+    }
+
+    .cart-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .bowl-counter {
+        display: flex;
+        align-items: center;
+    }
+
+    .bowl-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: var(--light-beige);
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+        .product-list {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
     </style>
 </head>
 <body>
-<?php include 'navbar.php'; ?>
+    <!-- 产品列表页 -->
+    <section class="product-list-page">
+        <div class="product-list">
+            <!-- 商品卡片示例 -->
+            <div class="product-card">
+                <div class="product-image" style="background-image: url('dog-food.jpg')"></div>
+                <div class="product-info">
+                    <h3>天然无谷狗粮</h3>
+                    <p class="price">¥<span>189</span></p>
+                    <button class="paw-button add-to-cart"></button>
+                </div>
+            </div>
+            <!-- 更多商品... -->
+        </div>
+    </section>
 
-<section class="product-listing">
-    <div class="container">
-        <h1 class="section-title">所有产品</h1>
-        
-        <div class="row g-4">
-            <!-- 筛选侧边栏 -->
-            <div class="col-lg-3">
-                <div class="filter-sidebar">
-                    <form id="filterForm">
-                        <div class="filter-group">
-                            <h4 class="filter-title">商品分类</h4>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" 
-                                       name="category" value="all" 
-                                       <?= $category == 'all' ? 'checked' : '' ?>>
-                                <label class="form-check-label">全部</label>
-                            </div>
-                            <?php 
-                            // 从数据库获取所有分类
-                            $cat_query = "SELECT DISTINCT Category FROM products";
-                            $categories = $conn->query($cat_query)->fetch_all(MYSQLI_ASSOC);
-                            
-                            foreach($categories as $cat): ?>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio"
-                                       name="category" value="<?= $cat['Category'] ?>"
-                                       <?= $category == $cat['Category'] ? 'checked' : '' ?>>
-                                <label class="form-check-label"><?= $cat['Category'] ?></label>
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
-                        
-                        <div class="filter-group">
-                            <h4 class="filter-title">排序方式</h4>
-                            <select class="form-select" name="sort">
-                                <option value="newest" <?= $sort == 'newest' ? 'selected' : '' ?>>最新上架</option>
-                                <option value="price_asc" <?= $sort == 'price_asc' ? 'selected' : '' ?>>价格从低到高</option>
-                                <option value="price_desc" <?= $sort == 'price_desc' ? 'selected' : '' ?>>价格从高到低</option>
-                            </select>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-accent w-100">应用筛选</button>
-                    </form>
+    <!-- 购物车页面 -->
+    <section class="cart-page">
+        <div class="cart-container">
+            <div class="cart-items">
+                <div class="cart-item">
+                    <img src="dog-food-thumb.jpg" alt="商品图" class="product-thumb">
+                    <div class="item-info">
+                        <h4>天然无谷狗粮</h4>
+                        <p>¥<span class="item-price">189</span></p>
+                    </div>
+                    <div class="bowl-counter">
+                        <button class="bowl-btn minus">-</button>
+                        <input type="number" value="1" class="quantity">
+                        <button class="bowl-btn plus">+</button>
+                    </div>
+                    <button class="delete-btn">🗑️</button>
                 </div>
             </div>
             
-            <!-- 产品列表 -->
-            <div class="col-lg-9">
-                <div class="product-grid">
-                    <?php foreach($products as $product): ?>
-                    <div class="product-card">
-                        <a href="product.php?id=<?= $product['product_id'] ?>">
-                            <div class="product-image">
-                                <img src="<?= htmlspecialchars($product['image_url']) ?>" 
-                                     alt="<?= htmlspecialchars($product['product_name']) ?>"
-                                     loading="lazy">
-                                <div class="product-overlay">
-                                    <button class="btn btn-accent">查看详情</button>
-                                </div>
-                            </div>
-                        </a>
-                        <div class="product-info">
-                            <h5><?= htmlspecialchars($product['product_name']) ?></h5>
-                            <div class="product-price">￥<?= number_format($product['price'], 2) ?></div>
-                            <div class="stock-info">库存: <?= $product['stock_quantity'] ?></div>
-                            <form action="add_to_cart.php" method="POST" class="quick-add">
-                                <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
-                                <input type="number" name="quantity" value="1" min="1" 
-                                       max="<?= $product['stock_quantity'] ?>" class="form-control mb-2">
-                                <button type="submit" class="btn btn-sm btn-accent w-100">
-                                    <i class="bi bi-cart-plus"></i> 加入购物车
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
+            <div class="checkout-summary">
+                <div class="total-amount">
+                    <span>总计：</span>
+                    ¥<span id="total">0</span>
                 </div>
-                
-                <!-- 分页 -->
-                <?php if($total_pages > 1): ?>
-                <div class="pagination">
-                    <?php if($page > 1): ?>
-                    <a href="?<?= http_build_query(array_merge($_GET, ['page' => $page-1])) ?>" 
-                       class="page-item">上一页</a>
-                    <?php endif; ?>
-
-                    <?php for($i = 1; $i <= $total_pages; $i++): ?>
-                    <a href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>" 
-                       class="page-item <?= $i == $page ? 'active' : '' ?>">
-                        <?= $i ?>
-                    </a>
-                    <?php endfor; ?>
-
-                    <?php if($page < $total_pages): ?>
-                    <a href="?<?= http_build_query(array_merge($_GET, ['page' => $page+1])) ?>" 
-                       class="page-item">下一页</a>
-                    <?php endif; ?>
-                </div>
-                <?php endif; ?>
+                <button class="checkout-btn">立即结账</button>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
-<?php include 'footer.php'; ?>
+    <script>
+    // 购物车功能
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
-<script>
-document.getElementById('filterForm').addEventListener('change', function() {
-    this.submit();
-});
-
-// 库存验证
-document.querySelectorAll('input[name="quantity"]').forEach(input => {
-    input.addEventListener('change', function() {
-        const max = parseInt(this.getAttribute('max'));
-        if (this.value > max) this.value = max;
-        if (this.value < 1) this.value = 1;
+    // 添加商品到购物车
+    document.querySelectorAll('.add-to-cart').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const productCard = btn.closest('.product-card');
+            const product = {
+                name: productCard.querySelector('h3').textContent,
+                price: parseFloat(productCard.querySelector('.price span').textContent),
+                quantity: 1
+            };
+            
+            const existingItem = cart.find(item => item.name === product.name);
+            if(existingItem) {
+                existingItem.quantity++;
+            } else {
+                cart.push(product);
+            }
+            
+            updateCart();
+        });
     });
-});
-</script>
+
+    // 更新购物车
+    function updateCart() {
+        localStorage.setItem('cart', JSON.stringify(cart));
+        // 此处添加DOM更新逻辑
+        calculateTotal();
+    }
+
+    // 计算总价
+    function calculateTotal() {
+        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        document.getElementById('total').textContent = total.toFixed(2);
+    }
+
+    // 初始化
+    window.addEventListener('DOMContentLoaded', () => {
+        calculateTotal();
+    });
+    </script>
 </body>
 </html>
