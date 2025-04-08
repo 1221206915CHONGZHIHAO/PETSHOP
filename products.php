@@ -156,7 +156,7 @@
     <div class="col-md-9">
       <!-- 顶部信息与排序 -->
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <p class="mb-0">814 items found for Food &amp; Treats</p>
+        <p class="mb-0">3 items found for Food &amp; Treats</p>
         
         <div class="d-flex align-items-center">
           <label for="sortSelect" class="me-2">Sort By:</label>
