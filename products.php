@@ -1,218 +1,114 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pet Food & Treats - 商品列表</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-    :root {
-        --primary-color: #2A5C8D;
-        --accent-color: #FF6B35;
-        --text-dark: #333;
-        --text-light: #666;
+  <meta charset="UTF-8">
+  <title>宠物产品列表</title>
+  <style>
+    /* 全局样式，选用优雅的 Georgia 字体，背景使用宠物主题的图片 */
+    body {
+      font-family: 'Georgia', serif;
+      background: url('pet-background.jpg') no-repeat center center fixed;
+      background-size: cover;
+      margin: 0;
+      padding: 0;
+      color: #333;
     }
-
-    /* 基础布局 */
+    /* 页面头部 */
+    .header {
+      background-color: rgba(255, 255, 255, 0.85);
+      padding: 20px;
+      text-align: center;
+      border-bottom: 2px solid #eee;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 2.5em;
+    }
+    /* 主体容器 */
     .container {
-        display: flex;
-        max-width: 1200px;
-        margin: 2rem auto;
-        gap: 2rem;
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: rgba(255,255,255,0.95);
+      border-radius: 8px;
     }
-
-    /* 侧边筛选栏 */
-    .sidebar {
-        width: 280px;
-        padding: 1rem;
-        background: #f8f8f8;
-        border-radius: 8px;
-    }
-
-    .filter-section {
-        margin-bottom: 2rem;
-    }
-
-    .filter-title {
-        font-family: 'Poppins', sans-serif;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        color: var(--text-dark);
-    }
-
-    .category-list {
-        list-style: none;
-        padding: 0;
-    }
-
-    .category-item {
-        margin-bottom: 0.5rem;
-        cursor: pointer;
-        color: var(--text-light);
-        transition: color 0.2s;
-    }
-
-    .category-item:hover {
-        color: var(--primary-color);
-    }
-
-    /* 主内容区 */
-    .main-content {
-        flex: 1;
-    }
-
-    .result-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-    }
-
-    .result-count {
-        font-size: 0.9rem;
-        color: var(--text-light);
-    }
-
-    /* 商品网格 */
+    /* 产品列表使用 CSS Grid 布局 */
     .product-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
     }
-
+    /* 单个产品卡片 */
     .product-card {
-        background: white;
-        border-radius: 8px;
-        padding: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      background-color: #fff;
+      transition: transform 0.3s;
     }
-
-    .product-image {
-        height: 180px;
-        background-color: #eee;
-        border-radius: 6px;
-        margin-bottom: 1rem;
+    .product-card:hover {
+      transform: scale(1.03);
     }
-
-    .brand-name {
-        color: var(--primary-color);
-        font-size: 0.9rem;
-        margin-bottom: 0.5rem;
+    /* 产品图片区域 */
+    .product-image img {
+      width: 100%;
+      height: auto;
     }
-
-    .product-title {
-        font-family: 'Poppins', sans-serif;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
+    /* 产品详情 */
+    .product-details {
+      padding: 15px;
     }
-
-    .product-desc {
-        color: var(--text-light);
-        font-size: 0.9rem;
-        line-height: 1.4;
-        margin-bottom: 1rem;
+    .product-details h3 {
+      margin: 0 0 10px;
+      font-size: 1.4em;
+      color: #555;
     }
-
-    .product-price {
-        color: var(--accent-color);
-        font-weight: 600;
+    .product-details p {
+      font-size: 1em;
+      margin: 0 0 15px;
+      line-height: 1.5;
     }
-
-    /* 响应式设计 */
-    @media (max-width: 768px) {
-        .container {
-            flex-direction: column;
-        }
-        
-        .sidebar {
-            width: 100%;
-        }
-
-        .product-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
+    /* 按钮样式 */
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #5a8f7b;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: background-color 0.3s;
     }
-    </style>
+    .btn:hover {
+      background-color: #487a67;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <!-- 侧边筛选栏 -->
-        <aside class="sidebar">
-            <div class="filter-section">
-                <h3 class="filter-title">Categories</h3>
-                <ul class="category-list">
-                    <li class="category-item">Dog > Dry Food (382)</li>
-                    <li class="category-item">Dog > Freeze Dried & Air Dried</li>
-                    <li class="category-item">Dog > Treats (254)</li>
-                    <li class="category-item">Dog > Wet Food (162)</li>
-                </ul>
-            </div>
-
-            <div class="filter-section">
-                <h3 class="filter-title">Brands</h3>
-                <input type="text" placeholder="Search Brand" class="search-input">
-                <ul class="category-list">
-                    <li class="category-item">Acana (10)</li>
-                    <li class="category-item">Alps (16)</li>
-                    <li class="category-item">Amanova (32)</li>
-                    <li class="category-item">Araton (2)</li>
-                    <li class="category-item">+ 51 more</li>
-                </ul>
-            </div>
-
-            <div class="filter-section">
-                <h3 class="filter-title">Price</h3>
-                <div class="price-range">
-                    <input type="number" placeholder="From" class="range-input">
-                    <span>-</span>
-                    <input type="number" placeholder="To" class="range-input">
-                </div>
-            </div>
-        </aside>
-
-        <!-- 主内容区 -->
-        <main class="main-content">
-            <div class="result-header">
-                <div class="result-count">814 Items found for Food & Treats</div>
-                <!-- 排序组件可在此添加 -->
-            </div>
-
-            <div class="product-grid">
-                <!-- 商品卡片示例 -->
-                <div class="product-card">
-                    <div class="product-image"></div>
-                    <div class="brand-name">PROBALANCE</div>
-                    <h4 class="product-title">Probalance Pouch 130g</h4>
-                    <p class="product-desc">With Veggies in Grovy Wet Dog Food</p>
-                    <div class="product-price">RM 0.00</div>
-                </div>
-
-                <!-- 更多商品... -->
-            </div>
-        </main>
+  <div class="header">
+    <h1>高尚宠物商店</h1>
+  </div>
+  <div class="container">
+    <div class="product-grid">
+      <!-- 以下部分为示例代码，实际中请用循环遍历从数据库中获取的产品数据 -->
+      <div class="product-card">
+        <div class="product-image">
+          <!-- 替换成数据库中产品图片的路径 -->
+          <img src="path/to/product-image.jpg" alt="宠物玩具">
+        </div>
+        <div class="product-details">
+          <!-- 替换为产品名称 -->
+          <h3>宠物玩具</h3>
+          <!-- 替换为产品描述 -->
+          <p>精选优质材料制作，适合各种宠物使用，安全健康。</p>
+          <!-- 替换为产品价格 -->
+          <p>价格：¥120</p>
+          <!-- “加入购物车”按钮，可配置为相应的后端链接或JS函数 -->
+          <a href="shopping-cart.html?product_id=1" class="btn">加入购物车</a>
+        </div>
+      </div>
+      <!-- 可根据数据库记录添加更多产品卡片 -->
     </div>
-
-    <script>
-    // 筛选功能逻辑
-    const categoryItems = document.querySelectorAll('.category-item');
-    categoryItems.forEach(item => {
-        item.addEventListener('click', () => {
-            // 添加选中状态样式
-            categoryItems.forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-            
-            // 这里添加筛选逻辑
-            console.log('Selected category:', item.textContent);
-        });
-    });
-
-    // 价格范围验证
-    const rangeInputs = document.querySelectorAll('.range-input');
-    rangeInputs.forEach(input => {
-        input.addEventListener('change', () => {
-            if(input.value < 0) input.value = 0;
-        });
-    });
-    </script>
+  </div>
 </body>
 </html>
