@@ -119,15 +119,20 @@ body {
   color: #333;
   margin-bottom: 10px;
 }
-.product-card .card-text {
-  font-size: 1rem;
-  color: #555;
-  margin-bottom: 10px;
-}
 .product-card .card-footer {
   background-color: transparent;
   border-top: 1px solid #ddd;
   padding: 10px;
+}
+
+/* --------------------------
+   Product Price Display
+----------------------------- */
+.product-price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ff6600;
+  margin: 10px 0 0;
 }
 
 /* --------------------------

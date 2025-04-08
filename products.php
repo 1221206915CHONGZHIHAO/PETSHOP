@@ -134,7 +134,7 @@
             <img src="ProBalance_tenderlamb.png" class="card-img-top" alt="Probalance Pouch Tender Lamb 100g">
             <div class="card-body">
               <h5 class="card-title">Probalance Pouch Tender Lamb 100g</h5>
-              <p class="card-text">With Veggie in Gravy Wet Dog Food</p>
+              <p class="product-price">Price: $120</p>
             </div>
             <div class="card-footer bg-white">
               <button class="btn btn-primary w-100">Add to Cart</button>
@@ -148,7 +148,6 @@
             <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Probalance Gourmet">
             <div class="card-body">
               <h5 class="card-title">Probalance Gourmet</h5>
-              <p class="card-text">Selection 100g Wet Dog Food</p>
             </div>
             <div class="card-footer bg-white">
               <button class="btn btn-primary w-100">Add to Cart</button>
@@ -162,7 +161,6 @@
             <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Probalance 700g">
             <div class="card-body">
               <h5 class="card-title">Probalance 700g</h5>
-              <p class="card-text">In Loaf Wet Dog Food</p>
             </div>
             <div class="card-footer bg-white">
               <button class="btn btn-primary w-100">Add to Cart</button>
