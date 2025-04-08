@@ -12,6 +12,41 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
   <!-- Custom CSS（如有需要可自行创建） -->
   <link rel="stylesheet" href="userhomepage.css">
+  
+  <style>
+    /* 你可以在此处编写特定的定制样式，也可在单独的 CSS 文件中编写 */
+    .custom-nav {
+      background-color: #343a40; /* 与 userhomepage.css 保持一致或按需修改 */
+    }
+    .filter-section h5 {
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    .filter-section .list-group-item {
+      border: none; /* 移除默认边框，风格可自行调整 */
+      padding: 0.3rem 0;
+    }
+    .filter-section .list-group-item a {
+      text-decoration: none;
+      color: #333;
+    }
+    .filter-section .list-group-item a:hover {
+      color: #007bff;
+    }
+    .product-card {
+      transition: transform 0.2s;
+    }
+    .product-card:hover {
+      transform: scale(1.02);
+    }
+    .card-img-top {
+      height: 200px; /* 示例固定高度，实际可根据需求调整 */
+      object-fit: cover;
+    }
+    /* 面包屑、筛选区域等可根据需求调整 */
+  </style>
+</head>
+<body>
 
 <!-- ========== NAVBAR (from userhomepage.php) ========== -->
 <nav class="navbar navbar-expand-lg navbar-dark custom-nav">
