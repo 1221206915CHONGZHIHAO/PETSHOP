@@ -26,7 +26,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($login_input) || empty($password)) {
         $error_message = "All fields are required.";
     } else {
-        // Admin login (should be moved to database for better security)
+        // Admin login
         if ($role === "admin" && $login_input === "ADMIN" && $password === "PETSHOP1") {
             $_SESSION['role'] = "admin";
             $_SESSION['username'] = "ADMIN";
@@ -49,7 +49,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             if (empty($error_message)) {
                 $stmt = $conn->prepare($sql);
-                if(!$stmt) {
+                if (!$stmt) {
                     $error_message = "Database error. Please try again later.";
                 } else {
                     $stmt->bind_param("ss", $login_input, $login_input);
@@ -64,14 +64,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         }
                         $stmt->fetch();
 
-                        // Check account status first
+                        // ✅ 明文密碼登入流程
                         if ($role === "staff" && $db_status !== 'Active') {
                             $error_message = "Account is inactive. Please contact administrator.";
                         } 
-                        // Check if password reset is required
                         elseif ($role === "staff" && !empty($db_reset_token)) {
-                            if (password_verify($password, $db_password)) {
-                                // Valid temporary password - redirect to reset
+                            if ($password === $db_password) {
                                 $_SESSION['reset_token'] = $db_reset_token;
                                 $_SESSION['staff_id'] = $db_staff_id;
                                 $redirect_url = "force_password_reset.php";
@@ -80,14 +78,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 $error_message = "Invalid temporary password.";
                             }
                         }
-                        // Normal password verification
-                        elseif (password_verify($password, $db_password)) {
+                        elseif ($password === $db_password) {
                             $_SESSION['role'] = $role;
                             if ($role === "staff") {
                                 $_SESSION['staff_id'] = $db_staff_id;
                                 $_SESSION['username'] = $db_username;
                                 $_SESSION['email'] = $db_email;
-                                // Clear any reset token if exists
                                 $conn->query("UPDATE Staff SET password_reset_token = NULL WHERE Staff_id = $db_staff_id");
                                 $redirect_url = "staff_homepage.php";
                             } elseif ($role === "customer") {
@@ -99,7 +95,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             $success_message = "Login successful! Redirecting...";
                         } else {
                             $error_message = "Invalid password.";
-                            // Track failed login attempts for staff
                             if ($role === "staff") {
                                 $conn->query("UPDATE Staff SET 
                                     login_attempts = login_attempts + 1, 
@@ -120,6 +115,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 $conn->close();
 ?>
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -128,7 +124,7 @@ $conn->close();
     <title>Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="adminLogin.css">
+    <link rel="stylesheet" href="Login.css">
     <style>
         #togglePassword {
             position: absolute;
@@ -193,7 +189,7 @@ $conn->close();
         </form>
 
         <p class="text-center mt-3">
-            Don't have an account? <a href="admin_register.php">Register here</a><br>
+            Don't have an account? <a href="register.php">Register here</a><br>
             <a href="forgot_password.php">Forgot Password?</a>
         </p>
     </div>

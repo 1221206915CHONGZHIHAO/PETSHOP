@@ -1,23 +1,67 @@
 <?php
-session_start();
-$conn = new mysqli("localhost", "root", "", "petshop");
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
-$error = "";
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+require 'PHPMailer/PHPMailer.php';
+require 'PHPMailer/SMTP.php';
+require 'PHPMailer/Exception.php';
+
+session_start();
+include 'db_connection.php';
+
+$error = '';
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = $_POST['email'];
-    
-    $stmt = $conn->prepare("SELECT Customer_ID FROM Customer WHERE Customer_Email = ?");
+
+    $stmt = $conn->prepare("SELECT * FROM customer WHERE Customer_email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        $user_id = $result->fetch_assoc()['Customer_ID'];
-        $_SESSION['reset_user_id'] = $user_id; 
-        header("Location: reset_password.php"); 
-        exit();
+
+    if ($result->num_rows === 1) {
+        $otp = rand(100000, 999999);
+        $_SESSION['otp'] = $otp;
+        $_SESSION['email'] = $email;
+
+        $mail = new PHPMailer(true);
+        try {
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'zhihao013@gmail.com';
+            $mail->Password = 'zaow aqot spna ewyi';
+            $mail->SMTPSecure = 'tls';
+            $mail->Port = 587;
+
+            $mail->setFrom('zhihao013@gmail.com', 'Petshop OTP System');
+            $mail->addAddress($email);
+
+            $mail->isHTML(true);
+            $mail->Subject = 'Your PetShop Verification Code';
+            $mail->Body    = "
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 2px solid #ffab91; border-radius: 15px; padding: 20px;'>
+                    <h2 style='color: #6d4c41; text-align: center;'>🐾 PetShop Password Reset 🐾</h2>
+                    <p>Hello Pet Lover!</p>
+                    <p>Your verification code is:</p>
+                    <div style='background: #f9f5f0; padding: 15px; border-radius: 10px; text-align: center; font-size: 24px; font-weight: bold; color: #5d4037; margin: 20px 0;'>
+                        $otp
+                    </div>
+                    <p>This code will expire in 10 minutes.</p>
+                    <p style='text-align: center;'><small>If you didn't request this, please ignore this email.</small></p>
+                    <div style='text-align: center; margin-top: 20px;'>
+                        <img src='https://cdn.pixabay.com/photo/2017/07/25/01/22/cat-2536662_640.jpg' width='100' style='border-radius: 50%;'>
+                    </div>
+                </div>
+            ";
+
+            $mail->send();
+            header("Location: verify_code.php");
+            exit();
+        } catch (Exception $e) {
+            $error = "Email could not be sent. Please try again later.";
+        }
     } else {
-        $error = "This email address is not registered in our system";
+        $error = "Email address not found in our system.";
     }
 }
 ?>
@@ -92,6 +136,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             border-radius: 10px;
             font-weight: bold;
             transition: all 0.3s;
+            color: white;
         }
         
         .btn-pet:hover {
@@ -156,7 +201,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="pet-header">
             <i class="fas fa-question-circle"></i>
             <h2>Forgot Your Password?</h2>
-            <p>Enter your email to reset your password</p>
+            <p>Enter your email to receive a verification code</p>
         </div>
         
         <?php if ($error): ?>
@@ -172,20 +217,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                     <input type="email" name="email" class="form-control" placeholder="meow@example.com" required>
                 </div>
-                <small class="text-muted">Enter the email you used to register</small>
+                <small class="text-muted">We'll send a verification code to this email</small>
             </div>
 
             <button type="submit" class="btn btn-pet btn-primary w-100">
-                <i class="fas fa-paper-plane me-2"></i> Verify Email
+                <i class="fas fa-paper-plane me-2"></i> Send Verification Code
             </button>
         </form>
 
         <div class="pet-footer">
-            Remembered your password? <a href="admin_login.php">Login here</a>
+            Remembered your password? <a href="login.php">Login here</a>
         </div>
     </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
