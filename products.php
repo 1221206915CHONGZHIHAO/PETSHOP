@@ -3,194 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pet Paradise - 宠物商城</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&family=Nunito+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <title>Pet Food & Treats - 商品列表</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
     :root {
-        --primary-green: #5C8D89;
-        --accent-orange: #F4A261;
-        --light-beige: #E9E2D0;
-        --deep-blue: #3D5A6C;
+        --primary-color: #2A5C8D;
+        --accent-color: #FF6B35;
+        --text-dark: #333;
+        --text-light: #666;
     }
 
-    /* 基础样式 */
-    body {
-        font-family: 'Nunito Sans', sans-serif;
-        margin: 0;
-        background: var(--light-beige);
-    }
-
-    /* 产品列表页样式 */
-    .product-list {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
+    /* 基础布局 */
+    .container {
+        display: flex;
+        max-width: 1200px;
+        margin: 2rem auto;
         gap: 2rem;
-        padding: 2rem;
+    }
+
+    /* 侧边筛选栏 */
+    .sidebar {
+        width: 280px;
+        padding: 1rem;
+        background: #f8f8f8;
+        border-radius: 8px;
+    }
+
+    .filter-section {
+        margin-bottom: 2rem;
+    }
+
+    .filter-title {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--text-dark);
+    }
+
+    .category-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .category-item {
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        color: var(--text-light);
+        transition: color 0.2s;
+    }
+
+    .category-item:hover {
+        color: var(--primary-color);
+    }
+
+    /* 主内容区 */
+    .main-content {
+        flex: 1;
+    }
+
+    .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .result-count {
+        font-size: 0.9rem;
+        color: var(--text-light);
+    }
+
+    /* 商品网格 */
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
     }
 
     .product-card {
         background: white;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        transition: transform 0.3s ease;
-    }
-
-    .product-card:hover {
-        transform: translateY(-5px);
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     .product-image {
-        height: 250px;
-        background-size: cover;
-        position: relative;
+        height: 180px;
+        background-color: #eee;
+        border-radius: 6px;
+        margin-bottom: 1rem;
     }
 
-    .paw-button {
-        background: var(--accent-orange);
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        border: none;
-        cursor: pointer;
-        position: relative;
+    .brand-name {
+        color: var(--primary-color);
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
     }
 
-    .paw-button::after {
-        content: '';
-        background: url('data:image/svg+xml,<svg ...>') no-repeat; /* 爪印SVG */
-        position: absolute;
-        width: 24px;
-        height: 24px;
-        top: 8px;
-        left: 8px;
+    .product-title {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
     }
 
-    /* 购物车样式 */
-    .cart-container {
-        max-width: 1200px;
-        margin: 2rem auto;
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
+    .product-desc {
+        color: var(--text-light);
+        font-size: 0.9rem;
+        line-height: 1.4;
+        margin-bottom: 1rem;
     }
 
-    .cart-item {
-        display: flex;
-        align-items: center;
-        padding: 1rem;
-        border-bottom: 1px solid #eee;
-    }
-
-    .bowl-counter {
-        display: flex;
-        align-items: center;
-    }
-
-    .bowl-btn {
-        width: 32px;
-        height: 32px;
-        border: none;
-        background: var(--light-beige);
-        border-radius: 8px;
-        cursor: pointer;
+    .product-price {
+        color: var(--accent-color);
+        font-weight: 600;
     }
 
     /* 响应式设计 */
     @media (max-width: 768px) {
-        .product-list {
+        .container {
+            flex-direction: column;
+        }
+        
+        .sidebar {
+            width: 100%;
+        }
+
+        .product-grid {
             grid-template-columns: repeat(2, 1fr);
         }
     }
     </style>
 </head>
 <body>
-    <!-- 产品列表页 -->
-    <section class="product-list-page">
-        <div class="product-list">
-            <!-- 商品卡片示例 -->
-            <div class="product-card">
-                <div class="product-image" style="background-image: url('dog-food.jpg')"></div>
-                <div class="product-info">
-                    <h3>天然无谷狗粮</h3>
-                    <p class="price">¥<span>189</span></p>
-                    <button class="paw-button add-to-cart"></button>
-                </div>
+    <div class="container">
+        <!-- 侧边筛选栏 -->
+        <aside class="sidebar">
+            <div class="filter-section">
+                <h3 class="filter-title">Categories</h3>
+                <ul class="category-list">
+                    <li class="category-item">Dog > Dry Food (382)</li>
+                    <li class="category-item">Dog > Freeze Dried & Air Dried</li>
+                    <li class="category-item">Dog > Treats (254)</li>
+                    <li class="category-item">Dog > Wet Food (162)</li>
+                </ul>
             </div>
-            <!-- 更多商品... -->
-        </div>
-    </section>
 
-    <!-- 购物车页面 -->
-    <section class="cart-page">
-        <div class="cart-container">
-            <div class="cart-items">
-                <div class="cart-item">
-                    <img src="dog-food-thumb.jpg" alt="商品图" class="product-thumb">
-                    <div class="item-info">
-                        <h4>天然无谷狗粮</h4>
-                        <p>¥<span class="item-price">189</span></p>
-                    </div>
-                    <div class="bowl-counter">
-                        <button class="bowl-btn minus">-</button>
-                        <input type="number" value="1" class="quantity">
-                        <button class="bowl-btn plus">+</button>
-                    </div>
-                    <button class="delete-btn">🗑️</button>
+            <div class="filter-section">
+                <h3 class="filter-title">Brands</h3>
+                <input type="text" placeholder="Search Brand" class="search-input">
+                <ul class="category-list">
+                    <li class="category-item">Acana (10)</li>
+                    <li class="category-item">Alps (16)</li>
+                    <li class="category-item">Amanova (32)</li>
+                    <li class="category-item">Araton (2)</li>
+                    <li class="category-item">+ 51 more</li>
+                </ul>
+            </div>
+
+            <div class="filter-section">
+                <h3 class="filter-title">Price</h3>
+                <div class="price-range">
+                    <input type="number" placeholder="From" class="range-input">
+                    <span>-</span>
+                    <input type="number" placeholder="To" class="range-input">
                 </div>
             </div>
-            
-            <div class="checkout-summary">
-                <div class="total-amount">
-                    <span>总计：</span>
-                    ¥<span id="total">0</span>
-                </div>
-                <button class="checkout-btn">立即结账</button>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <div class="result-header">
+                <div class="result-count">814 Items found for Food & Treats</div>
+                <!-- 排序组件可在此添加 -->
             </div>
-        </div>
-    </section>
+
+            <div class="product-grid">
+                <!-- 商品卡片示例 -->
+                <div class="product-card">
+                    <div class="product-image"></div>
+                    <div class="brand-name">PROBALANCE</div>
+                    <h4 class="product-title">Probalance Pouch 130g</h4>
+                    <p class="product-desc">With Veggies in Grovy Wet Dog Food</p>
+                    <div class="product-price">RM 0.00</div>
+                </div>
+
+                <!-- 更多商品... -->
+            </div>
+        </main>
+    </div>
 
     <script>
-    // 购物车功能
-    let cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-    // 添加商品到购物车
-    document.querySelectorAll('.add-to-cart').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const productCard = btn.closest('.product-card');
-            const product = {
-                name: productCard.querySelector('h3').textContent,
-                price: parseFloat(productCard.querySelector('.price span').textContent),
-                quantity: 1
-            };
+    // 筛选功能逻辑
+    const categoryItems = document.querySelectorAll('.category-item');
+    categoryItems.forEach(item => {
+        item.addEventListener('click', () => {
+            // 添加选中状态样式
+            categoryItems.forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
             
-            const existingItem = cart.find(item => item.name === product.name);
-            if(existingItem) {
-                existingItem.quantity++;
-            } else {
-                cart.push(product);
-            }
-            
-            updateCart();
+            // 这里添加筛选逻辑
+            console.log('Selected category:', item.textContent);
         });
     });
 
-    // 更新购物车
-    function updateCart() {
-        localStorage.setItem('cart', JSON.stringify(cart));
-        // 此处添加DOM更新逻辑
-        calculateTotal();
-    }
-
-    // 计算总价
-    function calculateTotal() {
-        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        document.getElementById('total').textContent = total.toFixed(2);
-    }
-
-    // 初始化
-    window.addEventListener('DOMContentLoaded', () => {
-        calculateTotal();
+    // 价格范围验证
+    const rangeInputs = document.querySelectorAll('.range-input');
+    rangeInputs.forEach(input => {
+        input.addEventListener('change', () => {
+            if(input.value < 0) input.value = 0;
+        });
     });
     </script>
 </body>
