@@ -204,7 +204,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary">Print Invoice</button>
+                <a id="printInvoiceBtn" href="#" target="_blank" class="btn btn-primary">Print Invoice</a>
             </div>
         </div>
     </div>
@@ -237,19 +237,23 @@
 document.addEventListener('DOMContentLoaded', function() {
     // View Order Modal Handler
     const viewOrderModal = document.getElementById('viewOrderModal');
-    viewOrderModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        document.getElementById('viewOrderId').textContent = button.getAttribute('data-order-id');
-        document.getElementById('viewCustomer').textContent = button.getAttribute('data-customer');
-        document.getElementById('viewOrderProducts').textContent = button.getAttribute('data-products');
-        document.getElementById('viewOrderTotal').textContent = button.getAttribute('data-total');
-        document.getElementById('viewOrderDate').textContent = button.getAttribute('data-date');
-        
-        const statusBadge = document.getElementById('viewOrderStatus');
-        statusBadge.textContent = button.getAttribute('data-status');
-        statusBadge.className = 'badge bg-' + (button.getAttribute('data-status') === 'Completed' ? 'success' : 
-                                              (button.getAttribute('data-status') === 'Processing' ? 'warning' : 'danger'));
-    });
+viewOrderModal.addEventListener('show.bs.modal', function(event) {
+    const button = event.relatedTarget;
+    document.getElementById('viewOrderId').textContent = button.getAttribute('data-order-id');
+    document.getElementById('viewCustomer').textContent = button.getAttribute('data-customer');
+    document.getElementById('viewOrderProducts').textContent = button.getAttribute('data-products');
+    document.getElementById('viewOrderTotal').textContent = button.getAttribute('data-total');
+    document.getElementById('viewOrderDate').textContent = button.getAttribute('data-date');
+
+    const statusBadge = document.getElementById('viewOrderStatus');
+    statusBadge.textContent = button.getAttribute('data-status');
+    statusBadge.className = 'badge bg-' + (button.getAttribute('data-status') === 'Completed' ? 'success' : 
+                                          (button.getAttribute('data-status') === 'Processing' ? 'warning' : 'danger'));
+
+    // ✅ 動態設定 print 按鈕連結
+    document.getElementById('printInvoiceBtn').href = "invoice.php?order_id=" + button.getAttribute('data-order-id');
+});
+
 
     // Delete Order Modal Handler
     const deleteOrderModal = document.getElementById('deleteOrderModal');
