@@ -3,34 +3,86 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Shopping Cart - Pet Shop</title>
+  <title>Hachi Pet Shop - Home</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- 共享的CSS文件（如 navbar 样式） -->
-  <link rel="stylesheet" href="product_page.css">
-  <!-- 若你有单独的购物车CSS，也可以单独引入 -->
-  <style>
-    /* 如需额外调整购物车页面样式，可在此添加 */
-    .quantity-group {
-      max-width: 120px;
-      margin: 0 auto;
-    }
-    .quantity-group input {
-      text-align: center;
-    }
-  </style>
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="userhomepage.css">
 </head>
 <body>
-  <!-- 引入统一导航栏（可使用与你用户主页一致的代码） -->
-  <nav class="navbar navbar-expand-lg navbar-dark custom-nav">
-    <div class="container">
-      <a class="navbar-brand" href="userhomepage.php">
-        <img src="cat_paw.png" alt="Pet Shop" width="50">
-        <span>Pet Shop</span>
-      </a>
-      <!-- 省略其他导航内容... -->
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark custom-nav">
+  <div class="container">
+    <!-- Brand on the left -->
+    <a class="navbar-brand" href="userhomepage.php">
+      <img src="cat_paw.png" alt="Pet Shop" width="50">
+      <span>Hachi Pet Shop</span>
+    </a>
+    
+    <!-- Toggler for mobile view -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <!-- Main nav links centered -->
+      <ul class="navbar-nav mx-auto">
+        <li class="nav-item"><a class="nav-link active" href="userhomepage.php">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
+        <li class="nav-item"><a class="nav-link" href="products.php">Product</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
+      </ul>
+
+      <!-- Icons on the right -->
+      <ul class="navbar-nav ms-auto">
+        <!-- Search Icon with Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-search" style="font-size: 1.2rem;"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="searchDropdown" style="min-width: 250px;">
+            <form class="d-flex">
+              <input class="form-control me-2" type="search" placeholder="Search..." aria-label="Search">
+              <button class="btn btn-primary" type="submit">Go</button>
+            </form>
+          </ul>
+        </li>
+
+        <!-- Cart Icon: 直接链接到购物车页面，并附带商品数量 badge -->
+        <li class="nav-item">
+          <a class="nav-link position-relative" href="cart.php">
+            <i class="bi bi-cart" style="font-size: 1.2rem;"></i>
+          </a>
+        </li>
+
+        <!-- User Icon with Dynamic Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person" style="font-size: 1.2rem;"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <?php if(isset($_SESSION['customer_id'])): ?>
+              <!-- If user is logged in, show username and account links -->
+              <li class="dropdown-item-text">
+                <?php echo htmlspecialchars($_SESSION['customer_name']); ?>
+              </li>
+              <li><a class="dropdown-item" href="account_setting.php">Account Settings</a></li>
+              <li><a class="dropdown-item" href="logout.php">Logout</a></li>
+            <?php else: ?>
+              <!-- If not logged in, show login/register links -->
+              <li><a class="dropdown-item" href="admin_login.php">Login</a></li>
+              <li><a class="dropdown-item" href="admin_register.php">Register</a></li>
+            <?php endif; ?>
+          </ul>
+        </li>
+      </ul>
     </div>
-  </nav>
+  </div>
+</nav>
 
   <div class="container py-4">
     <h1 class="mb-4">Your Shopping Cart</h1>
@@ -49,10 +101,10 @@
         <!-- 示例产品 1 -->
         <tr data-id="1">
           <td>
-            <img src="https://via.placeholder.com/80" alt="Probalance Pouch 100g" class="img-fluid">
+            <img src="ProBalance_tenderlamb.png" alt="Probalance Pouch Tender Lamb 100g" class="img-fluid">
           </td>
-          <td>Probalance Pouch 100g</td>
-          <td class="price" data-price="120">\$120</td>
+          <td>Probalance Pouch Tender Lamb 100g</td>
+          <td class="price" data-price="4.50">RM4.50</td>
           <td>
             <div class="input-group quantity-group">
               <button class="btn btn-outline-secondary btn-decrease" type="button">-</button>
@@ -60,26 +112,7 @@
               <button class="btn btn-outline-secondary btn-increase" type="button">+</button>
             </div>
           </td>
-          <td class="subtotal">\$120</td>
-          <td>
-            <button class="btn btn-danger btn-remove">Remove</button>
-          </td>
-        </tr>
-        <!-- 示例产品 2 -->
-        <tr data-id="2">
-          <td>
-            <img src="https://via.placeholder.com/80" alt="Probalance Gourmet" class="img-fluid">
-          </td>
-          <td>Probalance Gourmet</td>
-          <td class="price" data-price="150">\$150</td>
-          <td>
-            <div class="input-group quantity-group">
-              <button class="btn btn-outline-secondary btn-decrease" type="button">-</button>
-              <input type="number" class="form-control text-center quantity-input" value="1" min="1">
-              <button class="btn btn-outline-secondary btn-increase" type="button">+</button>
-            </div>
-          </td>
-          <td class="subtotal">\$150</td>
+          <td class="subtotal">RM4.50</td>
           <td>
             <button class="btn btn-danger btn-remove">Remove</button>
           </td>
@@ -87,7 +120,7 @@
       </tbody>
     </table>
     <div class="d-flex justify-content-end">
-      <h4>Total: \$<span id="cart-total">270</span></h4>
+      <h4>Total: RM<span id="cart-total">4.50</span></h4>
     </div>
     <div class="text-end mt-4">
       <a href="checkout.html" class="btn btn-primary">Proceed to Checkout</a>
@@ -104,7 +137,7 @@
       const quantity = parseInt(row.querySelector('.quantity-input').value);
       const subtotalElem = row.querySelector('.subtotal');
       const subtotal = price * quantity;
-      subtotalElem.textContent = '$' + subtotal.toFixed(2);
+      subtotalElem.textContent = 'RM' + subtotal.toFixed(2);
     }
 
     // 更新购物车总计

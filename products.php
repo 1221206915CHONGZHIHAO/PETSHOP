@@ -32,9 +32,8 @@
       <!-- Main nav links centered -->
       <ul class="navbar-nav mx-auto">
         <li class="nav-item"><a class="nav-link active" href="userhomepage.php">Home</a></li>
-        <li class="nav-item"><a class="nav-link" href="products.php">Shop</a></li>
         <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
-        <li class="nav-item"><a class="nav-link" href="#">Product</a></li>
+        <li class="nav-item"><a class="nav-link" href="products.php">Product</a></li>
         <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
       </ul>
 
@@ -53,15 +52,13 @@
           </ul>
         </li>
 
-        <!-- Cart Icon with Dropdown -->
-        <li class="nav-item dropdown">
-          <a class="nav-link" href="#" id="cartDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="bi bi-cart" style="font-size: 1.2rem;"></i>
-          </a>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="cartDropdown">
-            <li><a class="dropdown-item" href="cart.php">Your cart is empty</a></li>
-          </ul>
-        </li>
+       <!-- Cart Icon: 直接链接到购物车页面，并附带商品数量 badge -->
+<li class="nav-item">
+  <a class="nav-link position-relative" href="cart.php">
+    <i class="bi bi-cart" style="font-size: 1.2rem;"></i>
+  </a>
+</li>
+
 
         <!-- User Icon with Dynamic Dropdown -->
         <li class="nav-item dropdown">
@@ -146,9 +143,10 @@
         <!-- 示例卡片 2 -->
         <div class="col">
           <div class="card product-card h-100">
-            <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Probalance Gourmet">
+            <img src="dog_product.png" class="card-img-top" alt="Pedigree Complete Nutrition Roasted Chicken, Rice & Vegetable Dry Dog Food">
             <div class="card-body">
-              <h5 class="card-title">Probalance Gourmet</h5>
+              <h5 class="card-title">Pedigree Complete Nutrition Roasted Chicken, Rice & Vegetable Dry Dog Food</h5>
+              <p class="product-price">Price: RM175.00</p>
             </div>
             <div class="card-footer bg-white">
               <button class="btn btn-primary w-100">Add to Cart</button>
@@ -159,9 +157,10 @@
         <!-- 示例卡片 3 -->
         <div class="col">
           <div class="card product-card h-100">
-            <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="Probalance 700g">
+            <img src="Pedigree_pouch.png" class="card-img-top" alt="Pedigree Pouch 130g">
             <div class="card-body">
-              <h5 class="card-title">Probalance 700g</h5>
+              <h5 class="card-title">Pedigree Pouch 130g</h5>
+              <p class="product-price">Price: RM3.00</p>
             </div>
             <div class="card-footer bg-white">
               <button class="btn btn-primary w-100">Add to Cart</button>
