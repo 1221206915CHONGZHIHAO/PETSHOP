@@ -34,8 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $mail->Port = 587;
         
             $mail->setFrom('zheya1810@gmail.com', 'Petshop OTP System');
-            $mail->addAddress($email); // 收件者
-            $mail->addReplyTo('zheya1810@gmail.com', 'Petshop Support'); // ← 增加這一行
+            $mail->addAddress($email); 
+            $mail->addReplyTo('zheya1810@gmail.com', 'Petshop Support'); 
             
         
             $mail->isHTML(true);
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
             // Set to 0 for production
             $mail->SMTPDebug = 2; 
-$mail->Debugoutput = 'html';
+            $mail->Debugoutput = 'html';
           
             $mail->send();
             header("Location: verify_code.php");

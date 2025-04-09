@@ -20,7 +20,7 @@
     </div>
     <div>
         <span class="text-light me-3">Welcome, Admin</span>
-        <a href="admin_login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 

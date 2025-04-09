@@ -75,8 +75,8 @@
               <li><a class="dropdown-item" href="logout.php">Logout</a></li>
             <?php else: ?>
               <!-- If not logged in, show login/register links -->
-              <li><a class="dropdown-item" href="admin_login.php">Login</a></li>
-              <li><a class="dropdown-item" href="admin_register.php">Register</a></li>
+              <li><a class="dropdown-item" href="login.php">Login</a></li>
+              <li><a class="dropdown-item" href="register.php">Register</a></li>
             <?php endif; ?>
           </ul>
         </li>

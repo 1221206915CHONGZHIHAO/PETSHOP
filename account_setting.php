@@ -3,7 +3,7 @@ session_start();
 
 // 如果用户未登录，则重定向到登录页面
 if (!isset($_SESSION['customer_id'])) {
-    header("Location: admin_login.php");
+    header("Location: login.php");
     exit();
 }
 

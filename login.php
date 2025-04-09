@@ -66,7 +66,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         }
                         $stmt->fetch();
 
-                        // ✅ 明文密碼登入流程
+                        
                         if ($role === "staff" && $db_status !== 'Active') {
                             $error_message = "Account is inactive. Please contact administrator.";
                         } 
