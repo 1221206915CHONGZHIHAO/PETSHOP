@@ -28,37 +28,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $mail->isSMTP();
             $mail->Host = 'smtp.gmail.com';
             $mail->SMTPAuth = true;
-            $mail->Username = 'zhihao013@gmail.com';
-            $mail->Password = 'zaow aqot spna ewyi';
+            $mail->Username = 'zheya1810@gmail.com';
+            $mail->Password = 'rbzs duxv qmho ywlv'; // Use App Password
             $mail->SMTPSecure = 'tls';
             $mail->Port = 587;
-
-            $mail->setFrom('zhihao013@gmail.com', 'Petshop OTP System');
-            $mail->addAddress($email);
-
+        
+            $mail->setFrom('zheya1810@gmail.com', 'Petshop OTP System');
+            $mail->addAddress($email); // 收件者
+            $mail->addReplyTo('zheya1810@gmail.com', 'Petshop Support'); // ← 增加這一行
+            
+        
             $mail->isHTML(true);
-            $mail->Subject = 'Your PetShop Verification Code';
-            $mail->Body    = "
-                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 2px solid #ffab91; border-radius: 15px; padding: 20px;'>
-                    <h2 style='color: #6d4c41; text-align: center;'>🐾 PetShop Password Reset 🐾</h2>
-                    <p>Hello Pet Lover!</p>
-                    <p>Your verification code is:</p>
-                    <div style='background: #f9f5f0; padding: 15px; border-radius: 10px; text-align: center; font-size: 24px; font-weight: bold; color: #5d4037; margin: 20px 0;'>
-                        $otp
-                    </div>
-                    <p>This code will expire in 10 minutes.</p>
-                    <p style='text-align: center;'><small>If you didn't request this, please ignore this email.</small></p>
-                    <div style='text-align: center; margin-top: 20px;'>
-                        <img src='https://cdn.pixabay.com/photo/2017/07/25/01/22/cat-2536662_640.jpg' width='100' style='border-radius: 50%;'>
-                    </div>
-                </div>
-            ";
-
+            $mail->Subject = 'Your OTP Code';
+            $mail->Body = "Hi! Your OTP is <b>$otp</b>. Please use this code to verify your account. Thanks!";
+            
+        
+            // Set to 0 for production
+            $mail->SMTPDebug = 2; 
+$mail->Debugoutput = 'html';
+          
             $mail->send();
             header("Location: verify_code.php");
             exit();
         } catch (Exception $e) {
-            $error = "Email could not be sent. Please try again later.";
+            $error = "Email could not be sent. Error: " . $mail->ErrorInfo;
         }
     } else {
         $error = "Email address not found in our system.";
