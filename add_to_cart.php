@@ -27,86 +27,84 @@ if ($quantity <= 0) {
     exit;
 }
 
+// Database connection
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "petshop";
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+if ($conn->connect_error) {
+    $response['message'] = 'Database connection failed';
+    echo json_encode($response);
+    exit;
+}
+
+// Check if product exists and get details
+$stmt = $conn->prepare("SELECT product_id, product_name, price, stock_quantity, image_url FROM products WHERE product_id = ?");
+$stmt->bind_param("i", $product_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows === 0) {
+    $response['message'] = 'Product not found';
+    $stmt->close();
+    $conn->close();
+    echo json_encode($response);
+    exit;
+}
+
+$product = $result->fetch_assoc();
+
+// Check if product is in stock
+if ($product['stock_quantity'] < $quantity) {
+    $response['message'] = 'Not enough stock available';
+    $stmt->close();
+    $conn->close();
+    echo json_encode($response);
+    exit;
+}
+
 // Check if user is logged in
 if (!isset($_SESSION['Customer_ID'])) {
     // If not logged in, we'll store the cart in session
-    handleSessionCart($product_id, $quantity, $response);
+    handleSessionCart($product, $quantity, $response);
 } else {
     // If logged in, we'll store the cart in database
-    handleDatabaseCart($product_id, $quantity, $_SESSION['Customer_ID'], $response);
+    handleDatabaseCart($product, $quantity, $_SESSION['Customer_ID'], $conn, $response);
 }
+
+// Close connection
+$conn->close();
 
 // Return JSON response
 echo json_encode($response);
 exit;
 
 // Function to handle session-based cart
-function handleSessionCart($product_id, $quantity, &$response) {
-    // Database connection to get product details
-    $servername = "localhost";
-    $username = "root";
-    $password = "";
-    $dbname = "petshop";
-    
-    $conn = new mysqli($servername, $username, $password, $dbname);
-    
-    if ($conn->connect_error) {
-        $response['message'] = 'Database connection failed';
-        return;
-    }
-    
-    // Check if product exists and get details
-    $stmt = $conn->prepare("SELECT product_id, product_name, price, stock_quantity FROM products WHERE product_id = ?");
-    $stmt->bind_param("i", $product_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows === 0) {
-        $response['message'] = 'Product not found';
-        $stmt->close();
-        $conn->close();
-        return;
-    }
-    
-    $product = $result->fetch_assoc();
-    
-    // Check if product is in stock
-    if ($product['stock_quantity'] < $quantity) {
-        $response['message'] = 'Not enough stock available';
-        $stmt->close();
-        $conn->close();
-        return;
-    }
-    
+function handleSessionCart($product, $quantity, &$response) {
     // Initialize cart if not exists
     if (!isset($_SESSION['cart'])) {
         $_SESSION['cart'] = [];
     }
     
-    // Check if product already in cart
-    $product_in_cart = false;
-    foreach ($_SESSION['cart'] as &$item) {
-        if ($item['product_id'] === $product_id) {
-            // Update quantity
-            $item['quantity'] += $quantity;
-            $product_in_cart = true;
-            break;
-        }
-    }
+    $product_id = $product['product_id'];
     
-    // If product not in cart, add it
-    if (!$product_in_cart) {
-        $_SESSION['cart'][] = [
+    // Check if product already in cart
+    if (isset($_SESSION['cart'][$product_id])) {
+        // Update quantity
+        $_SESSION['cart'][$product_id]['quantity'] += $quantity;
+    } else {
+        // Add new product to cart
+        $_SESSION['cart'][$product_id] = [
             'product_id' => $product_id,
-            'product_name' => $product['product_name'],
+            'quantity' => $quantity,
             'price' => $product['price'],
-            'quantity' => $quantity
+            'name' => $product['product_name'],
+            'image' => $product['image_url']
         ];
     }
-    
-    // Close database connection
-    $stmt->close();
-    $conn->close();
     
     // Set success response
     $response['success'] = true;
@@ -115,42 +113,9 @@ function handleSessionCart($product_id, $quantity, &$response) {
 }
 
 // Function to handle database cart for logged-in users
-function handleDatabaseCart($product_id, $quantity, $customer_id, &$response) {
-    // Database connection
-    $servername = "localhost";
-    $username = "root";
-    $password = "";
-    $dbname = "petshop";
-    
-    $conn = new mysqli($servername, $username, $password, $dbname);
-    
-    if ($conn->connect_error) {
-        $response['message'] = 'Database connection failed';
-        return;
-    }
-    
-    // Check if product exists and get details
-    $stmt = $conn->prepare("SELECT product_id, price, stock_quantity FROM products WHERE product_id = ?");
-    $stmt->bind_param("i", $product_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows === 0) {
-        $response['message'] = 'Product not found';
-        $stmt->close();
-        $conn->close();
-        return;
-    }
-    
-    $product = $result->fetch_assoc();
-    
-    // Check if product is in stock
-    if ($product['stock_quantity'] < $quantity) {
-        $response['message'] = 'Not enough stock available';
-        $stmt->close();
-        $conn->close();
-        return;
-    }
+function handleDatabaseCart($product, $quantity, $customer_id, $conn, &$response) {
+    $product_id = $product['product_id'];
+    $price = $product['price'];
     
     // Check if product already in cart
     $check_cart = $conn->prepare("SELECT Cart_ID, Quantity FROM cart WHERE Customer_ID = ? AND Inventory_ID = ?");
@@ -164,15 +129,13 @@ function handleDatabaseCart($product_id, $quantity, $customer_id, &$response) {
         $new_quantity = $cart_item['Quantity'] + $quantity;
         
         $update_cart = $conn->prepare("UPDATE cart SET Quantity = ? WHERE Cart_ID = ?");
-        $update_cart->bind_param("di", $new_quantity, $cart_item['Cart_ID']);
+        $update_cart->bind_param("ii", $new_quantity, $cart_item['Cart_ID']);
         $update_cart->execute();
         
-        if ($update_cart->affected_rows <= 0) {
-            $response['message'] = 'Failed to update cart';
+        if ($update_cart->affected_rows <= 0 && $conn->error) {
+            $response['message'] = 'Failed to update cart: ' . $conn->error;
             $check_cart->close();
             $update_cart->close();
-            $stmt->close();
-            $conn->close();
             return;
         }
         
@@ -180,15 +143,13 @@ function handleDatabaseCart($product_id, $quantity, $customer_id, &$response) {
     } else {
         // Add new cart item
         $insert_cart = $conn->prepare("INSERT INTO cart (Customer_ID, Inventory_ID, Price, Quantity) VALUES (?, ?, ?, ?)");
-        $insert_cart->bind_param("iidd", $customer_id, $product_id, $product['price'], $quantity);
+        $insert_cart->bind_param("iddi", $customer_id, $product_id, $price, $quantity);
         $insert_cart->execute();
         
-        if ($insert_cart->affected_rows <= 0) {
-            $response['message'] = 'Failed to add item to cart';
+        if ($insert_cart->affected_rows <= 0 && $conn->error) {
+            $response['message'] = 'Failed to add item to cart: ' . $conn->error;
             $check_cart->close();
             $insert_cart->close();
-            $stmt->close();
-            $conn->close();
             return;
         }
         
@@ -204,10 +165,7 @@ function handleDatabaseCart($product_id, $quantity, $customer_id, &$response) {
     $count_result = $count_cart->get_result();
     $count_row = $count_result->fetch_assoc();
     $cart_count = $count_row['cart_count'];
-    
     $count_cart->close();
-    $stmt->close();
-    $conn->close();
     
     // Set success response
     $response['success'] = true;
@@ -216,5 +174,19 @@ function handleDatabaseCart($product_id, $quantity, $customer_id, &$response) {
     
     // Store cart count in session for display
     $_SESSION['cart_count'] = $cart_count;
+    
+    // Also update session cart for consistency between logged-in and guest states
+    if (!isset($_SESSION['cart'])) {
+        $_SESSION['cart'] = [];
+    }
+    
+    // Update session cart to match database
+    $_SESSION['cart'][$product_id] = [
+        'product_id' => $product_id,
+        'quantity' => $quantity,
+        'price' => $price,
+        'name' => $product['product_name'],
+        'image' => $product['image_url']
+    ];
 }
 ?>

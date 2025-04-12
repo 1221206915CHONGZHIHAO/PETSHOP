@@ -9,7 +9,16 @@ $success_message = '';
 // Process cart actions if submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // Connect to database
-    require_once 'db_connection.php'; // Update with your database connection file
+    $servername = "localhost";
+    $username = "root";
+    $password = "";
+    $dbname = "petshop";
+    
+    $conn = new mysqli($servername, $username, $password, $dbname);
+    
+    if ($conn->connect_error) {
+        die("Connection failed: " . $conn->connect_error);
+    }
     
     $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
     $action = $_POST['action'];
@@ -28,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
                 
                 // Check if product exists and has enough stock
-                $stmt = $conn->prepare("SELECT id, name, price, stock FROM products WHERE id = ?");
+                $stmt = $conn->prepare("SELECT product_id, product_name, price, stock_quantity FROM products WHERE product_id = ?");
                 $stmt->bind_param("i", $product_id);
                 $stmt->execute();
                 $result = $stmt->get_result();
@@ -39,25 +48,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 
                 $product = $result->fetch_assoc();
                 
-                if ($quantity > $product['stock']) {
+                if ($quantity > $product['stock_quantity']) {
                     throw new Exception('Not enough stock available');
                 }
                 
                 // Update cart in session
-                $_SESSION['cart'][$product_id] = [
-                    'product_id' => $product_id,
-                    'quantity' => $quantity
-                ];
+                $_SESSION['cart'][$product_id]['quantity'] = $quantity;
                 
                 // Update cart in database if user is logged in
-                if (isset($_SESSION['customer_id'])) {
-                    $stmt = $conn->prepare("
-                        INSERT INTO cart_items (customer_id, product_id, quantity) 
-                        VALUES (?, ?, ?) 
-                        ON DUPLICATE KEY UPDATE quantity = ?
-                    ");
-                    $stmt->bind_param("iiii", $_SESSION['customer_id'], $product_id, $quantity, $quantity);
-                    $stmt->execute();
+                if (isset($_SESSION['Customer_ID'])) {
+                    // First check if this item already exists in the cart
+                    $check_stmt = $conn->prepare("SELECT Cart_ID FROM cart WHERE Customer_ID = ? AND Inventory_ID = ?");
+                    $check_stmt->bind_param("ii", $_SESSION['Customer_ID'], $product_id);
+                    $check_stmt->execute();
+                    $check_result = $check_stmt->get_result();
+                    
+                    if ($check_result->num_rows > 0) {
+                        // Update existing cart item
+                        $cart_row = $check_result->fetch_assoc();
+                        $update_stmt = $conn->prepare("UPDATE cart SET Quantity = ? WHERE Cart_ID = ?");
+                        $update_stmt->bind_param("ii", $quantity, $cart_row['Cart_ID']);
+                        $update_stmt->execute();
+                    } else {
+                        // Insert new cart item
+                        $insert_stmt = $conn->prepare("INSERT INTO cart (Customer_ID, Inventory_ID, Price, Quantity) VALUES (?, ?, ?, ?)");
+                        $insert_stmt->bind_param("iddi", $_SESSION['Customer_ID'], $product_id, $product['price'], $quantity);
+                        $insert_stmt->execute();
+                    }
                 }
                 
                 $success_message = 'Cart updated successfully';
@@ -70,9 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
                 
                 // Remove from database if user is logged in
-                if (isset($_SESSION['customer_id'])) {
-                    $stmt = $conn->prepare("DELETE FROM cart_items WHERE customer_id = ? AND product_id = ?");
-                    $stmt->bind_param("ii", $_SESSION['customer_id'], $product_id);
+                if (isset($_SESSION['Customer_ID'])) {
+                    $stmt = $conn->prepare("DELETE FROM cart WHERE Customer_ID = ? AND Inventory_ID = ?");
+                    $stmt->bind_param("ii", $_SESSION['Customer_ID'], $product_id);
                     $stmt->execute();
                 }
                 
@@ -106,7 +123,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 // Load cart items for display
 // Connect to database
-require_once 'db_connection.php';
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "petshop";
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
 
 try {
     // Check URL parameters for messages
@@ -117,7 +143,37 @@ try {
         $success_message = $_GET['success'];
     }
     
-    // Get cart items from session
+    // If user is logged in, sync with database cart
+    if (isset($_SESSION['Customer_ID'])) {
+        // Get cart items from database
+        $stmt = $conn->prepare("
+            SELECT c.Inventory_ID as product_id, c.Quantity as quantity, c.Price as price,
+                  p.product_name as name, p.stock_quantity as stock, p.image_url as image 
+            FROM cart c
+            JOIN products p ON c.Inventory_ID = p.product_id
+            WHERE c.Customer_ID = ?
+        ");
+        $stmt->bind_param("i", $_SESSION['Customer_ID']);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        // Create or update session cart from database items
+        $_SESSION['cart'] = [];
+        
+        while ($item = $result->fetch_assoc()) {
+            $product_id = $item['product_id'];
+            $_SESSION['cart'][$product_id] = [
+                'product_id' => $product_id,
+                'quantity' => $item['quantity'],
+                'price' => $item['price'],
+                'name' => $item['name'],
+                'image' => $item['image'],
+                'stock' => $item['stock']
+            ];
+        }
+    }
+    
+    // Get cart items from session regardless if logged in or not
     if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
         // Get all product IDs in cart
         $product_ids = array_keys($_SESSION['cart']);
@@ -125,50 +181,39 @@ try {
         if (!empty($product_ids)) {
             $ids_string = implode(',', array_fill(0, count($product_ids), '?'));
             
-            // Prepare query with the right number of placeholders
+            // Build type string for bind_param
             $types = str_repeat('i', count($product_ids));
+            
+            // Prepare query to get current product info
             $stmt = $conn->prepare("
-                SELECT id as product_id, name, price, stock, image 
+                SELECT product_id, product_name as name, price, stock_quantity as stock, image_url as image 
                 FROM products 
-                WHERE id IN ($ids_string)
+                WHERE product_id IN ($ids_string)
             ");
+            
             $stmt->bind_param($types, ...$product_ids);
             $stmt->execute();
             $result = $stmt->get_result();
             
-            // Build cart items array
+            // Build cart items array with current product data
+            $cart_items = [];
             while ($product = $result->fetch_assoc()) {
-                $product['quantity'] = $_SESSION['cart'][$product['product_id']]['quantity'];
-                $cart_items[] = $product;
+                $product_id = $product['product_id'];
+                $cart_items[] = [
+                    'product_id' => $product_id,
+                    'name' => $product['name'],
+                    'price' => $product['price'],
+                    'stock' => $product['stock'],
+                    'image' => $product['image'],
+                    'quantity' => $_SESSION['cart'][$product_id]['quantity']
+                ];
+                
+                // Update session cart with latest product info
+                $_SESSION['cart'][$product_id]['name'] = $product['name'];
+                $_SESSION['cart'][$product_id]['price'] = $product['price'];
+                $_SESSION['cart'][$product_id]['stock'] = $product['stock'];
+                $_SESSION['cart'][$product_id]['image'] = $product['image'];
             }
-        }
-    }
-    
-    // If user is logged in, sync with database cart
-    if (isset($_SESSION['customer_id'])) {
-        // Get cart items from database
-        $stmt = $conn->prepare("
-            SELECT ci.product_id, ci.quantity, p.name, p.price, p.stock, p.image 
-            FROM cart_items ci
-            JOIN products p ON ci.product_id = p.id
-            WHERE ci.customer_id = ?
-        ");
-        $stmt->bind_param("i", $_SESSION['customer_id']);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        // Create or update session cart from database items
-        $_SESSION['cart'] = [];
-        $cart_items = []; // Reset cart items to use database version
-        
-        while ($item = $result->fetch_assoc()) {
-            $cart_items[] = $item;
-            
-            // Update session cart
-            $_SESSION['cart'][$item['product_id']] = [
-                'product_id' => $item['product_id'],
-                'quantity' => $item['quantity']
-            ];
         }
     }
 } catch (Exception $e) {
@@ -257,10 +302,10 @@ $cart_count = count($cart_items);
             <i class="bi bi-person" style="font-size: 1.2rem;"></i>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-            <?php if(isset($_SESSION['customer_id'])): ?>
+            <?php if(isset($_SESSION['Customer_ID'])): ?>
               <!-- If user is logged in, show username and account links -->
               <li class="dropdown-item-text">
-                <?php echo htmlspecialchars($_SESSION['customer_name']); ?>
+                <?php echo htmlspecialchars($_SESSION['Customer_name']); ?>
               </li>
               <li><a class="dropdown-item" href="account_setting.php">Account Settings</a></li>
               <li><a class="dropdown-item" href="logout.php">Logout</a></li>
@@ -448,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('cart-total').textContent = total.toFixed(2);
   }
 
-  // Show update success message
+  // Show update message
   function showUpdateMessage(message) {
     const messageElem = document.querySelector('.update-message');
     messageElem.textContent = message;
