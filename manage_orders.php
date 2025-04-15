@@ -66,11 +66,6 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-light" href="">
-                                        <i class="fas fa-history me-2"></i>Order History
-                                    </a>
-                                </li>
-                                <li class="nav-item">
                                     <a class="nav-link text-light" href="returns.php">
                                         <i class="fas fa-undo me-2"></i>Returns
                                     </a>
