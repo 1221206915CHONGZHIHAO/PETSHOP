@@ -267,7 +267,7 @@ $(document).ready(function() {
     "preventDuplicates": false,
     "showDuration": "300",
     "hideDuration": "1000",
-    "timeOut": "3000",
+    "timeOut": "5000",
     "extendedTimeOut": "1000",
     "showEasing": "swing",
     "hideEasing": "linear",
@@ -304,6 +304,14 @@ $(document).ready(function() {
             if (result.cart_count) {
               updateCartCount(result.cart_count);
             }
+          } else if (result.require_login) {
+            // Show login required message
+            toastr.warning(result.message);
+            
+            // Show login modal or redirect to login page after a short delay
+            setTimeout(function() {
+              window.location.href = 'login.php?redirect=products.php';
+            }, 2000);
           } else {
             // Show error message
             toastr.error(result.message || 'Failed to add item to cart');

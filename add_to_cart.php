@@ -6,8 +6,18 @@ session_start();
 $response = [
     'success' => false,
     'message' => '',
-    'cart_count' => 0
+    'cart_count' => 0,
+    'require_login' => false
 ];
+
+// Check if user is logged in
+if (!isset($_SESSION['customer_id'])) {
+    $response['success'] = false;
+    $response['message'] = 'Please login or sign up first to add items to your cart';
+    $response['require_login'] = true;
+    echo json_encode($response);
+    exit;
+}
 
 // Check if product_id is set
 if (!isset($_POST['product_id'])) {
@@ -66,14 +76,8 @@ if ($product['stock_quantity'] < $quantity) {
     exit;
 }
 
-// Check if user is logged in
-if (!isset($_SESSION['Customer_ID'])) {
-    // If not logged in, we'll store the cart in session
-    handleSessionCart($product, $quantity, $response);
-} else {
-    // If logged in, we'll store the cart in database
-    handleDatabaseCart($product, $quantity, $_SESSION['Customer_ID'], $conn, $response);
-}
+// Since we've already confirmed user is logged in, handle cart in database
+handleDatabaseCart($product, $quantity, $_SESSION['customer_id'], $conn, $response);
 
 // Close connection
 $conn->close();
@@ -81,36 +85,6 @@ $conn->close();
 // Return JSON response
 echo json_encode($response);
 exit;
-
-// Function to handle session-based cart
-function handleSessionCart($product, $quantity, &$response) {
-    // Initialize cart if not exists
-    if (!isset($_SESSION['cart'])) {
-        $_SESSION['cart'] = [];
-    }
-    
-    $product_id = $product['product_id'];
-    
-    // Check if product already in cart
-    if (isset($_SESSION['cart'][$product_id])) {
-        // Update quantity
-        $_SESSION['cart'][$product_id]['quantity'] += $quantity;
-    } else {
-        // Add new product to cart
-        $_SESSION['cart'][$product_id] = [
-            'product_id' => $product_id,
-            'quantity' => $quantity,
-            'price' => $product['price'],
-            'name' => $product['product_name'],
-            'image' => $product['image_url']
-        ];
-    }
-    
-    // Set success response
-    $response['success'] = true;
-    $response['message'] = 'Product added to cart successfully';
-    $response['cart_count'] = count($_SESSION['cart']);
-}
 
 // Function to handle database cart for logged-in users
 function handleDatabaseCart($product, $quantity, $customer_id, $conn, &$response) {
@@ -175,7 +149,7 @@ function handleDatabaseCart($product, $quantity, $customer_id, $conn, &$response
     // Store cart count in session for display
     $_SESSION['cart_count'] = $cart_count;
     
-    // Also update session cart for consistency between logged-in and guest states
+    // Initialize session cart if it doesn't exist
     if (!isset($_SESSION['cart'])) {
         $_SESSION['cart'] = [];
     }

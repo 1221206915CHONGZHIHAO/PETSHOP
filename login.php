@@ -17,10 +17,14 @@ $error_message = "";
 $success_message = "";
 $redirect_url = "";
 
+$redirect = isset($_GET['redirect']) ? $_GET['redirect'] : 'userhomepage.php';
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $role = $_POST['role']; 
     $login_input = trim($_POST['login_input']); 
     $password = $_POST['password'];
+    // Get the redirect parameter from the form
+    $redirect = isset($_POST['redirect']) ? $_POST['redirect'] : 'userhomepage.php';
 
     // Input validation
     if (empty($login_input) || empty($password)) {
@@ -186,6 +190,9 @@ $conn->close();
                     <i class="bi bi-eye"></i>
                 </button>
             </div>
+
+             <!-- Add hidden input for redirect parameter -->
+             <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect); ?>">
 
             <button type="submit" class="btn btn-primary w-100">Login</button>
         </form>
