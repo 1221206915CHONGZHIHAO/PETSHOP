@@ -1,3 +1,91 @@
+<?php
+require_once 'db_connection.php';
+
+// Handle form actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['action'])) {
+        // Add new product
+        if ($_POST['action'] === 'add') {
+            $imagePath = null;
+            if (!empty($_FILES['product_image']['name'])) {
+                $targetDir = "uploads/";
+                $imagePath = $targetDir . basename($_FILES['product_image']['name']);
+                move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath);
+            }
+
+            $stmt = $conn->prepare("INSERT INTO products (product_name, description, price, image_url, stock_quantity, category) 
+                                  VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssdsis", 
+                $_POST['product_name'],
+                $_POST['description'],
+                $_POST['price'],
+                $imagePath,
+                $_POST['stock_quantity'],
+                $_POST['category']
+            );
+            $stmt->execute();
+        }
+        // Update product
+        elseif ($_POST['action'] === 'update') {
+            // Get current image first
+            $result = $conn->query("SELECT image_url FROM products WHERE product_id = " . $_POST['product_id']);
+            $currentImage = $result->fetch_assoc()['image_url'];
+            
+            $imagePath = $currentImage;
+            if (!empty($_FILES['product_image']['name'])) {
+                $targetDir = "uploads/";
+                $imagePath = $targetDir . basename($_FILES['product_image']['name']);
+                move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath);
+                
+                // Delete old image if it exists
+                if ($currentImage && file_exists($currentImage)) {
+                    unlink($currentImage);
+                }
+            }
+
+            $stmt = $conn->prepare("UPDATE products SET 
+                                  product_name = ?,
+                                  description = ?,
+                                  price = ?,
+                                  image_url = ?,
+                                  stock_quantity = ?,
+                                  category = ?
+                                  WHERE product_id = ?");
+            $stmt->bind_param("ssdsisi",
+                $_POST['product_name'],
+                $_POST['description'],
+                $_POST['price'],
+                $imagePath,
+                $_POST['stock_quantity'],
+                $_POST['category'],
+                $_POST['product_id']
+            );
+            $stmt->execute();
+        }
+        // Delete product
+        elseif ($_POST['action'] === 'delete') {
+            // Delete associated image first
+            $result = $conn->query("SELECT image_url FROM products WHERE product_id = " . $_POST['product_id']);
+            $imagePath = $result->fetch_assoc()['image_url'];
+            if ($imagePath && file_exists($imagePath)) {
+                unlink($imagePath);
+            }
+
+            $stmt = $conn->prepare("DELETE FROM products WHERE product_id = ?");
+            $stmt->bind_param("i", $_POST['product_id']);
+            $stmt->execute();
+        }
+        
+        // Redirect to prevent form resubmission
+        header("Location: inventory.php");
+        exit();
+    }
+}
+
+// Fetch all products
+$products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fetch_all(MYSQLI_ASSOC);
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,12 +96,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin_home.css">
     <style>
-        .chart-container { height: 300px; width: 100%; }
-        canvas { display: block; height: 300px !important; width: 100% !important; }
+        .product-img { max-width: 80px; max-height: 80px; object-fit: cover; }
+        .low-stock { color: #dc3545; font-weight: bold; }
+        .sidebar { min-height: 100vh; }
+        .sidebar.collapsed { display: none; }
+        @media (min-width: 768px) {
+            .sidebar.collapsed { display: block; }
+        }
     </style>
 </head>
 <body>
-
 <nav class="navbar navbar-dark bg-dark px-3">
     <div class="d-flex align-items-center">
         <button class="btn btn-dark me-3 d-md-none" id="sidebarToggle">
@@ -50,11 +142,6 @@
                                         <i class="fas fa-list me-2"></i>Staff List
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="staff_email.php">
-                                        <i class="fas fa-envelope me-2"></i>Email Management
-                                    </a>
-                                </li>
                             </ul>
                         </div>
                     </li>
@@ -78,7 +165,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light" href="promotions.php">
+                        <a class="nav-link text-light" href="promotion.php">
                             <i class="fas fa-tag me-2"></i>Promotions
                         </a>
                     </li>
@@ -101,94 +188,78 @@
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2"><i class="fas fa-boxes me-2"></i>Inventory Management</h1>
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
-                    <i class="fas fa-plus me-2"></i>Add New Item
+                    <i class="fas fa-plus me-2"></i>Add New Product
                 </button>
             </div>
 
             <!-- Inventory Table -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <i class="fas fa-warehouse me-2"></i>Current Inventory
+                    <i class="fas fa-warehouse me-2"></i>Current Products
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-striped table-hover">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>Product ID</th><th>Product Name</th><th>Category</th>
-                                    <th>Stock</th><th>Price</th><th>Status</th><th>Actions</th>
+                                    <th>ID</th>
+                                    <th>Image</th>
+                                    <th>Product Name</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                    <th>Status</th>
+                                    <th>Last Updated</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
+                                <?php foreach ($products as $product): ?>
                                 <tr>
-                                    <td>PET001</td>
-                                    <td>Persian Cat</td>
-                                    <td>Cats</td>
-                                    <td>15</td>
-                                    <td>$1200</td>
-                                    <td><span class="badge bg-success">In Stock</span></td>
+                                    <td><?= htmlspecialchars($product['product_id']) ?></td>
                                     <td>
-                                        <button class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                        <?php if ($product['image_url']): ?>
+                                        <img src="<?= htmlspecialchars($product['image_url']) ?>" class="product-img rounded" alt="Product Image">
+                                        <?php else: ?>
+                                        <span class="text-muted">No image</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= htmlspecialchars($product['product_name']) ?></td>
+                                    <td><?= htmlspecialchars($product['Category']) ?></td>
+                                    <td>$<?= number_format($product['price'], 2) ?></td>
+                                    <td class="<?= $product['stock_quantity'] < 5 ? 'low-stock' : '' ?>">
+                                        <?= htmlspecialchars($product['stock_quantity']) ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($product['stock_quantity'] > 10): ?>
+                                            <span class="badge bg-success">In Stock</span>
+                                        <?php elseif ($product['stock_quantity'] > 0): ?>
+                                            <span class="badge bg-warning text-dark">Low Stock</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger">Out of Stock</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= date('Y-m-d H:i', strtotime($product['updated_at'])) ?></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" 
+                                            data-bs-target="#editModal" 
+                                            data-id="<?= $product['product_id'] ?>"
+                                            onclick="loadEditForm(this)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
+                                            <button type="submit" class="btn btn-sm btn-danger" 
+                                                onclick="return confirm('Are you sure you want to delete this product?')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Add Inventory Modal -->
-            <div class="modal fade" id="addItemModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Add Inventory Item</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Product Name</label>
-                                        <input type="text" class="form-control" required>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Category</label>
-                                        <select class="form-select" required>
-                                            <option value="">Select Category</option>
-                                            <option>Dogs</option>
-                                            <option>Cats</option>
-                                            <option>Birds</option>
-                                            <option>Fish</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-4 mb-3">
-                                        <label class="form-label">Stock Quantity</label>
-                                        <input type="number" class="form-control" required>
-                                    </div>
-                                    <div class="col-md-4 mb-3">
-                                        <label class="form-label">Price</label>
-                                        <input type="number" step="0.01" class="form-control" required>
-                                    </div>
-                                    <div class="col-md-4 mb-3">
-                                        <label class="form-label">SKU</label>
-                                        <input type="text" class="form-control" required>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Product Description</label>
-                                    <textarea class="form-control" rows="3"></textarea>
-                                </div>
-                                <div class="d-grid">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-plus me-2"></i>Add Item
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -196,15 +267,117 @@
     </div>
 </div>
 
+<!-- Add Product Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="add">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Product Name*</label>
+                            <input type="text" name="product_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Category*</label>
+                            <select name="category" class="form-select" required>
+                                <option value="">Select Category</option>
+                                <option value="Dogs">Dogs</option>
+                                <option value="Cats">Cats</option>
+                                <option value="Birds">Birds</option>
+                                <option value="Fish">Fish</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Price*</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="price" step="0.01" min="0" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Stock Quantity*</label>
+                            <input type="number" name="stock_quantity" min="0" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Product Image</label>
+                        <input type="file" name="product_image" class="form-control" accept="image/*">
+                        <small class="text-muted">Maximum file size: 2MB</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Product
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Product Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" enctype="multipart/form-data" id="editForm">
+                <div class="modal-body">
+                    <!-- Content loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Update Product
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Sidebar Toggle
-    document.getElementById('sidebarToggle').addEventListener('click', function() {
-        document.getElementById('sidebar').classList.toggle('show');
-    });
+// Sidebar toggle
+document.getElementById('sidebarToggle').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
 });
-</script>
 
+// Load edit form via AJAX
+function loadEditForm(button) {
+    const productId = button.getAttribute('data-id');
+    fetch('get_product.php?id=' + productId)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('editForm').querySelector('.modal-body').innerHTML = html;
+        });
+}
+
+// Image preview for edit form
+function previewImage(event, previewId) {
+    const reader = new FileReader();
+    reader.onload = function() {
+        const preview = document.getElementById(previewId);
+        preview.src = reader.result;
+        preview.style.display = 'block';
+    }
+    reader.readAsDataURL(event.target.files[0]);
+}
+</script>
 </body>
 </html>
