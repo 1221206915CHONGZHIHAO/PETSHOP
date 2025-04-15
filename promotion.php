@@ -1,3 +1,30 @@
+<?php
+session_start();
+if (!isset($_SESSION['admin_logged_in'])) {
+    header('Location: login.php');
+    exit;
+}
+
+require_once 'db_connection.php';
+
+// Handle delete action
+if (isset($_GET['delete'])) {
+    $promoCode = $conn->real_escape_string($_GET['delete']);
+    $conn->query("DELETE FROM promotion WHERE promo_code = '$promoCode'");
+    $_SESSION['message'] = "Promotion deleted successfully";
+    $_SESSION['message_type'] = "success";
+    header("Location: promotion.php");
+    exit;
+}
+
+// Fetch all promotions
+$promotion = [];
+$result = $conn->query("SELECT * FROM promotion ORDER BY start_date DESC");
+if ($result) {
+    $promotion = $result->fetch_all(MYSQLI_ASSOC);
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,8 +35,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin_home.css">
     <style>
-        .chart-container { height: 300px; width: 100%; }
-        canvas { display: block; height: 300px !important; width: 100% !important; }
+        .sidebar { min-height: 100vh; }
+        .sidebar.collapsed { display: none; }
+        @media (min-width: 768px) {
+            .sidebar.collapsed { display: block; }
+        }
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.35em 0.65em;
+        }
     </style>
 </head>
 <body>
@@ -29,13 +63,13 @@
 
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar -->
-        <nav id="sidebar" class="col-md-2 d-md-block bg-dark sidebar">
+<!-- Sidebar -->
+<nav id="sidebar" class="col-md-2 d-md-block bg-dark sidebar">
             <div class="position-sticky">
                 <h4 class="text-light text-center py-3"><i class="fas fa-paw me-2"></i>Admin Menu</h4>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link text-light" href="admin_homepage.php">
+                        <a class="nav-link text-light " href="admin_homepage.php">
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
                     </li>
@@ -49,12 +83,6 @@
                                     <a class="nav-link text-light" href="manage_staff.php">
                                         <i class="fas fa-list me-2"></i>Staff List
                                     </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="staff_email.php">
-                                        <i class="fas fa-envelope me-2"></i>Email Management
-                                    </a>
-                                </li>
                             </ul>
                         </div>
                     </li>
@@ -78,7 +106,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light active" href="promotions.php">
+                        <a class="nav-link text-light active" href="promotion.php">
                             <i class="fas fa-tag me-2"></i>Promotions
                         </a>
                     </li>
@@ -96,103 +124,164 @@
             </div>
         </nav>
 
-        <!-- Main Content -->
-        <main class="col-md-10 ms-sm-auto px-md-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2"><i class="fas fa-tag me-2"></i>Promotion Management</h1>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPromoModal">
-                    <i class="fas fa-plus me-2"></i>Create Promotion
-                </button>
-            </div>
+<main class="col-md-10 ms-sm-auto px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2"><i class="fas fa-tag me-2"></i>Promotion Management</h1>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPromoModal">
+            <i class="fas fa-plus me-2"></i>Create Promotion
+        </button>
+    </div>
 
-            <!-- Active Promotions Table -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-fire me-2"></i>Active Promotions
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Promo Code</th><th>Discount</th><th>Start Date</th>
-                                    <th>End Date</th><th>Usage Limit</th><th>Status</th><th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>SPRING20</td>
-                                    <td>20%</td>
-                                    <td>2025-03-01</td>
-                                    <td>2025-04-01</td>
-                                    <td>100</td>
-                                    <td><span class="badge bg-success">Active</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+    <?php if (isset($_SESSION['message'])): ?>
+        <div class="alert alert-<?= $_SESSION['message_type'] ?> alert-dismissible fade show">
+            <?= $_SESSION['message'] ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
+    <?php endif; ?>
+
+    <!-- Promotions Table -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-fire me-2"></i>Promotions
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Promo Code</th>
+                            <th>Discount (%)</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Usage Limit</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($promotion as $promo): 
+                            $currentDate = date('Y-m-d');
+                            $status = $promo['status'];
+                            
+                            // Auto-update status if needed
+                            if ($status === 'Active') {
+                                if ($currentDate > $promo['end_date']) {
+                                    $status = 'Expired';
+                                    $conn->query("UPDATE promotion SET status = 'inactive' WHERE promo_code = '{$promo['promo_code']}'");
+                                } elseif ($currentDate < $promo['start_date']) {
+                                    $status = 'Pending';
+                                }
+                            }
+                        ?>
+                        <tr>
+                            <td><?= htmlspecialchars($promo['promo_code']) ?></td>
+                            <td><?= htmlspecialchars($promo['discount']) ?>%</td>
+                            <td><?= date('M j, Y', strtotime($promo['start_date'])) ?></td>
+                            <td><?= date('M j, Y', strtotime($promo['end_date'])) ?></td>
+                            <td><?= $promo['usage_limit'] ? htmlspecialchars($promo['usage_limit']) : 'Unlimited' ?></td>
+                            <td>
+                                <?php if ($status === 'Active'): ?>
+                                    <span class="badge bg-success status-badge">Active</span>
+                                <?php elseif ($status === 'inactive'): ?>
+                                    <span class="badge bg-secondary status-badge">Inactive</span>
+                                <?php elseif ($status === 'Expired'): ?>
+                                    <span class="badge bg-warning text-dark status-badge">Expired</span>
+                                <?php else: ?>
+                                    <span class="badge bg-info status-badge">Pending</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" 
+                                    data-bs-target="#editPromoModal" 
+                                    onclick="loadPromoData('<?= $promo['promo_code'] ?>')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <a href="promotion.php?delete=<?= $promo['promo_code'] ?>" 
+                                   class="btn btn-sm btn-danger" 
+                                   onclick="return confirm('Are you sure you want to delete this promotion?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                        <?php if (empty($promotion)): ?>
+                        <tr>
+                            <td colspan="7" class="text-center">No promotions found</td>
+                        </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Add Promotion Modal -->
+<div class="modal fade" id="addPromoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Promotion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="save_promotion.php">
+                <input type="hidden" name="action" value="add">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Promo Code*</label>
+                        <input type="text" name="promo_code" class="form-control" required maxlength="50">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Discount (%)*</label>
+                        <input type="number" name="discount" min="1" max="100" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Start Date*</label>
+                        <input type="date" name="start_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">End Date*</label>
+                        <input type="date" name="end_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Usage Limit (0 for unlimited)</label>
+                        <input type="number" name="usage_limit" min="0" class="form-control" value="0">
                     </div>
                 </div>
-            </div>
-
-            <!-- Add Promotion Modal -->
-            <div class="modal fade" id="addPromoModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Create New Promotion</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Promo Code</label>
-                                        <input type="text" class="form-control" required>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Discount Type</label>
-                                        <select class="form-select" required>
-                                            <option value="">Select Type</option>
-                                            <option>Percentage</option>
-                                            <option>Fixed Amount</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Discount Value</label>
-                                        <input type="number" class="form-control" required>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Usage Limit</label>
-                                        <input type="number" class="form-control" value="0">
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Start Date</label>
-                                        <input type="datetime-local" class="form-control" required>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">End Date</label>
-                                        <input type="datetime-local" class="form-control" required>
-                                    </div>
-                                </div>
-                                <div class="d-grid">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-plus me-2"></i>Create Promotion
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Create Promotion
+                    </button>
                 </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Promotion Modal -->
+<div class="modal fade" id="editPromoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Promotion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-        </main>
+            <form method="POST" action="save_promotion.php">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="promo_code" id="editPromoCode">
+                <div class="modal-body" id="editPromoContent">
+                    <!-- Content will be loaded via AJAX -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -201,10 +290,18 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Sidebar Toggle
     document.getElementById('sidebarToggle').addEventListener('click', function() {
-        document.getElementById('sidebar').classList.toggle('show');
+        document.getElementById('sidebar').classList.toggle('collapsed');
     });
 });
-</script>
 
+function loadPromoData(promoCode) {
+    fetch('get_promotion.php?code=' + promoCode)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('editPromoContent').innerHTML = html;
+            document.getElementById('editPromoCode').value = promoCode;
+        });
+}
+</script>
 </body>
 </html>

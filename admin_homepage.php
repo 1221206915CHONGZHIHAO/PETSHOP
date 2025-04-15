@@ -81,7 +81,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light" href="#">
+                        <a class="nav-link text-light" href="promotion.php">
                             <i class="fas fa-tag me-2"></i>Promotions
                         </a>
                     </li>
