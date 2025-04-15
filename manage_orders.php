@@ -6,176 +6,7 @@
     <title>Manage Orders - PetShop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Same CSS as your dashboard */
-        :root {
-            --sidebar-width: 250px;
-            --sidebar-dark: #343a40;
-            --sidebar-dark-active: #4b545c;
-            --content-bg: #f8f9fa;
-        }
-        
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            display: flex;
-            flex-direction: column;
-            background-color: var(--content-bg);
-        }
-        
-        .navbar {
-            flex-shrink: 0;
-            background-color: #212529 !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 0.5rem 1rem;
-        }
-        
-        .navbar-brand {
-            font-weight: 600;
-            font-size: 1.25rem;
-        }
-        
-        .container-fluid {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 0;
-            overflow: hidden;
-        }
-        
-        .row {
-            flex: 1;
-            margin: 0;
-            overflow: hidden;
-        }
-        
-        .sidebar {
-            background-color: var(--sidebar-dark);
-            color: white;
-            height: 100%;
-            width: var(--sidebar-width);
-            overflow-y: auto;
-            transition: all 0.3s;
-        }
-        
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            padding: 0.75rem 1rem;
-            margin: 0.1rem 0;
-            border-radius: 0.25rem;
-            transition: all 0.3s;
-        }
-        
-        .sidebar .nav-link:hover, 
-        .sidebar .nav-link.active {
-            color: white;
-            background-color: var(--sidebar-dark-active);
-        }
-        
-        .sidebar .nav-link i {
-            width: 20px;
-            text-align: center;
-            margin-right: 10px;
-        }
-        
-        .sidebar .collapse {
-            background-color: rgba(0, 0, 0, 0.1);
-            border-radius: 0.25rem;
-        }
-        
-        main {
-            flex: 1;
-            overflow-y: auto;
-            background-color: var(--content-bg);
-            padding: 20px;
-        }
-        
-        .card {
-            border: none;
-            border-radius: 0.5rem;
-            box-shadow: 0 0.15rem 0.5rem rgba(0, 0, 0, 0.05);
-            margin-bottom: 1.5rem;
-        }
-        
-        .card-header {
-            background-color: white;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            font-weight: 600;
-            padding: 1rem 1.25rem;
-        }
-        
-        .stat-card {
-            transition: transform 0.3s;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .stat-card .card-body {
-            padding: 1.5rem;
-        }
-        
-        .stat-card h6 {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 0.5rem;
-        }
-        
-        .stat-card h2 {
-            font-weight: 700;
-            margin-bottom: 0;
-        }
-        
-        .stat-card i {
-            opacity: 0.8;
-        }
-        
-        .table {
-            margin-bottom: 0;
-        }
-        
-        .table thead th {
-            border-top: none;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 1px;
-            padding: 0.75rem 1rem;
-        }
-        
-        .table tbody td {
-            padding: 1rem;
-            vertical-align: middle;
-        }
-        
-        @media (max-width: 991.98px) {
-            .sidebar {
-                position: fixed;
-                z-index: 1000;
-                height: 100vh;
-                transform: translateX(-100%);
-            }
-            
-            .sidebar.show {
-                transform: translateX(0);
-            }
-            
-            main {
-                margin-left: 0;
-            }
-            
-            .stat-card {
-                margin-bottom: 1rem;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="staff.css">
 </head>
 <body>
 
@@ -235,11 +66,6 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-light" href="">
-                                        <i class="fas fa-history me-2"></i>Order History
-                                    </a>
-                                </li>
-                                <li class="nav-item">
                                     <a class="nav-link text-light" href="returns.php">
                                         <i class="fas fa-undo me-2"></i>Returns
                                     </a>
@@ -262,7 +88,7 @@
                     </li>
                     
                     <li class="nav-item">
-                        <a class="nav-link text-light" href="tasks.php">
+                        <a class="nav-link text-light" href="staff_tasks.php">
                             <i class="fas fa-tasks me-2"></i>My Tasks
                         </a>
                     </li>

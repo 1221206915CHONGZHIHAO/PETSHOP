@@ -96,10 +96,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                         <i class="fas fa-list me-2"></i>Current Orders
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="order_history.php">
-                                        <i class="fas fa-history me-2"></i>Order History
-                                    </a>
                                 </li>
                             </ul>
                         </div>
