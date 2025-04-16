@@ -287,7 +287,96 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
     </div>
   </footer>
 
-  <!-- Bootstrap JS Bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Toastr JS for notifications -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<script>
+$(document).ready(function() {
+  // Configure toastr notification settings
+  toastr.options = {
+    "closeButton": true,
+    "newestOnTop": false,
+    "progressBar": true,
+    "positionClass": "toast-top-right",
+    "preventDuplicates": false,
+    "showDuration": "300",
+    "hideDuration": "1000",
+    "timeOut": "5000",
+    "extendedTimeOut": "1000",
+    "showEasing": "swing",
+    "hideEasing": "linear",
+    "showMethod": "fadeIn",
+    "hideMethod": "fadeOut"
+  };
+  
+  // Sort select change handler
+  $('#sortSelect').change(function() {
+    window.location.href = 'products.php?sort=' + $(this).val();
+  });
+  
+  // Add to cart button click handler
+  $('.add-to-cart-btn').click(function() {
+    const productId = $(this).data('product-id');
+    const productName = $(this).data('product-name');
+    
+    // AJAX request to add item to cart
+    $.ajax({
+      url: 'add_to_cart.php',
+      type: 'POST',
+      data: {
+        product_id: productId,
+        quantity: 1
+      },
+      success: function(response) {
+        try {
+          const result = JSON.parse(response);
+          if (result.success) {
+            // Show success notification
+            toastr.success(productName + ' added to cart!');
+            
+            // Update cart count if necessary
+            if (result.cart_count) {
+              updateCartCount(result.cart_count);
+            }
+          } else if (result.require_login) {
+            // Show login required message
+            toastr.warning(result.message);
+            
+            // Show login modal or redirect to login page after a short delay
+            setTimeout(function() {
+              window.location.href = 'login.php?redirect=products.php';
+            }, 2000);
+          } else {
+            // Show error message
+            toastr.error(result.message || 'Failed to add item to cart');
+          }
+        } catch(e) {
+          toastr.error('Error processing response');
+          console.error('Error parsing JSON: ', e);
+        }
+      },
+      error: function() {
+        toastr.error('Error processing your request');
+      }
+    });
+  });
+  
+  // Function to update cart count badge
+  function updateCartCount(count) {
+    const cartIcon = $('.bi-cart');
+    // Remove existing badge if any
+    cartIcon.next('.badge').remove();
+    
+    // Add badge if count > 0
+    if (count > 0) {
+      cartIcon.after('<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">' + count + '</span>');
+    }
+  }
+});
+</script>
 </body>
 </html>
