@@ -52,14 +52,16 @@
           </ul>
         </li>
 
-        <!-- Cart Icon with Dropdown -->
-        <li class="nav-item dropdown">
-          <a class="nav-link" href="#" id="cartDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <!-- Cart Icon with item count -->
+        <li class="nav-item">
+          <a class="nav-link position-relative" href="cart.php">
             <i class="bi bi-cart" style="font-size: 1.2rem;"></i>
+            <?php if(isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                <?php echo count($_SESSION['cart']); ?>
+              </span>
+            <?php endif; ?>
           </a>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="cartDropdown">
-            <li><a class="dropdown-item" href="cart.php">Your cart is empty</a></li>
-          </ul>
         </li>
 
         <!-- User Icon with Dynamic Dropdown -->
