@@ -66,11 +66,6 @@
                                         <i class="fas fa-list me-2"></i>Staff List
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="staff_email.php">
-                                        <i class="fas fa-envelope me-2"></i>Email Management
-                                    </a>
-                                </li>
                             </ul>
                         </div>
                     </li>
@@ -94,12 +89,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light" href="#">
+                        <a class="nav-link text-light" href="promotion.php">
                             <i class="fas fa-tag me-2"></i>Promotions
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light" href="#">
+                        <a class="nav-link text-light" href="inventory.php">
                             <i class="fas fa-boxes me-2"></i>Inventory
                         </a>
                     </li>
