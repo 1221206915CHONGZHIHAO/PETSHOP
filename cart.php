@@ -302,17 +302,17 @@ $cart_count = count($cart_items);
             <i class="bi bi-person" style="font-size: 1.2rem;"></i>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-            <?php if(isset($_SESSION['Customer_ID'])): ?>
+            <?php if(isset($_SESSION['customer_id'])): ?>
               <!-- If user is logged in, show username and account links -->
               <li class="dropdown-item-text">
-                <?php echo htmlspecialchars($_SESSION['Customer_name']); ?>
+                <?php echo htmlspecialchars($_SESSION['customer_name']); ?>
               </li>
               <li><a class="dropdown-item" href="account_setting.php">Account Settings</a></li>
               <li><a class="dropdown-item" href="logout.php">Logout</a></li>
             <?php else: ?>
               <!-- If not logged in, show login/register links -->
-              <li><a class="dropdown-item" href="admin_login.php">Login</a></li>
-              <li><a class="dropdown-item" href="admin_register.php">Register</a></li>
+              <li><a class="dropdown-item" href="login.php">Login</a></li>
+              <li><a class="dropdown-item" href="register.php">Register</a></li>
             <?php endif; ?>
           </ul>
         </li>

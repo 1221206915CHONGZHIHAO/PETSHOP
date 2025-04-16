@@ -152,10 +152,10 @@ $product_count = count($products);
             <i class="bi bi-person" style="font-size: 1.2rem;"></i>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-            <?php if(isset($_SESSION['Customer_ID'])): ?>
+            <?php if(isset($_SESSION['customer_id'])): ?>
               <!-- If user is logged in, show username and account links -->
               <li class="dropdown-item-text">
-                <?php echo htmlspecialchars($_SESSION['Customer_name']); ?>
+                <?php echo htmlspecialchars($_SESSION['customer_name']); ?>
               </li>
               <li><a class="dropdown-item" href="account_setting.php">Account Settings</a></li>
               <li><a class="dropdown-item" href="logout.php">Logout</a></li>
