@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
   <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
     <?php if(isset($_SESSION['customer_id'])): ?>
       <!-- If user is logged in, show dashboard options -->
-      <li><a class="dropdown-item" href="dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
+      <li><a class="dropdown-item" href="user_dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
       <li><a class="dropdown-item" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
       <li><a class="dropdown-item" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favourite</a></li>
       <li><a class="dropdown-item" href="account_setting.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
