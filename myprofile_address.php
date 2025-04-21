@@ -173,15 +173,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 }
+
+// Create masked password for display
+$actual_password = $customer['Customer_password'];
+$masked_password = str_repeat('*', strlen($actual_password));
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile/Address</title>
-      <!-- Google Fonts -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile/Address - Hachi Pet Shop</title>
+  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -190,7 +194,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <!-- Custom CSS -->
   <link rel="stylesheet" href="userhomepage.css">
   <style>
- <style>
     /* Dashboard specific styles */
     .dashboard-container {
       display: flex;
@@ -274,7 +277,128 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       margin-bottom: 10px;
     }
     
-    /* Password toggle styling */
+    /* Tab controls */
+    .nav-tabs .nav-link {
+      color: #495057;
+      border-radius: 0;
+      border: none;
+      padding: 1rem 1.5rem;
+    }
+    
+    .nav-tabs .nav-link.active {
+      color: var(--bs-primary);
+      background-color: transparent;
+      border-bottom: 3px solid var(--bs-primary);
+    }
+    
+    /* Address card styling */
+    .address-card {
+      border: 1px solid #dee2e6;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    
+    .address-card .badge {
+      background-color: var(--bs-primary);
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+    
+    .address-card h3 {
+      margin-bottom: 15px;
+      padding-right: 70px;
+    }
+    
+    .address-actions {
+      margin-top: 15px;
+    }
+    
+    /* Add button */
+    .add-address-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px dashed #dee2e6;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .add-address-btn:hover {
+      background-color: #f8f9fa;
+    }
+    
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1050;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+    }
+    
+    .modal-content {
+      background-color: #fff;
+      margin: 10% auto;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 600px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #dee2e6;
+      padding-bottom: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .close-button {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-row {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .form-row .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+    
+    .btn {
+      background-color: var(--bs-primary);
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    
+    .btn-secondary {
+      background-color: #6c757d;
+    }
+    
     .password-container {
       position: relative;
     }
@@ -357,7 +481,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               <li><a class="dropdown-item" href="dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
               <li><a class="dropdown-item" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
               <li><a class="dropdown-item" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favourite</a></li>
-              <li><a class="dropdown-item" href="account_setting.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
+              <li><a class="dropdown-item" href="myprofile_address.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
             <?php else: ?>
@@ -378,7 +502,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <div class="sidebar">
     <ul class="sidebar-nav">
       <li>
-        <a href="dashboard.php" class="active">
+        <a href="dashboard.php">
           <i class="bi bi-house"></i> Dashboard
         </a>
       </li>
@@ -393,7 +517,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </a>
       </li>
       <li>
-        <a href="myprofile_address.php">
+        <a href="myprofile_address.php" class="active">
           <i class="bi bi-person-lines-fill"></i> My Profile/Address
         </a>
       </li>
@@ -404,355 +528,396 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       </li>
     </ul>
   </div>
-        <!-- Main Content Area -->
-        <div class="main-content">
-            <h1 class="page-title">Account Details</h1>
-
-            <?php if (isset($success_message)): ?>
-                <div class="alert alert-success">
-                    <?php echo $success_message; ?>
+  
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Alert Messages -->
+    <?php if (isset($success_message)): ?>
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <?php echo $success_message; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <?php endif; ?>
+    
+    <?php if (isset($error_message)): ?>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <?php echo $error_message; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <?php endif; ?>
+    
+    <?php if (isset($password_success)): ?>
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <?php echo $password_success; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <?php endif; ?>
+    
+    <?php if (isset($password_error)): ?>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <?php echo $password_error; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <?php endif; ?>
+    
+    <?php if (isset($address_success)): ?>
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <?php echo $address_success; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <?php endif; ?>
+    
+    <?php if (isset($address_error)): ?>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <?php echo $address_error; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <?php endif; ?>
+    
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="true">
+          <i class="bi bi-person me-2"></i>Profile Information
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="address-tab" data-bs-toggle="tab" data-bs-target="#address" type="button" role="tab" aria-controls="address" aria-selected="false">
+          <i class="bi bi-geo-alt me-2"></i>Delivery Addresses
+        </button>
+      </li>
+    </ul>
+    
+    <div class="tab-content" id="myTabContent">
+      <!-- Profile Tab -->
+      <div class="tab-pane fade show active" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2>Profile Information</h2>
+          <button type="button" class="btn btn-primary" id="edit-profile-btn">
+            <i class="bi bi-pencil me-2"></i>Edit Profile
+          </button>
+        </div>
+        
+        <div class="info-card">
+          <div class="account-details">
+            <div class="user-avatar">
+              <?php 
+              // Display user initials
+              $name = $customer['Customer_name'];
+              $initials = strtoupper(substr($name, 0, 1));
+              if (strpos($name, ' ') !== false) {
+                $name_parts = explode(' ', $name);
+                $initials = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
+              }
+              echo $initials;
+              ?>
+            </div>
+            <div class="user-info">
+              <div class="row">
+                <div class="col-md-3 fw-bold">Name:</div>
+                <div class="col-md-9"><?php echo htmlspecialchars($customer['Customer_name']); ?></div>
+              </div>
+              <div class="row">
+                <div class="col-md-3 fw-bold">Password:</div>
+                <div class="col-md-9 password-container">
+                  <span id="passwordDisplay"><?php echo $masked_password; ?></span>
+                  <button type="button" class="password-toggle" id="changePasswordBtn">
+                    <i class="bi bi-pencil"></i> Change
+                  </button>
                 </div>
-            <?php endif; ?>
-
-            <?php if (isset($error_message)): ?>
-                <div class="alert alert-danger">
-                    <?php echo $error_message; ?>
-                </div>
-            <?php endif; ?>
-
-            <div class="tab-container">
-                <div class="tab-header">
-                    <button class="tab-button active" data-tab="personal-info">
-                        <i class="fas fa-user-circle"></i> Personal Info
+              </div>
+              <div class="row">
+                <div class="col-md-3 fw-bold">Email:</div>
+                <div class="col-md-9"><?php echo htmlspecialchars($customer['Customer_email']); ?></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Address Tab -->
+      <div class="tab-pane fade" id="address" role="tabpanel" aria-labelledby="address-tab">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2>Delivery Addresses</h2>
+        </div>
+        
+        <div class="row">
+          <?php if ($addresses->num_rows > 0): ?>
+            <?php while ($address = $addresses->fetch_assoc()): ?>
+              <div class="col-md-6 mb-4">
+                <div class="info-card address-card">
+                  <?php if ($address['Is_Default']): ?>
+                    <span class="badge bg-primary">Default</span>
+                  <?php endif; ?>
+                  <h4><?php echo htmlspecialchars($address['Address_Label']); ?></h4>
+                  <div>
+                    <p class="mb-1"><?php echo htmlspecialchars($address['Full_Name']); ?></p>
+                    <p class="mb-1"><?php echo htmlspecialchars($address['Address_Line1']); ?></p>
+                    <?php if (!empty($address['Address_Line2'])): ?>
+                      <p class="mb-1"><?php echo htmlspecialchars($address['Address_Line2']); ?></p>
+                    <?php endif; ?>
+                    <p class="mb-1">
+                      <?php echo htmlspecialchars($address['City']); ?>,
+                      <?php if (!empty($address['State'])): ?>
+                        <?php echo htmlspecialchars($address['State']); ?>,
+                      <?php endif; ?>
+                      <?php echo htmlspecialchars($address['Postal_Code']); ?>
+                    </p>
+                    <p class="mb-1"><?php echo htmlspecialchars($address['Country']); ?></p>
+                    <p class="mb-1">Phone: <?php echo htmlspecialchars($address['Phone_Number']); ?></p>
+                  </div>
+                  <div class="mt-3">
+                    <button type="button" class="btn btn-primary btn-sm edit-address-btn" data-id="<?php echo $address['Address_ID']; ?>">
+                      <i class="bi bi-pencil me-1"></i> Edit
                     </button>
-                    <button class="tab-button" data-tab="address">
-                        <i class="fas fa-map-marker-alt"></i> Address
-                    </button>
-                </div>
-
-                <!-- Personal Info Tab -->
-                <div id="personal-info" class="tab-content active">
-                    <div class="profile-header">
-                        <h2>Personal Info</h2>
-                        <button class="edit-button" id="edit-profile-btn">
-                            <i class="fas fa-pen"></i>
+                    <form class="d-inline" method="post">
+                      <input type="hidden" name="address_id" value="<?php echo $address['Address_ID']; ?>">
+                      <button type="submit" name="delete_address" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this address?')">
+                        <i class="bi bi-trash me-1"></i> Delete
+                      </button>
+                    </form>
+                    <?php if (!$address['Is_Default']): ?>
+                      <form class="d-inline" method="post">
+                        <input type="hidden" name="address_id" value="<?php echo $address['Address_ID']; ?>">
+                        <button type="submit" name="set_default" class="btn btn-secondary btn-sm">
+                          <i class="bi bi-check-circle me-1"></i> Set as Default
                         </button>
-                    </div>
-
-                    <div class="profile-info">
-                        <div class="profile-row">
-                            <div class="profile-avatar">
-                                <?php
-                                    $initials = '';
-                                    $nameParts = explode(' ', $customer['Customer_name']);
-                                    foreach ($nameParts as $part) {
-                                        $initials .= strtoupper(substr($part, 0, 1));
-                                    }
-                                    echo $initials;
-                                ?>
-                            </div>
-                            <div class="profile-details">
-                                <div class="info-row">
-                                    <label>Name:</label>
-                                    <div class="value"><?php echo $customer['Customer_name']; ?></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="info-row">
-                            <label>Password:</label>
-                            <div class="value">******** <a href="#" id="change-password-link">[Change password]</a></div>
-                        </div>
-
-                        <div class="info-row">
-                            <label>Email:</label>
-                            <div class="value"><?php echo $customer['Customer_email']; ?></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Address Tab -->
-                <div id="address" class="tab-content">
-                    <div class="profile-header">
-                        <h2>Delivery Addresses</h2>
-                    </div>
-
-                    <?php if (isset($address_success)): ?>
-                        <div class="alert alert-success">
-                            <?php echo $address_success; ?>
-                        </div>
+                      </form>
                     <?php endif; ?>
-
-                    <?php if (isset($address_error)): ?>
-                        <div class="alert alert-danger">
-                            <?php echo $address_error; ?>
-                        </div>
-                    <?php endif; ?>
-
-                    <div id="addresses-container">
-                        <?php if ($addresses->num_rows > 0): ?>
-                            <?php while ($address = $addresses->fetch_assoc()): ?>
-                                <div class="address-card" data-address-id="<?php echo $address['Address_ID']; ?>">
-                                    <h3>
-                                        <span><?php echo htmlspecialchars($address['Address_Label']); ?></span>
-                                        <?php if ($address['Is_Default']): ?>
-                                            <span class="badge">Default</span>
-                                        <?php endif; ?>
-                                    </h3>
-                                    <p><?php echo htmlspecialchars($address['Full_Name']); ?></p>
-                                    <p><?php echo htmlspecialchars($address['Address_Line1']); ?></p>
-                                    <?php if (!empty($address['Address_Line2'])): ?>
-                                        <p><?php echo htmlspecialchars($address['Address_Line2']); ?></p>
-                                    <?php endif; ?>
-                                    <p><?php echo htmlspecialchars($address['City']); ?>, <?php echo htmlspecialchars($address['Postal_Code']); ?></p>
-                                    <p>
-                                        <?php if (!empty($address['State'])): ?>
-                                            <?php echo htmlspecialchars($address['State']); ?>, 
-                                        <?php endif; ?>
-                                        <?php echo htmlspecialchars($address['Country']); ?>
-                                    </p>
-                                    <p>Phone: <?php echo htmlspecialchars($address['Phone_Number']); ?></p>
-                                    <div class="address-actions">
-                                        <button class="btn btn-secondary edit-address-btn" data-id="<?php echo $address['Address_ID']; ?>">Edit</button>
-                                        <form method="post" style="display: inline;">
-                                            <input type="hidden" name="address_id" value="<?php echo $address['Address_ID']; ?>">
-                                            <button type="submit" name="delete_address" class="btn btn-secondary" onclick="return confirm('Are you sure you want to delete this address?')">Delete</button>
-                                        </form>
-                                        <?php if (!$address['Is_Default']): ?>
-                                            <form method="post" style="display: inline;">
-                                                <input type="hidden" name="address_id" value="<?php echo $address['Address_ID']; ?>">
-                                                <button type="submit" name="set_default" class="btn">Set as Default</button>
-                                            </form>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <p>You haven't added any addresses yet.</p>
-                        <?php endif; ?>
-
-                        <!-- Add new address button -->
-                        <div class="add-button" id="add-address-btn">
-                            <i class="fas fa-plus"></i> Add New Address
-                        </div>
-                    </div>
+                  </div>
                 </div>
+              </div>
+            <?php endwhile; ?>
+          <?php endif; ?>
+          
+          <!-- Add new address button -->
+          <div class="col-md-6 mb-4">
+            <div class="add-address-btn" id="add-address-btn">
+              <i class="bi bi-plus-lg me-2" style="font-size: 1.5rem;"></i>
+              <span>Add New Address</span>
             </div>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
+</div>
 
-    <!-- Edit Profile Modal -->
-    <div id="edit-profile-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Edit Personal Information</h2>
-                <button class="close-button">&times;</button>
-            </div>
-            <form id="edit-profile-form" method="post">
-                <div class="form-group">
-                    <label for="edit-name">Name:</label>
-                    <input type="text" id="edit-name" name="name" class="form-control" value="<?php echo $customer['Customer_name']; ?>" required>
-                </div>
-                <div class="form-group">
-                    <label for="edit-email">Email:</label>
-                    <input type="email" id="edit-email" name="email" class="form-control" value="<?php echo $customer['Customer_email']; ?>" required>
-                </div>
-                <div class="form-group">
-                    <button type="submit" name="update_profile" class="btn">Save Changes</button>
-                </div>
-            </form>
+<!-- Footer -->
+<footer class="footer bg-dark text-white py-4">
+  <div class="container text-center">
+    <div class="mb-3">
+      <a href="#" class="text-white me-3">Facebook</a>
+      <a href="#" class="text-white me-3">Twitter</a>
+      <a href="#" class="text-white">Instagram</a>
+    </div>
+    <p>&copy; 2025 Hachi Pet Shop. All rights reserved.</p>
+    <p>Email: <a href="mailto:info@petshop.com" class="text-decoration-none text-white">info@petshop.com</a></p>
+  </div>
+</footer>
+
+<!-- Edit Profile Modal -->
+<div id="edit-profile-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4>Edit Profile Information</h4>
+      <button type="button" class="close-button">&times;</button>
+    </div>
+    <form method="post">
+      <div class="form-group">
+        <label for="name" class="form-label">Name</label>
+        <input type="text" class="form-control" id="name" name="name" value="<?php echo htmlspecialchars($customer['Customer_name']); ?>" required>
+      </div>
+      <div class="form-group">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($customer['Customer_email']); ?>" required>
+      </div>
+      <div class="text-end">
+        <button type="button" class="btn btn-secondary me-2 close-modal-btn">Cancel</button>
+        <button type="submit" name="update_profile" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div id="change-password-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4>Change Password</h4>
+      <button type="button" class="close-button">&times;</button>
+    </div>
+    <form method="post">
+      <div class="form-group">
+        <label for="current_password" class="form-label">Current Password</label>
+        <input type="password" class="form-control" id="current_password" name="current_password" required>
+      </div>
+      <div class="form-group">
+        <label for="new_password" class="form-label">New Password</label>
+        <input type="password" class="form-control" id="new_password" name="new_password" required>
+      </div>
+      <div class="form-group">
+        <label for="confirm_password" class="form-label">Confirm New Password</label>
+        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+      </div>
+      <div class="text-end">
+        <button type="button" class="btn btn-secondary me-2 close-modal-btn">Cancel</button>
+        <button type="submit" name="change_password" class="btn btn-primary">Change Password</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add/Edit Address Modal -->
+<div id="address-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 id="address-modal-title">Add New Address</h4>
+      <button type="button" class="close-button">&times;</button>
+    </div>
+    <form method="post">
+      <input type="hidden" id="address_id" name="address_id">
+      <div class="form-group">
+        <label for="address_label" class="form-label">Address Label (e.g., Home, Work)</label>
+        <input type="text" class="form-control" id="address_label" name="address_label" required>
+      </div>
+      <div class="form-group">
+        <label for="full_name" class="form-label">Full Name</label>
+        <input type="text" class="form-control" id="full_name" name="full_name" required>
+      </div>
+      <div class="form-group">
+        <label for="phone" class="form-label">Phone Number</label>
+        <input type="tel" class="form-control" id="phone" name="phone" required>
+      </div>
+      <div class="form-group">
+        <label for="address_line1" class="form-label">Address Line 1</label>
+        <input type="text" class="form-control" id="address_line1" name="address_line1" required>
+      </div>
+      <div class="form-group">
+        <label for="address_line2" class="form-label">Address Line 2 (Optional)</label>
+        <input type="text" class="form-control" id="address_line2" name="address_line2">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="city" class="form-label">City</label>
+          <input type="text" class="form-control" id="city" name="city" required>
         </div>
-    </div>
-
-    <!-- Change Password Modal -->
-    <div id="change-password-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Change Password</h2>
-                <button class="close-button">&times;</button>
-            </div>
-            <?php if (isset($password_error)): ?>
-                <div class="alert alert-danger">
-                    <?php echo $password_error; ?>
-                </div>
-            <?php endif; ?>
-            <?php if (isset($password_success)): ?>
-                <div class="alert alert-success">
-                    <?php echo $password_success; ?>
-                </div>
-            <?php endif; ?>
-            <form id="change-password-form" method="post">
-                <div class="form-group">
-                    <label for="current-password">Current Password:</label>
-                    <input type="password" id="current-password" name="current_password" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="new-password">New Password:</label>
-                    <input type="password" id="new-password" name="new_password" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="confirm-password">Confirm New Password:</label>
-                    <input type="password" id="confirm-password" name="confirm_password" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <button type="submit" name="change_password" class="btn">Update Password</button>
-                </div>
-            </form>
+        <div class="form-group">
+          <label for="state" class="form-label">State/Province</label>
+          <input type="text" class="form-control" id="state" name="state">
         </div>
-    </div>
-
-    <!-- Add/Edit Address Modal -->
-    <div id="address-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="address-modal-title">Add New Address</h2>
-                <button class="close-button">&times;</button>
-            </div>
-            <form id="address-form" method="post">
-                <input type="hidden" id="address-id" name="address_id">
-                <div class="form-group">
-                    <label for="address-label">Address Label (e.g. Home, Work):</label>
-                    <input type="text" id="address-label" name="address_label" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="address-name">Full Name:</label>
-                    <input type="text" id="address-name" name="full_name" class="form-control" value="<?php echo $customer['Customer_name']; ?>" required>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="address-phone">Phone Number:</label>
-                        <input type="text" id="address-phone" name="phone" class="form-control" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="address-line1">Address Line 1:</label>
-                    <input type="text" id="address-line1" name="address_line1" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="address-line2">Address Line 2 (Optional):</label>
-                    <input type="text" id="address-line2" name="address_line2" class="form-control">
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="address-city">City:</label>
-                        <input type="text" id="address-city" name="city" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="address-state">State:</label>
-                        <input type="text" id="address-state" name="state" class="form-control" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="address-postal">Postal Code:</label>
-                        <input type="text" id="address-postal" name="postal_code" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="address-country">Country:</label>
-                        <input type="text" id="address-country" name="country" class="form-control" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" name="is_default" id="is-default">
-                        Set as default address
-                    </label>
-                </div>
-                <div class="form-group">
-                    <button type="submit" name="save_address" class="btn">Save Address</button>
-                </div>
-            </form>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="postal_code" class="form-label">Postal/ZIP Code</label>
+          <input type="text" class="form-control" id="postal_code" name="postal_code" required>
         </div>
-    </div>
+        <div class="form-group">
+          <label for="country" class="form-label">Country</label>
+          <input type="text" class="form-control" id="country" name="country" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" id="is_default" name="is_default">
+          <label class="form-check-label" for="is_default">Set as default address</label>
+        </div>
+      </div>
+      <div class="text-end">
+        <button type="button" class="btn btn-secondary me-2 close-modal-btn">Cancel</button>
+        <button type="submit" name="save_address" class="btn btn-primary">Save Address</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-    <!-- JavaScript for modal and tab interaction -->
-    <script>
-        // Tabs
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const tabContents = document.querySelectorAll('.tab-content');
-
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                tabContents.forEach(content => content.classList.remove('active'));
-
-                button.classList.add('active');
-                const tab = button.getAttribute('data-tab');
-                document.getElementById(tab).classList.add('active');
-            });
+<!-- Bootstrap JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Custom JavaScript -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Modal handling functions
+    const modals = document.querySelectorAll('.modal');
+    const closeButtons = document.querySelectorAll('.close-button, .close-modal-btn');
+    
+    // Edit profile button
+    const editProfileBtn = document.getElementById('edit-profile-btn');
+    const editProfileModal = document.getElementById('edit-profile-modal');
+    
+    editProfileBtn.addEventListener('click', function() {
+      editProfileModal.style.display = 'block';
+    });
+    
+    // Change password button
+    const changePasswordBtn = document.getElementById('changePasswordBtn');
+    const changePasswordModal = document.getElementById('change-password-modal');
+    
+    changePasswordBtn.addEventListener('click', function() {
+      changePasswordModal.style.display = 'block';
+    });
+    
+    // Add address button
+    const addAddressBtn = document.getElementById('add-address-btn');
+    const addressModal = document.getElementById('address-modal');
+    const addressModalTitle = document.getElementById('address-modal-title');
+    
+    addAddressBtn.addEventListener('click', function() {
+      // Clear form fields
+      document.getElementById('address_id').value = '';
+      document.getElementById('address_label').value = '';
+      document.getElementById('full_name').value = '';
+      document.getElementById('phone').value = '';
+      document.getElementById('address_line1').value = '';
+      document.getElementById('address_line2').value = '';
+      document.getElementById('city').value = '';
+      document.getElementById('state').value = '';
+      document.getElementById('postal_code').value = '';
+      document.getElementById('country').value = '';
+      document.getElementById('is_default').checked = false;
+      
+      addressModalTitle.textContent = 'Add New Address';
+      addressModal.style.display = 'block';
+    });
+    
+    // Edit address buttons
+    const editAddressBtns = document.querySelectorAll('.edit-address-btn');
+    
+    editAddressBtns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const addressId = this.getAttribute('data-id');
+        
+        // Fetch address data via AJAX or from a data attribute
+        // For simplicity, you might want to store the address data in a JavaScript object or 
+        // fetch it from the server via AJAX
+        
+        // Example of how you might populate the form:
+        // document.getElementById('address_id').value = addressId;
+        // document.getElementById('address_label').value = addressData.label;
+        // ...
+        
+        addressModalTitle.textContent = 'Edit Address';
+        addressModal.style.display = 'block';
+      });
+    });
+    
+    // Close modals
+    closeButtons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        modals.forEach(function(modal) {
+          modal.style.display = 'none';
         });
-
-        // Modals
-        const editProfileBtn = document.getElementById('edit-profile-btn');
-        const changePasswordLink = document.getElementById('change-password-link');
-        const addAddressBtn = document.getElementById('add-address-btn');
-        const modals = document.querySelectorAll('.modal');
-        const closeButtons = document.querySelectorAll('.close-button');
-
-        editProfileBtn.addEventListener('click', () => {
-            document.getElementById('edit-profile-modal').style.display = 'block';
-        });
-
-        changePasswordLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.getElementById('change-password-modal').style.display = 'block';
-        });
-
-        addAddressBtn.addEventListener('click', () => {
-            document.getElementById('address-modal-title').innerText = 'Add New Address';
-            document.getElementById('address-form').reset();
-            document.getElementById('address-id').value = '';
-            document.getElementById('address-modal').style.display = 'block';
-        });
-
-        closeButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                modals.forEach(modal => modal.style.display = 'none');
-            });
-        });
-
-        // Address edit buttons
-        const editButtons = document.querySelectorAll('.edit-address-btn');
-        editButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const card = btn.closest('.address-card');
-                const id = btn.dataset.id;
-                const label = card.querySelector('h3 span').innerText.trim();
-                const lines = card.querySelectorAll('p');
-                const fullName = lines[0].innerText.trim();
-                const addressLine1 = lines[1].innerText.trim();
-                const addressLine2 = lines.length === 6 ? lines[2].innerText.trim() : '';
-                const cityPostal = lines.length === 6 ? lines[3].innerText.trim() : lines[2].innerText.trim();
-                const stateCountry = lines.length === 6 ? lines[4].innerText.trim() : lines[3].innerText.trim();
-                const phone = lines.length === 6 ? lines[5].innerText.split(': ')[1].trim() : lines[4].innerText.split(': ')[1].trim();
-
-                const [city, postal] = cityPostal.split(',').map(s => s.trim());
-                const [state, country] = stateCountry.split(',').map(s => s.trim());
-
-                document.getElementById('address-modal-title').innerText = 'Edit Address';
-                document.getElementById('address-id').value = id;
-                document.getElementById('address-label').value = label;
-                document.getElementById('address-name').value = fullName;
-                document.getElementById('address-line1').value = addressLine1;
-                document.getElementById('address-line2').value = addressLine2;
-                document.getElementById('address-city').value = city;
-                document.getElementById('address-state').value = state;
-                document.getElementById('address-postal').value = postal;
-                document.getElementById('address-country').value = country;
-                document.getElementById('address-phone').value = phone;
-
-                document.getElementById('address-modal').style.display = 'block';
-            });
-        });
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            modals.forEach(modal => {
-                if (event.target == modal) {
-                    modal.style.display = "none";
-                }
-            });
-        };
-    </script>
+      });
+    });
+    
+    // Close modals when clicking outside
+    window.addEventListener('click', function(event) {
+      modals.forEach(function(modal) {
+        if (event.target === modal) {
+          modal.style.display = 'none';
+        }
+      });
+    });
+  });
+</script>
 </body>
 </html>
