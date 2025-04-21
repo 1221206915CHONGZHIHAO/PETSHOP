@@ -232,7 +232,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
   <div class="sidebar">
     <ul class="sidebar-nav">
       <li>
-        <a href="dashboard.php" class="active">
+        <a href="user_dashboard.php" class="active">
           <i class="bi bi-house"></i> Dashboard
         </a>
       </li>
