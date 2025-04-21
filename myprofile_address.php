@@ -1,56 +1,52 @@
 <?php
-// Start session first thing - before any output
 session_start();
+require_once 'db_connection.php'; // Include your database connection file
 
-// Database connection setup
-$servername = "localhost";
-$username = "root"; // Default XAMPP username
-$password = ""; // Default XAMPP password
-$dbname = "petshop"; // Your database name
-
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-$user_id = $_SESSION['customer_ID'];
-
-// Fetch user details from database
-$sql = "SELECT * FROM customer WHERE customer_ID = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows > 0) {
-    $user = $result->fetch_assoc();
-} else {
-    // Handle case where user is not found
-    echo "User not found";
+// Check if user is logged in
+if (!isset($_SESSION['customer_id'])) {
+    header("Location: login.php");
     exit();
 }
 
+$customer_id = $_SESSION['customer_id'];
+
+// Fetch customer data
+$stmt = $conn->prepare("SELECT * FROM customer WHERE Customer_ID = ?");
+$stmt->bind_param("i", $customer_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$customer = $result->fetch_assoc();
+
+// Fetch customer addresses
+$stmt = $conn->prepare("SELECT * FROM customer_address WHERE Customer_ID = ? ORDER BY Is_Default DESC");
+$stmt->bind_param("i", $customer_id);
+$stmt->execute();
+$addresses = $stmt->get_result();
+
 // Handle form submissions
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Update personal information
-    if (isset($_POST['update_personal_info'])) {
+    // Update profile information
+    if (isset($_POST['update_profile'])) {
         $name = $_POST['name'];
         $email = $_POST['email'];
         
-        $update_sql = "UPDATE customer SET Customer_name = ?, Customer_email = ? WHERE Customer_ID = ?";
-        $update_stmt = $conn->prepare($update_sql);
-        $update_stmt->bind_param("ssi", $name, $email, $user_id);
+        $stmt = $conn->prepare("UPDATE customer SET Customer_name = ?, Customer_email = ? WHERE Customer_ID = ?");
+        $stmt->bind_param("ssi", $name, $email, $customer_id);
         
-        if ($update_stmt->execute()) {
-            $success_message = "Personal information updated successfully!";
-            // Update local user data
-            $user['Customer_name'] = $name;
-            $user['Customer_email'] = $email;
+        if ($stmt->execute()) {
+            $success_message = "Profile updated successfully!";
+            
+            // Update session data
+            $_SESSION['customer_name'] = $name;
+            
+            // Refresh customer data
+            $stmt = $conn->prepare("SELECT * FROM customer WHERE Customer_ID = ?");
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $customer = $result->fetch_assoc();
         } else {
-            $error_message = "Error updating information: " . $conn->error;
+            $error_message = "Failed to update profile: " . $conn->error;
         }
     }
     
@@ -60,86 +56,76 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $new_password = $_POST['new_password'];
         $confirm_password = $_POST['confirm_password'];
         
-        // Verify current password - consider using password_verify() if using hashed passwords
-        if ($current_password === $user['Customer_password']) {
-            // Check if new passwords match
-            if ($new_password === $confirm_password) {
-                $pass_sql = "UPDATE customer SET Customer_password = ? WHERE Customer_ID = ?";
-                $pass_stmt = $conn->prepare($pass_sql);
-                $pass_stmt->bind_param("si", $new_password, $user_id);
-                
-                if ($pass_stmt->execute()) {
-                    $success_message = "Password changed successfully!";
-                } else {
-                    $error_message = "Error changing password: " . $conn->error;
-                }
-            } else {
-                $error_message = "New passwords do not match";
-            }
+        // Verify current password
+        if ($current_password != $customer['Customer_password']) {
+            $password_error = "Current password is incorrect";
+        } elseif ($new_password != $confirm_password) {
+            $password_error = "New passwords do not match";
         } else {
-            $error_message = "Current password is incorrect";
+            $stmt = $conn->prepare("UPDATE customer SET Customer_password = ? WHERE Customer_ID = ?");
+            $stmt->bind_param("si", $new_password, $customer_id);
+            
+            if ($stmt->execute()) {
+                $password_success = "Password changed successfully!";
+            } else {
+                $password_error = "Failed to change password: " . $conn->error;
+            }
         }
     }
     
     // Add or update address
-    if (isset($_POST['update_address'])) {
-        // First check if customer_address table exists
-        $check_table_sql = "SHOW TABLES LIKE 'customer_address'";
-        $table_result = $conn->query($check_table_sql);
-        
-        if ($table_result->num_rows == 0) {
-            // Create customer_address table if it doesn't exist
-            $create_table_sql = "CREATE TABLE customer_address (
-                address_id INT AUTO_INCREMENT PRIMARY KEY,
-                Customer_ID INT NOT NULL,
-                address_line1 VARCHAR(255) NOT NULL,
-                address_line2 VARCHAR(255),
-                city VARCHAR(100) NOT NULL,
-                state VARCHAR(100) NOT NULL,
-                postal_code VARCHAR(20) NOT NULL,
-                country VARCHAR(100) NOT NULL,
-                is_default TINYINT(1) DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (Customer_ID) REFERENCES customer(Customer_ID) ON DELETE CASCADE
-            )";
-            $conn->query($create_table_sql);
-        }
-        
+    if (isset($_POST['save_address'])) {
         $address_id = $_POST['address_id'] ?? null;
-        $address_line1 = $_POST['address_line1'];
-        $address_line2 = $_POST['address_line2'];
+        $label = $_POST['address_label'];
+        $full_name = $_POST['full_name'];
+        $phone = $_POST['phone'];
+        $line1 = $_POST['address_line1'];
+        $line2 = $_POST['address_line2'];
         $city = $_POST['city'];
         $state = $_POST['state'];
-        $postal_code = $_POST['postal_code'];
+        $postal = $_POST['postal_code'];
         $country = $_POST['country'];
         $is_default = isset($_POST['is_default']) ? 1 : 0;
         
+        // If this is being set as default, remove default from other addresses
         if ($is_default) {
-            // If this address is set as default, remove default status from all other addresses
-            $clear_default_sql = "UPDATE customer_address SET is_default = 0 WHERE Customer_ID = ?";
-            $clear_stmt = $conn->prepare($clear_default_sql);
-            $clear_stmt->bind_param("i", $user_id);
-            $clear_stmt->execute();
+            $stmt = $conn->prepare("UPDATE customer_address SET Is_Default = 0 WHERE Customer_ID = ?");
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
         }
         
         if ($address_id) {
             // Update existing address
-            $addr_sql = "UPDATE customer_address SET address_line1 = ?, address_line2 = ?, city = ?, 
-                        state = ?, postal_code = ?, country = ?, is_default = ? WHERE address_id = ? AND Customer_ID = ?";
-            $addr_stmt = $conn->prepare($addr_sql);
-            $addr_stmt->bind_param("ssssssiis", $address_line1, $address_line2, $city, $state, $postal_code, $country, $is_default, $address_id, $user_id);
+            $stmt = $conn->prepare("UPDATE customer_address SET 
+                Address_Label = ?, 
+                Full_Name = ?, 
+                Phone_Number = ?, 
+                Address_Line1 = ?, 
+                Address_Line2 = ?, 
+                City = ?, 
+                State = ?, 
+                Postal_Code = ?, 
+                Country = ?, 
+                Is_Default = ? 
+                WHERE Address_ID = ? AND Customer_ID = ?");
+            $stmt->bind_param("sssssssssiis", $label, $full_name, $phone, $line1, $line2, $city, $state, $postal, $country, $is_default, $address_id, $customer_id);
         } else {
             // Add new address
-            $addr_sql = "INSERT INTO customer_address (Customer_ID, address_line1, address_line2, city, state, postal_code, country, is_default) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-            $addr_stmt = $conn->prepare($addr_sql);
-            $addr_stmt->bind_param("issssssi", $user_id, $address_line1, $address_line2, $city, $state, $postal_code, $country, $is_default);
+            $stmt = $conn->prepare("INSERT INTO customer_address 
+                (Customer_ID, Address_Label, Full_Name, Phone_Number, Address_Line1, Address_Line2, City, State, Postal_Code, Country, Is_Default) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("isssssssssi", $customer_id, $label, $full_name, $phone, $line1, $line2, $city, $state, $postal, $country, $is_default);
         }
         
-        if ($addr_stmt->execute()) {
-            $success_message = "Address " . ($address_id ? "updated" : "added") . " successfully!";
+        if ($stmt->execute()) {
+            $address_success = "Address saved successfully!";
+            // Refresh address list
+            $stmt = $conn->prepare("SELECT * FROM customer_address WHERE Customer_ID = ? ORDER BY Is_Default DESC");
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
+            $addresses = $stmt->get_result();
         } else {
-            $error_message = "Error with address: " . $conn->error;
+            $address_error = "Failed to save address: " . $conn->error;
         }
     }
     
@@ -147,42 +133,45 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (isset($_POST['delete_address'])) {
         $address_id = $_POST['address_id'];
         
-        $del_sql = "DELETE FROM customer_address WHERE address_id = ? AND Customer_ID = ?";
-        $del_stmt = $conn->prepare($del_sql);
-        $del_stmt->bind_param("ii", $address_id, $user_id);
+        $stmt = $conn->prepare("DELETE FROM customer_address WHERE Address_ID = ? AND Customer_ID = ?");
+        $stmt->bind_param("ii", $address_id, $customer_id);
         
-        if ($del_stmt->execute()) {
-            $success_message = "Address deleted successfully!";
+        if ($stmt->execute()) {
+            $address_success = "Address deleted successfully!";
+            // Refresh address list
+            $stmt = $conn->prepare("SELECT * FROM customer_address WHERE Customer_ID = ? ORDER BY Is_Default DESC");
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
+            $addresses = $stmt->get_result();
         } else {
-            $error_message = "Error deleting address: " . $conn->error;
+            $address_error = "Failed to delete address: " . $conn->error;
         }
     }
-}
-
-// Check if customer_address table exists
-$check_table_sql = "SHOW TABLES LIKE 'customer_address'";
-$table_result = $conn->query($check_table_sql);
-
-$addresses = [];
-if ($table_result->num_rows > 0) {
-    // Fetch user addresses
-    $addr_sql = "SELECT * FROM customer_address WHERE Customer_ID = ?";
-    $addr_stmt = $conn->prepare($addr_sql);
-    $addr_stmt->bind_param("i", $user_id);
-    $addr_stmt->execute();
-    $addresses_result = $addr_stmt->get_result();
     
-    while ($address = $addresses_result->fetch_assoc()) {
-        $addresses[] = $address;
+    // Set address as default
+    if (isset($_POST['set_default'])) {
+        $address_id = $_POST['address_id'];
+        
+        // First remove default from all addresses
+        $stmt = $conn->prepare("UPDATE customer_address SET Is_Default = 0 WHERE Customer_ID = ?");
+        $stmt->bind_param("i", $customer_id);
+        $stmt->execute();
+        
+        // Set the selected address as default
+        $stmt = $conn->prepare("UPDATE customer_address SET Is_Default = 1 WHERE Address_ID = ? AND Customer_ID = ?");
+        $stmt->bind_param("ii", $address_id, $customer_id);
+        
+        if ($stmt->execute()) {
+            $address_success = "Default address updated successfully!";
+            // Refresh address list
+            $stmt = $conn->prepare("SELECT * FROM customer_address WHERE Customer_ID = ? ORDER BY Is_Default DESC");
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
+            $addresses = $stmt->get_result();
+        } else {
+            $address_error = "Failed to update default address: " . $conn->error;
+        }
     }
-}
-
-// Extract initials from customer name
-$name = $user['Customer_name'];
-$initials = strtoupper(substr($name, 0, 1));
-if (strpos($name, ' ') !== false) {
-    $name_parts = explode(' ', $name);
-    $initials = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
 }
 ?>
 
@@ -191,464 +180,579 @@ if (strpos($name, ' ') !== false) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Details - My Profile/Address</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-        body {
-            background-color: #f9f9f9;
-            color: #333;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 20px;
-            display: flex;
-            gap: 20px;
-        }
-        .sidebar {
-            width: 220px;
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .sidebar-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 0;
-            color: #333;
-            text-decoration: none;
-            gap: 12px;
-        }
-        .sidebar-item.active {
-            color: #4a6ee0;
-            font-weight: bold;
-        }
-        .sidebar-icon {
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .main-content {
-            flex: 1;
-        }
-        .page-title {
-            font-size: 24px;
-            margin-bottom: 5px;
-            color: #333;
-        }
-        .page-subtitle {
-            color: #777;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-        .info-section {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        .section-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 18px;
-            font-weight: bold;
-        }
-        .edit-btn, .add-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #888;
-            font-size: 20px;
-        }
-        .add-btn {
-            color: #aaa;
-            font-size: 24px;
-        }
-        .profile-avatar {
-            width: 70px;
-            height: 70px;
-            background-color: #eee;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: #777;
-            margin-bottom: 20px;
-        }
-        .info-row {
-            margin-bottom: 15px;
-        }
-        .info-label {
-            color: #888;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-        .info-value {
-            color: #333;
-            font-size: 16px;
-        }
-        .change-link {
-            color: #4a9ee0;
-            text-decoration: none;
-            margin-left: 5px;
-            cursor: pointer;
-        }
-        .logout-btn {
-            color: #ff6b6b;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 100;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
-        .modal-content {
-            background-color: white;
-            margin: 10% auto;
-            padding: 20px;
-            border-radius: 8px;
-            width: 500px;
-            max-width: 90%;
-        }
-        .close-btn {
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .form-control {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .btn-primary {
-            background-color: #4a6ee0;
-            color: white;
-        }
-        .btn-danger {
-            background-color: #ff6b6b;
-            color: white;
-        }
-        .address-card {
-            border: 1px solid #eee;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            position: relative;
-        }
-        .address-actions {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            display: flex;
-            gap: 10px;
-        }
-        .default-badge {
-            background-color: #4a6ee0;
-            color: white;
-            border-radius: 12px;
-            padding: 2px 8px;
-            font-size: 12px;
-            margin-left: 10px;
-        }
-        .alert {
-            padding: 10px 15px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-        }
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .alert-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-    </style>
+    <title>My Profile/Address</title>
+      <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="userhomepage.css">
+  <style>
+ <style>
+    /* Dashboard specific styles */
+    .dashboard-container {
+      display: flex;
+      padding: 20px;
+      min-height: calc(100vh - 76px - 91px); /* Account for navbar and footer height */
+    }
+    
+    .sidebar {
+      width: 250px;
+      background-color: #f8f9fa;
+      border-radius: 10px;
+      padding: 15px;
+      margin-right: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    
+    .sidebar-nav {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .sidebar-nav li {
+      margin-bottom: 10px;
+    }
+    
+    .sidebar-nav a {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      color: #333;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: all 0.3s ease;
+    }
+    
+    .sidebar-nav a:hover, .sidebar-nav a.active {
+      background-color: #e9ecef;
+    }
+    
+    .sidebar-nav a i {
+      margin-right: 10px;
+      width: 20px;
+      text-align: center;
+    }
+    
+    .main-content {
+      flex: 1;
+    }
+    
+    .info-card {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    
+    .account-details {
+      display: flex;
+      align-items: center;
+    }
+    
+    .user-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: #dee2e6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin-right: 20px;
+    }
+    
+    .user-info {
+      flex: 1;
+    }
+    
+    .user-info .row {
+      margin-bottom: 10px;
+    }
+    
+    /* Password toggle styling */
+    .password-container {
+      position: relative;
+    }
+    
+    .password-toggle {
+      position: absolute;
+      right: 0;
+      top: 0;
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: #6c757d;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="sidebar">
-            <a href="dashboard.php" class="sidebar-item">
-                <div class="sidebar-icon">🏠</div>
-                <div>Dashboard</div>
-            </a>
-            <a href="orders.php" class="sidebar-item">
-                <div class="sidebar-icon">📦</div>
-                <div>My Orders</div>
-            </a>
-            <a href="favorites.php" class="sidebar-item">
-                <div class="sidebar-icon">❤️</div>
-                <div>My Favourite</div>
-            </a>
-            <a href="profile.php" class="sidebar-item active">
-                <div class="sidebar-icon">👤</div>
-                <div>My Profile/Address</div>
-            </a>
-            <a href="logout.php" class="sidebar-item logout-btn">
-                <div class="sidebar-icon">↪️</div>
-                <div>Logout</div>
-            </a>
-        </div>
-        
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark custom-nav">
+  <div class="container">
+    <!-- Brand on the left -->
+    <a class="navbar-brand" href="userhomepage.php">
+      <img src="cat_paw.png" alt="Pet Shop" width="50">
+      <span>Hachi Pet Shop</span>
+    </a>
+    
+    <!-- Toggler for mobile view -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <!-- Main nav links centered -->
+      <ul class="navbar-nav mx-auto">
+        <li class="nav-item"><a class="nav-link" href="userhomepage.php">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
+        <li class="nav-item"><a class="nav-link" href="products.php">Product</a></li>
+        <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
+      </ul>
+
+      <!-- Icons on the right -->
+      <ul class="navbar-nav ms-auto">
+        <!-- Search Icon with Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-search" style="font-size: 1.2rem;"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="searchDropdown" style="min-width: 250px;">
+            <form class="d-flex">
+              <input class="form-control me-2" type="search" placeholder="Search..." aria-label="Search">
+              <button class="btn btn-primary" type="submit">Go</button>
+            </form>
+          </ul>
+        </li>
+
+        <!-- Cart Icon with item count -->
+        <li class="nav-item">
+          <a class="nav-link position-relative" href="cart.php">
+            <i class="bi bi-cart" style="font-size: 1.2rem;"></i>
+            <?php if(isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                <?php echo count($_SESSION['cart']); ?>
+              </span>
+            <?php endif; ?>
+          </a>
+        </li>
+
+        <!-- User Icon with Dynamic Dropdown -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <?php if(isset($_SESSION['customer_id'])): ?>
+              <!-- Show username when logged in -->
+              <span class="me-1"><?php echo htmlspecialchars($_SESSION['customer_name']); ?></span>
+            <?php else: ?>
+              <i class="bi bi-person" style="font-size: 1.2rem;"></i>
+            <?php endif; ?>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <?php if(isset($_SESSION['customer_id'])): ?>
+              <!-- If user is logged in, show dashboard options -->
+              <li><a class="dropdown-item" href="dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
+              <li><a class="dropdown-item" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
+              <li><a class="dropdown-item" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favourite</a></li>
+              <li><a class="dropdown-item" href="account_setting.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+            <?php else: ?>
+              <!-- If not logged in, show login/register links -->
+              <li><a class="dropdown-item" href="login.php">Login</a></li>
+              <li><a class="dropdown-item" href="register.php">Register</a></li>
+            <?php endif; ?>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Dashboard Content -->
+<div class="dashboard-container container">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <ul class="sidebar-nav">
+      <li>
+        <a href="dashboard.php" class="active">
+          <i class="bi bi-house"></i> Dashboard
+        </a>
+      </li>
+      <li>
+        <a href="my_orders.php">
+          <i class="bi bi-box"></i> My Orders
+        </a>
+      </li>
+      <li>
+        <a href="favorites.php">
+          <i class="bi bi-heart"></i> My Favourite
+        </a>
+      </li>
+      <li>
+        <a href="myprofile_address.php">
+          <i class="bi bi-person-lines-fill"></i> My Profile/Address
+        </a>
+      </li>
+      <li>
+        <a href="logout.php" class="text-danger">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+      </li>
+    </ul>
+  </div>
+        <!-- Main Content Area -->
         <div class="main-content">
             <h1 class="page-title">Account Details</h1>
-            <p class="page-subtitle">Find you account details here. You have the ability to edit.</p>
-            
-            <?php if(isset($success_message)): ?>
-                <div class="alert alert-success"><?php echo $success_message; ?></div>
+
+            <?php if (isset($success_message)): ?>
+                <div class="alert alert-success">
+                    <?php echo $success_message; ?>
+                </div>
             <?php endif; ?>
-            
-            <?php if(isset($error_message)): ?>
-                <div class="alert alert-danger"><?php echo $error_message; ?></div>
+
+            <?php if (isset($error_message)): ?>
+                <div class="alert alert-danger">
+                    <?php echo $error_message; ?>
+                </div>
             <?php endif; ?>
-            
-            <div class="info-section">
-                <div class="section-header">
-                    <div class="section-title">
-                        <span>👤</span>
-                        <span>Personal Info</span>
+
+            <div class="tab-container">
+                <div class="tab-header">
+                    <button class="tab-button active" data-tab="personal-info">
+                        <i class="fas fa-user-circle"></i> Personal Info
+                    </button>
+                    <button class="tab-button" data-tab="address">
+                        <i class="fas fa-map-marker-alt"></i> Address
+                    </button>
+                </div>
+
+                <!-- Personal Info Tab -->
+                <div id="personal-info" class="tab-content active">
+                    <div class="profile-header">
+                        <h2>Personal Info</h2>
+                        <button class="edit-button" id="edit-profile-btn">
+                            <i class="fas fa-pen"></i>
+                        </button>
                     </div>
-                    <button class="edit-btn" onclick="openModal('personalInfoModal')">✏️</button>
-                </div>
-                
-                <div class="profile-avatar">
-                    <?php echo $initials; ?>
-                </div>
-                
-                <div class="info-row">
-                    <div class="info-label">Name:</div>
-                    <div class="info-value"><?php echo htmlspecialchars($user['Customer_name']); ?></div>
-                </div>
-                
-                <div class="info-row">
-                    <div class="info-label">Password:</div>
-                    <div class="info-value">******** <a onclick="openModal('passwordModal')" class="change-link">[ Change password ]</a></div>
-                </div>
-                
-                <div class="info-row">
-                    <div class="info-label">Email:</div>
-                    <div class="info-value"><?php echo htmlspecialchars($user['Customer_email']); ?></div>
-                </div>
-            </div>
-            
-            <div class="info-section">
-                <div class="section-header">
-                    <div class="section-title">
-                        <span>📍</span>
-                        <span>Address</span>
-                    </div>
-                    <button class="add-btn" onclick="openModal('addressModal'); clearAddressForm();">+</button>
-                </div>
-                
-                <?php if (count($addresses) > 0): ?>
-                    <?php foreach($addresses as $address): ?>
-                        <div class="address-card">
-                            <div class="address-actions">
-                                <button class="edit-btn" onclick="editAddress(<?php echo $address['address_id']; ?>)">✏️</button>
-                                <form method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this address?');">
-                                    <input type="hidden" name="address_id" value="<?php echo $address['address_id']; ?>">
-                                    <button type="submit" name="delete_address" class="edit-btn">🗑️</button>
-                                </form>
+
+                    <div class="profile-info">
+                        <div class="profile-row">
+                            <div class="profile-avatar">
+                                <?php
+                                    $initials = '';
+                                    $nameParts = explode(' ', $customer['Customer_name']);
+                                    foreach ($nameParts as $part) {
+                                        $initials .= strtoupper(substr($part, 0, 1));
+                                    }
+                                    echo $initials;
+                                ?>
                             </div>
-                            <strong>
-                                <?php echo htmlspecialchars($address['address_line1']); ?>
-                                <?php if($address['is_default']): ?>
-                                    <span class="default-badge">Default</span>
-                                <?php endif; ?>
-                            </strong><br>
-                            <?php if(!empty($address['address_line2'])): ?>
-                                <?php echo htmlspecialchars($address['address_line2']); ?><br>
-                            <?php endif; ?>
-                            <?php echo htmlspecialchars($address['city']); ?>, 
-                            <?php echo htmlspecialchars($address['state']); ?> <?php echo htmlspecialchars($address['postal_code']); ?><br>
-                            <?php echo htmlspecialchars($address['country']); ?>
+                            <div class="profile-details">
+                                <div class="info-row">
+                                    <label>Name:</label>
+                                    <div class="value"><?php echo $customer['Customer_name']; ?></div>
+                                </div>
+                            </div>
                         </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <p>No addresses found. Click the + button to add an address.</p>
-                <?php endif; ?>
+
+                        <div class="info-row">
+                            <label>Password:</label>
+                            <div class="value">******** <a href="#" id="change-password-link">[Change password]</a></div>
+                        </div>
+
+                        <div class="info-row">
+                            <label>Email:</label>
+                            <div class="value"><?php echo $customer['Customer_email']; ?></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Address Tab -->
+                <div id="address" class="tab-content">
+                    <div class="profile-header">
+                        <h2>Delivery Addresses</h2>
+                    </div>
+
+                    <?php if (isset($address_success)): ?>
+                        <div class="alert alert-success">
+                            <?php echo $address_success; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (isset($address_error)): ?>
+                        <div class="alert alert-danger">
+                            <?php echo $address_error; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <div id="addresses-container">
+                        <?php if ($addresses->num_rows > 0): ?>
+                            <?php while ($address = $addresses->fetch_assoc()): ?>
+                                <div class="address-card" data-address-id="<?php echo $address['Address_ID']; ?>">
+                                    <h3>
+                                        <span><?php echo htmlspecialchars($address['Address_Label']); ?></span>
+                                        <?php if ($address['Is_Default']): ?>
+                                            <span class="badge">Default</span>
+                                        <?php endif; ?>
+                                    </h3>
+                                    <p><?php echo htmlspecialchars($address['Full_Name']); ?></p>
+                                    <p><?php echo htmlspecialchars($address['Address_Line1']); ?></p>
+                                    <?php if (!empty($address['Address_Line2'])): ?>
+                                        <p><?php echo htmlspecialchars($address['Address_Line2']); ?></p>
+                                    <?php endif; ?>
+                                    <p><?php echo htmlspecialchars($address['City']); ?>, <?php echo htmlspecialchars($address['Postal_Code']); ?></p>
+                                    <p>
+                                        <?php if (!empty($address['State'])): ?>
+                                            <?php echo htmlspecialchars($address['State']); ?>, 
+                                        <?php endif; ?>
+                                        <?php echo htmlspecialchars($address['Country']); ?>
+                                    </p>
+                                    <p>Phone: <?php echo htmlspecialchars($address['Phone_Number']); ?></p>
+                                    <div class="address-actions">
+                                        <button class="btn btn-secondary edit-address-btn" data-id="<?php echo $address['Address_ID']; ?>">Edit</button>
+                                        <form method="post" style="display: inline;">
+                                            <input type="hidden" name="address_id" value="<?php echo $address['Address_ID']; ?>">
+                                            <button type="submit" name="delete_address" class="btn btn-secondary" onclick="return confirm('Are you sure you want to delete this address?')">Delete</button>
+                                        </form>
+                                        <?php if (!$address['Is_Default']): ?>
+                                            <form method="post" style="display: inline;">
+                                                <input type="hidden" name="address_id" value="<?php echo $address['Address_ID']; ?>">
+                                                <button type="submit" name="set_default" class="btn">Set as Default</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <p>You haven't added any addresses yet.</p>
+                        <?php endif; ?>
+
+                        <!-- Add new address button -->
+                        <div class="add-button" id="add-address-btn">
+                            <i class="fas fa-plus"></i> Add New Address
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <!-- Personal Info Modal -->
-    <div id="personalInfoModal" class="modal">
+
+    <!-- Edit Profile Modal -->
+    <div id="edit-profile-modal" class="modal">
         <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('personalInfoModal')">&times;</span>
-            <h2>Edit Personal Information</h2>
-            <form method="post">
+            <div class="modal-header">
+                <h2>Edit Personal Information</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <form id="edit-profile-form" method="post">
                 <div class="form-group">
-                    <label for="name">Name</label>
-                    <input type="text" id="name" name="name" class="form-control" value="<?php echo htmlspecialchars($user['Customer_name']); ?>" required>
+                    <label for="edit-name">Name:</label>
+                    <input type="text" id="edit-name" name="name" class="form-control" value="<?php echo $customer['Customer_name']; ?>" required>
                 </div>
                 <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" class="form-control" value="<?php echo htmlspecialchars($user['Customer_email']); ?>" required>
+                    <label for="edit-email">Email:</label>
+                    <input type="email" id="edit-email" name="email" class="form-control" value="<?php echo $customer['Customer_email']; ?>" required>
                 </div>
-                <button type="submit" name="update_personal_info" class="btn btn-primary">Save Changes</button>
+                <div class="form-group">
+                    <button type="submit" name="update_profile" class="btn">Save Changes</button>
+                </div>
             </form>
         </div>
     </div>
-    
-    <!-- Password Modal -->
-    <div id="passwordModal" class="modal">
+
+    <!-- Change Password Modal -->
+    <div id="change-password-modal" class="modal">
         <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('passwordModal')">&times;</span>
-            <h2>Change Password</h2>
-            <form method="post">
+            <div class="modal-header">
+                <h2>Change Password</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <?php if (isset($password_error)): ?>
+                <div class="alert alert-danger">
+                    <?php echo $password_error; ?>
+                </div>
+            <?php endif; ?>
+            <?php if (isset($password_success)): ?>
+                <div class="alert alert-success">
+                    <?php echo $password_success; ?>
+                </div>
+            <?php endif; ?>
+            <form id="change-password-form" method="post">
                 <div class="form-group">
-                    <label for="current_password">Current Password</label>
-                    <input type="password" id="current_password" name="current_password" class="form-control" required>
+                    <label for="current-password">Current Password:</label>
+                    <input type="password" id="current-password" name="current_password" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="new_password">New Password</label>
-                    <input type="password" id="new_password" name="new_password" class="form-control" required>
+                    <label for="new-password">New Password:</label>
+                    <input type="password" id="new-password" name="new_password" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="confirm_password">Confirm New Password</label>
-                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
+                    <label for="confirm-password">Confirm New Password:</label>
+                    <input type="password" id="confirm-password" name="confirm_password" class="form-control" required>
                 </div>
-                <button type="submit" name="change_password" class="btn btn-primary">Change Password</button>
+                <div class="form-group">
+                    <button type="submit" name="change_password" class="btn">Update Password</button>
+                </div>
             </form>
         </div>
     </div>
-    
-    <!-- Address Modal -->
-    <div id="addressModal" class="modal">
+
+    <!-- Add/Edit Address Modal -->
+    <div id="address-modal" class="modal">
         <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('addressModal')">&times;</span>
-            <h2 id="addressModalTitle">Add Address</h2>
-            <form method="post">
-                <input type="hidden" id="address_id" name="address_id" value="">
+            <div class="modal-header">
+                <h2 id="address-modal-title">Add New Address</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <form id="address-form" method="post">
+                <input type="hidden" id="address-id" name="address_id">
                 <div class="form-group">
-                    <label for="address_line1">Address Line 1</label>
-                    <input type="text" id="address_line1" name="address_line1" class="form-control" required>
+                    <label for="address-label">Address Label (e.g. Home, Work):</label>
+                    <input type="text" id="address-label" name="address_label" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="address_line2">Address Line 2 (Optional)</label>
-                    <input type="text" id="address_line2" name="address_line2" class="form-control">
+                    <label for="address-name">Full Name:</label>
+                    <input type="text" id="address-name" name="full_name" class="form-control" value="<?php echo $customer['Customer_name']; ?>" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="address-phone">Phone Number:</label>
+                        <input type="text" id="address-phone" name="phone" class="form-control" required>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="city">City</label>
-                    <input type="text" id="city" name="city" class="form-control" required>
+                    <label for="address-line1">Address Line 1:</label>
+                    <input type="text" id="address-line1" name="address_line1" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="state">State</label>
-                    <input type="text" id="state" name="state" class="form-control" required>
+                    <label for="address-line2">Address Line 2 (Optional):</label>
+                    <input type="text" id="address-line2" name="address_line2" class="form-control">
                 </div>
-                <div class="form-group">
-                    <label for="postal_code">Postal Code</label>
-                    <input type="text" id="postal_code" name="postal_code" class="form-control" required>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="address-city">City:</label>
+                        <input type="text" id="address-city" name="city" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="address-state">State:</label>
+                        <input type="text" id="address-state" name="state" class="form-control" required>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="country">Country</label>
-                    <input type="text" id="country" name="country" class="form-control" required>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="address-postal">Postal Code:</label>
+                        <input type="text" id="address-postal" name="postal_code" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="address-country">Country:</label>
+                        <input type="text" id="address-country" name="country" class="form-control" required>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>
-                        <input type="checkbox" id="is_default" name="is_default"> Set as default address
+                        <input type="checkbox" name="is_default" id="is-default">
+                        Set as default address
                     </label>
                 </div>
-                <button type="submit" name="update_address" class="btn btn-primary">Save Address</button>
+                <div class="form-group">
+                    <button type="submit" name="save_address" class="btn">Save Address</button>
+                </div>
             </form>
         </div>
     </div>
-    
+
+    <!-- JavaScript for modal and tab interaction -->
     <script>
-        // Open modal
-        function openModal(modalId) {
-            document.getElementById(modalId).style.display = "block";
-        }
-        
-        // Close modal
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = "none";
-        }
-        
-        // Clear address form
-        function clearAddressForm() {
-            document.getElementById('addressModalTitle').innerText = 'Add Address';
-            document.getElementById('address_id').value = '';
-            document.getElementById('address_line1').value = '';
-            document.getElementById('address_line2').value = '';
-            document.getElementById('city').value = '';
-            document.getElementById('state').value = '';
-            document.getElementById('postal_code').value = '';
-            document.getElementById('country').value = '';
-            document.getElementById('is_default').checked = false;
-        }
-        
-        // Edit address
-        function editAddress(addressId) {
-            // Fetch address data with AJAX
-            fetch('get_address.php?id=' + addressId)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('addressModalTitle').innerText = 'Edit Address';
-                    document.getElementById('address_id').value = data.address_id;
-                    document.getElementById('address_line1').value = data.address_line1;
-                    document.getElementById('address_line2').value = data.address_line2 || '';
-                    document.getElementById('city').value = data.city;
-                    document.getElementById('state').value = data.state;
-                    document.getElementById('postal_code').value = data.postal_code;
-                    document.getElementById('country').value = data.country;
-                    document.getElementById('is_default').checked = data.is_default == 1;
-                    openModal('addressModal');
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Failed to load address data');
-                });
-        }
-        
-        // Close modals when clicking outside
+        // Tabs
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+
+                button.classList.add('active');
+                const tab = button.getAttribute('data-tab');
+                document.getElementById(tab).classList.add('active');
+            });
+        });
+
+        // Modals
+        const editProfileBtn = document.getElementById('edit-profile-btn');
+        const changePasswordLink = document.getElementById('change-password-link');
+        const addAddressBtn = document.getElementById('add-address-btn');
+        const modals = document.querySelectorAll('.modal');
+        const closeButtons = document.querySelectorAll('.close-button');
+
+        editProfileBtn.addEventListener('click', () => {
+            document.getElementById('edit-profile-modal').style.display = 'block';
+        });
+
+        changePasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('change-password-modal').style.display = 'block';
+        });
+
+        addAddressBtn.addEventListener('click', () => {
+            document.getElementById('address-modal-title').innerText = 'Add New Address';
+            document.getElementById('address-form').reset();
+            document.getElementById('address-id').value = '';
+            document.getElementById('address-modal').style.display = 'block';
+        });
+
+        closeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                modals.forEach(modal => modal.style.display = 'none');
+            });
+        });
+
+        // Address edit buttons
+        const editButtons = document.querySelectorAll('.edit-address-btn');
+        editButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const card = btn.closest('.address-card');
+                const id = btn.dataset.id;
+                const label = card.querySelector('h3 span').innerText.trim();
+                const lines = card.querySelectorAll('p');
+                const fullName = lines[0].innerText.trim();
+                const addressLine1 = lines[1].innerText.trim();
+                const addressLine2 = lines.length === 6 ? lines[2].innerText.trim() : '';
+                const cityPostal = lines.length === 6 ? lines[3].innerText.trim() : lines[2].innerText.trim();
+                const stateCountry = lines.length === 6 ? lines[4].innerText.trim() : lines[3].innerText.trim();
+                const phone = lines.length === 6 ? lines[5].innerText.split(': ')[1].trim() : lines[4].innerText.split(': ')[1].trim();
+
+                const [city, postal] = cityPostal.split(',').map(s => s.trim());
+                const [state, country] = stateCountry.split(',').map(s => s.trim());
+
+                document.getElementById('address-modal-title').innerText = 'Edit Address';
+                document.getElementById('address-id').value = id;
+                document.getElementById('address-label').value = label;
+                document.getElementById('address-name').value = fullName;
+                document.getElementById('address-line1').value = addressLine1;
+                document.getElementById('address-line2').value = addressLine2;
+                document.getElementById('address-city').value = city;
+                document.getElementById('address-state').value = state;
+                document.getElementById('address-postal').value = postal;
+                document.getElementById('address-country').value = country;
+                document.getElementById('address-phone').value = phone;
+
+                document.getElementById('address-modal').style.display = 'block';
+            });
+        });
+
+        // Close modal when clicking outside
         window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = "none";
-            }
-        }
+            modals.forEach(modal => {
+                if (event.target == modal) {
+                    modal.style.display = "none";
+                }
+            });
+        };
     </script>
 </body>
 </html>

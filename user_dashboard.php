@@ -141,6 +141,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
       border: none;
       color: #6c757d;
     }
+    
   </style>
 </head>
 <body>
