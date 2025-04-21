@@ -12,10 +12,6 @@ body {
   background: #f8f9fa;
 }
 
-/* --------------------------
-   Navigation (Function Bar)
-   （使用你用户主页已有的 .custom-nav 样式）
------------------------------ */
 .custom-nav {
   background-color: #343a40;
   border-bottom: 4px solid #ff6600;
