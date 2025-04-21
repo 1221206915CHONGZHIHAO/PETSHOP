@@ -97,31 +97,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
         </li>
 
         <!-- User Icon with Dynamic Dropdown -->
-<li class="nav-item dropdown">
-  <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    <?php if(isset($_SESSION['customer_id'])): ?>
-      <!-- Show username when logged in -->
-      <span class="me-1"><?php echo htmlspecialchars($_SESSION['customer_name']); ?></span>
-    <?php else: ?>
-      <i class="bi bi-person" style="font-size: 1.2rem;"></i>
-    <?php endif; ?>
-  </a>
-  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-    <?php if(isset($_SESSION['customer_id'])): ?>
-      <!-- If user is logged in, show dashboard options -->
-      <li><a class="dropdown-item" href="dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
-      <li><a class="dropdown-item" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
-      <li><a class="dropdown-item" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favourite</a></li>
-      <li><a class="dropdown-item" href="account_setting.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
-      <li><hr class="dropdown-divider"></li>
-      <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-    <?php else: ?>
-      <!-- If not logged in, show login/register links -->
-      <li><a class="dropdown-item" href="login.php">Login</a></li>
-      <li><a class="dropdown-item" href="register.php">Register</a></li>
-    <?php endif; ?>
-  </ul>
-</li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <?php if(isset($_SESSION['customer_id'])): ?>
+              <!-- Show username when logged in -->
+              <span class="me-1"><?php echo htmlspecialchars($_SESSION['customer_name']); ?></span>
+            <?php else: ?>
+              <i class="bi bi-person" style="font-size: 1.2rem;"></i>
+            <?php endif; ?>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <?php if(isset($_SESSION['customer_id'])): ?>
+              <!-- If user is logged in, show dashboard options -->
+              <li><a class="dropdown-item" href="user_dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
+              <li><a class="dropdown-item" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
+              <li><a class="dropdown-item" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favourite</a></li>
+              <li><a class="dropdown-item" href="myprofile_address.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+            <?php else: ?>
+              <!-- If not logged in, show login/register links -->
+              <li><a class="dropdown-item" href="login.php">Login</a></li>
+              <li><a class="dropdown-item" href="register.php">Register</a></li>
+            <?php endif; ?>
+          </ul>
+        </li>
       </ul>
     </div>
   </div>
