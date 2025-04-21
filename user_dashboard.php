@@ -148,10 +148,9 @@ $masked_password = str_repeat('*', strlen($actual_password));
 <!-- Navigation -->
 <nav class="navbar navbar-expand-lg navbar-dark custom-nav">
   <div class="container">
-    <!-- Brand on the left -->
-    <a class="navbar-brand" href="userhomepage.php">
-      <img src="cat_paw.png" alt="Pet Shop" width="50">
-      <span>Hachi Pet Shop</span>
+     <!-- Brand on the left -->
+     <a class="navbar-brand" href="userhomepage.php">
+    <img src="Hachi_Logo.png" alt="Pet Shop">
     </a>
     
     <!-- Toggler for mobile view -->
