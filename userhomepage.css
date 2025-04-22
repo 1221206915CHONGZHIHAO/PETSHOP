@@ -19,8 +19,8 @@ body {
 
 .custom-nav .navbar-brand img {
   /* 统一 Logo 大小 */
-  height: 100px;
-  width: auto;
+  height: 200px;
+  width: 100;
 }
 
 .custom-nav .nav-link {

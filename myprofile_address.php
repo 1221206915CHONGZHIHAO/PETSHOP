@@ -621,7 +621,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
                 <div class="col-md-9 password-container">
                   <span id="passwordDisplay"><?php echo $masked_password; ?></span>
                   <button type="button" class="password-toggle" id="changePasswordBtn">
-                    <i class="bi bi-pencil"></i> Change
+                    <i class="bi bi-pencil"></i> Change Password
                   </button>
                 </div>
               </div>
