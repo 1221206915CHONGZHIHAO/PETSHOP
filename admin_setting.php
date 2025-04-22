@@ -207,7 +207,6 @@ $currencies = [
 </nav>
     <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar -->
                     <!-- Sidebar -->
         <nav id="sidebar" class="col-md-2 d-md-block bg-dark sidebar">
             <div class="position-sticky">
