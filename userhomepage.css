@@ -15,6 +15,9 @@ body {
   line-height: 1.6;
   color: var(--dark);
   overflow-x: hidden;
+
+  /* ── FIX ── push content below fixed navbar ── */
+  padding-top: 90px; /* adjust to match your .custom-nav total height */
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -217,6 +220,13 @@ section {
   font-size: 1.25rem;
 }
 
+/* ── FIX ── keep sidebar visible as you scroll ── */
+aside.col-lg-3 {
+  position: sticky;
+  top: 100px;  /* navbar height (90px) + 10px breathing room */
+  z-index: 2;
+}
+
 /* Product Cards */
 .product-card {
   border-radius: 10px;
@@ -275,8 +285,7 @@ section {
   font-weight: 500;
 }
 
-
-/* Best Sellers Section - replace the bg-light-custom */
+/* Best Sellers Section */
 .best-sellers {
   background: linear-gradient(to right, rgba(78, 159, 61, 0.1), rgba(255, 126, 46, 0.1));
   position: relative;
@@ -288,15 +297,13 @@ section {
   position: relative;
 }
 
-/* Brands Section - enhance existing */
+/* Brands Section */
 .brands {
   background: linear-gradient(135deg, rgba(67, 218, 155, 0.534) 0%, rgb(145, 43, 43) 50%, rgba(38, 78, 139, 0.836) 100%);
   position: relative;
 }
 
-/* Additional decorative elements */
-
-/* Add subtle paw print to sections */
+/* Decorative paw prints */
 .categories:before,
 .about-section:before,
 .testimonials:before {
@@ -372,7 +379,6 @@ footer {
   padding-bottom: 30px;
 }
 
-
 footer .container {
   position: relative;
   z-index: 1;
@@ -406,7 +412,7 @@ footer .contact-info span {
   line-height: 1.5;
 }
 
-/* Enhanced back to top button */
+/* Back to Top Button */
 .back-to-top {
   width: 45px;
   height: 45px;

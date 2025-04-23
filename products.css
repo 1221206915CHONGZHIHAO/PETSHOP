@@ -1,178 +1,247 @@
-/* product_page.css */
+:root {
+  --primary: #4e9f3d; /* Fresh green */
+  --primary-light: #8fd14f;
+  --primary-dark: #38761d;
+  --secondary: #1e3a8a; /* Deep navy blue */
+  --accent: #ff7e2e; /* Warm orange */
+  --light: #f8f9fa;
+  --dark: #212529;
+  --gray: #6c757d;
+  --light-gray: #f0f2f5;
+}
 
-/* --------------------------
-   Base Styles
------------------------------ */
 body {
   font-family: 'Poppins', sans-serif;
   line-height: 1.6;
-  margin: 0;
-  padding: 0;
-  /* 背景可根据需要设置 */
-  background: #f8f9fa;
+  color: var(--dark);
+  background-color: var(--light);
+  overflow-x: hidden;
+  
+  /* Push content below fixed navbar */
+  padding-top: 90px;
 }
 
+/* Navigation */
 .custom-nav {
-  background-color: #343a40;
-  border-bottom: 4px solid #ff6600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-  /* 调整导航栏高度与内边距 */
-  min-height: 80px;       /* 导航栏最小高度，可根据需求调大或调小 */
-  padding: 10px 20px;     /* 内边距，上下10px，左右20px */
+  background-color: rgb(0, 0, 0);
+  box-shadow: 0 2px 15px rgba(255, 255, 255, 0.205);
+  padding: 12px 0;
+  transition: all 0.3s ease;
 }
 
 .custom-nav .navbar-brand img {
-  /* 统一 Logo 大小 */
-  height: 100px;     /* 或者使用 width，根据你的实际图片比例设置 */
-  width: auto;
+  height: 90px;
+  transition: all 0.3s ease;
 }
 
 .custom-nav .nav-link {
-  /* 统一导航链接的字体与内外边距 */
-  font-size: 1rem;
-  padding: 8px 12px;
+  color: var(--light);
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  margin: 0 0.2rem;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
-/* Dropdown hover 效果 */
-.dropdown-hover:hover > .dropdown-menu {
+.custom-nav .nav-link:hover,
+.custom-nav .nav-link.active {
+  color: var(--primary);
+}
+
+.custom-nav .nav-link.active:after {
+  content: '';
+  position: absolute;
+  width: 60%;
+  height: 2px;
+  background-color: var(--primary);
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Filter sidebar */
+.filter-section {
+  position: sticky;
+  top: 100px; /* navbar height + some space */
+  height: fit-content;
+}
+
+.filter-section h5 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--dark);
+  position: relative;
+  display: inline-block;
+}
+
+.filter-section h5:after {
+  content: '';
+  display: block;
+  height: 3px;
+  width: 50px;
+  background-color: var(--primary);
+  margin-top: 0.5rem;
+}
+
+.list-group-item {
+  border: none;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.list-group-item:last-child {
+  border-bottom: none;
+}
+
+.list-group-item a {
+  color: var(--dark);
+  text-decoration: none;
+  transition: all 0.3s ease;
   display: block;
 }
-.dropdown-menu {
-  margin-top: 0;
+
+.list-group-item a:hover {
+  color: var(--primary);
+  transform: translateX(5px);
 }
 
-/* --------------------------
-   Container for Product Page Content
------------------------------ */
-.container {
-  padding: 20px;
-}
-
-/* --------------------------
-   Top Bar (产品数量与排序区域)
------------------------------ */
-.top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-.top-bar p {
-  font-size: 1rem;
-  color: #333;
-  margin: 0;
-}
-.top-bar label {
-  margin-right: 8px;
-  font-size: 1rem;
-  color: #333;
-}
-.top-bar select {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 5px;
-  font-size: 1rem;
-}
-
-/* --------------------------
-   Filter Section (左侧过滤栏)
------------------------------ */
-.filter-section {
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-.filter-section h5 {
-  font-size: 1.5rem;
-  margin-bottom: 15px;
-  color: #02cc8f;
-}
-.filter-section .list-group-item {
-  border: none;
-  padding: 8px 0;
-}
-.filter-section .list-group-item a {
-  color: #333;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-.filter-section .list-group-item a:hover {
-  color: #ff6600;
-}
-
-/* --------------------------
-   Product Cards (商品卡片)
------------------------------ */
+/* Product cards */
 .product-card {
+  border-radius: 10px;
   border: none;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  height: 100%;
+  background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
+}
+
+.product-card img {
+  height: 200px;
+  object-fit: cover;
+  transition: all 0.4s ease;
+}
+
+.product-card:hover img {
+  transform: scale(1.05);
+}
+
+.product-card .card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  height: 2.8rem;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.product-price {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.product-card .card-footer {
+  border-top: none;
+  padding: 1rem;
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  padding: 10px 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(78, 159, 61, 0.3);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(78, 159, 61, 0.4);
+}
+
+.btn-primary:disabled {
+  background-color: var(--gray);
+  border-color: var(--gray);
+  opacity: 0.7;
+  box-shadow: none;
+}
+
+/* Form elements */
+.form-select:focus,
+.form-control:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 0.25rem rgba(78, 159, 61, 0.25);
+}
+
+/* Dropdown menu styling */
+.dropdown-menu {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  padding: 10px 0;
+}
+
+.dropdown-item {
+  padding: 8px 20px;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(78, 159, 61, 0.1);
+  color: var(--primary);
+}
+
+.dropdown-item i {
+  transition: all 0.3s ease;
+}
+
+.dropdown-item:hover i {
+  transform: translateX(3px);
+}
+
+/* Toast notifications styling */
+.toast-container {
+  z-index: 9999;
+}
+
+.toast {
   border-radius: 8px;
   overflow: hidden;
-  background-color: #fff;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease;
-}
-.product-card:hover {
-  transform: translateY(-5px);
-}
-.product-card .card-img-top {
-  height: 250px;
-  object-fit: cover;
-}
-.product-card .card-body {
-  padding: 15px;
-}
-.product-card .card-title {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 10px;
-}
-.product-card .card-footer {
-  background-color: transparent;
-  border-top: 1px solid #ddd;
-  padding: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
 }
 
-/* --------------------------
-   Product Price Display
------------------------------ */
-.product-price {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #ff6600;
-  margin: 10px 0 0;
+/* Responsive tweaks */
+@media (max-width: 992px) {
+  .filter-section {
+    position: relative;
+    top: 0;
+    margin-bottom: 2rem;
+  }
 }
 
-/* --------------------------
-   Primary Button
------------------------------ */
-.btn-primary {
-  background-color: #ff6600;
-  border-color: #ff6600;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-.btn-primary:hover {
-  background-color: #e65c00;
-  border-color: #e65c00;
+@media (max-width: 768px) {
+  .product-card img {
+    height: 180px;
+  }
 }
 
-/* --------------------------
-   Footer (如产品页面包含 footer)
------------------------------ */
-footer {
-  background-color: #343a40;
-  color: #fff;
-  padding: 40px 0;
-  text-align: center;
-}
-footer a {
-  color: #ff6600;
-  text-decoration: none;
-}
-footer a:hover {
-  text-decoration: underline;
+@media (max-width: 576px) {
+  body {
+    padding-top: 70px;
+  }
+  
+  .custom-nav .navbar-brand img {
+    height: 70px;
+  }
 }
