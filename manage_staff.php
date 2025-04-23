@@ -103,7 +103,7 @@ include('db_connection.php');
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light" href="#">
+                        <a class="nav-link text-light" href="admin_setting.php">
                             <i class="fas fa-cog me-2"></i>Settings
                         </a>
                     </li>
