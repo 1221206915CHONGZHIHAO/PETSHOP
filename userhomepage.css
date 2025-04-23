@@ -1,5 +1,3 @@
-/* assets/css/custom.css */
-
 :root {
   --primary: #4e9f3d; /* Fresh green */
   --primary-light: #8fd14f;
@@ -26,8 +24,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Navigation */
 .custom-nav {
-  background-color: white;
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+  background-color: rgb(0, 0, 0);
+  box-shadow: 0 2px 15px rgba(255, 255, 255, 0.411);
   padding: 12px 0;
   transition: all 0.3s ease;
 }
@@ -37,12 +35,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .custom-nav .navbar-brand img {
-  height: 80px;
+  height: 90px;
   transition: all 0.3s ease;
 }
 
 .custom-nav .nav-link {
-  color: var(--dark);
+  color: var(--light);
   font-weight: 500;
   font-size: 0.95rem;
   padding: 0.5rem 1rem;
@@ -68,7 +66,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .nav-icons .nav-link {
-  color: var(--dark);
+  color: var(--light);
   padding: 0.5rem;
   font-size: 1.25rem;
   transition: all 0.3s ease;
@@ -366,7 +364,7 @@ section {
 
 /* Footer Enhancement */
 footer {
-  background: linear-gradient(to bottom, #212529, #17191c);
+  background: linear-gradient(to bottom, #1f2225, #1a1d20);
   position: relative;
   overflow: hidden;
   color: white;
