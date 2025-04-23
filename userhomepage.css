@@ -1,160 +1,554 @@
-/* Base Styles */
-body {
-  font-family: 'Poppins', sans-serif;
-  line-height: 1.6;
-  margin: 0;
-  padding: 0;
+/* assets/css/custom.css */
+
+:root {
+  --primary: #4e9f3d; /* Fresh green */
+  --primary-light: #8fd14f;
+  --primary-dark: #38761d;
+  --secondary: #1e3a8a; /* Deep navy blue */
+  --accent: #ff7e2e; /* Warm orange */
+  --light: #f8f9fa;
+  --dark: #212529;
+  --gray: #6c757d;
+  --light-gray: #f0f2f5;
 }
 
-/* Navigation (Function Bar) */
-.custom-nav {
-  background-color: #343a40;
-  border-bottom: 4px solid #ff6600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+body {
+  font-family: 'Open Sans', sans-serif;
+  line-height: 1.6;
+  color: var(--dark);
+  overflow-x: hidden;
+}
 
-  /* 调整导航栏高度与内边距 */
-  min-height: 80px;       /* 导航栏最小高度，可根据需求调大或调小 */
-  padding: 10px 20px;     /* 内边距，上下10px，左右20px */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+}
+
+/* Navigation */
+.custom-nav {
+  background-color: white;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+  padding: 12px 0;
+  transition: all 0.3s ease;
+}
+
+.navbar-scrolled {
+  padding: 8px 0;
 }
 
 .custom-nav .navbar-brand img {
-  /* 统一 Logo 大小 */
-  height: 200px;
-  width: 100;
+  height: 80px;
+  transition: all 0.3s ease;
 }
 
 .custom-nav .nav-link {
-  /* 统一导航链接的字体与内外边距 */
-  font-size: 1rem;
-  padding: 8px 12px;
+  color: var(--dark);
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+  margin: 0 0.2rem;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
-/* Hover Dropdown: show .dropdown-menu when parent .dropdown-hover is hovered */
-.dropdown-hover:hover > .dropdown-menu {
-  display: block;
+.custom-nav .nav-link:hover,
+.custom-nav .nav-link.active {
+  color: var(--primary);
 }
 
-/* Ensures dropdown is positioned properly when shown on hover */
-.dropdown-menu {
-  margin-top: 0;
+.custom-nav .nav-link.active:after {
+  content: '';
+  position: absolute;
+  width: 60%;
+  height: 2px;
+  background-color: var(--primary);
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.nav-icons .nav-link {
+  color: var(--dark);
+  padding: 0.5rem;
+  font-size: 1.25rem;
+  transition: all 0.3s ease;
+}
+
+.nav-icons .nav-link:hover {
+  color: var(--primary);
+  transform: translateY(-2px);
 }
 
 /* Hero Section */
 .hero-section {
-  background: url("hero image.jpg");
+  height: 85vh;
+  min-height: 600px;
+  background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url("hero image.jpg");
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  height: 600px;
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: #c0b7b7;
+  color: white;
+  overflow: hidden;
+}
+
+.hero-section:after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 150px;
+  background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+  z-index: 1;
 }
 
 .hero-content {
-  position: relative;
-  z-index: 1;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.hero-content h1 {
   font-size: 3.5rem;
   font-weight: 700;
-  margin-bottom: 20px;
+  line-height: 1.2;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 2;
 }
 
 .hero-content p {
-  font-size: 1.25rem;
-  margin-bottom: 30px;
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  max-width: 700px;
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  padding: 12px 30px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(78, 159, 61, 0.3);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(78, 159, 61, 0.4);
+}
+
+.btn-outline-primary {
+  color: var(--primary);
+  border-color: var(--primary);
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  transform: translateY(-2px);
 }
 
 /* Section Titles */
+section {
+  padding: 100px 0;
+  position: relative;
+}
+
 .section-title {
   font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: var(--dark);
+  position: relative;
+  display: inline-block;
+}
+
+.section-title:after {
+  content: '';
+  display: block;
+  height: 4px;
+  width: 70px;
+  background-color: var(--primary);
+  margin-top: 0.5rem;
+}
+
+.section-subtitle {
+  color: var(--gray);
+  font-size: 1.1rem;
+  max-width: 700px;
+  margin: 0 auto 3rem;
+}
+
+.bg-light-custom {
+  background-color: var(--light-gray);
+}
+
+/* Category Cards */
+.category-card {
+  border-radius: 12px;
+  border: none;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  height: 100%;
+  background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+}
+
+.category-card img {
+  height: 250px;
+  object-fit: cover;
+  transition: all 0.5s ease;
+}
+
+.category-card:hover img {
+  transform: scale(1.05);
+}
+
+.category-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.category-card .card-title {
   font-weight: 600;
-  margin-bottom: 40px;
-  color: #02cc8f;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
 }
 
-/* Categories Section */
-.categories .card {
-  border: none;
-  transition: transform 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.categories .card:hover {
-  transform: translateY(-5px);
-}
-
-/* Product Cards in Best Sellers */
+/* Product Cards */
 .product-card {
+  border-radius: 10px;
   border: none;
-  transition: transform 0.3s ease;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  height: 100%;
+  background: linear-gradient(to bottom, #ffffff, #f8f9fa);
 }
 
 .product-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-8px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
 }
 
-/* Best Sellers Product Images */
+.product-img-container {
+  height: 200px;
+  overflow: hidden;
+  position: relative;
+}
+
 .product-card img {
   width: 100%;
-  height: 250px;
+  height: 100%;
   object-fit: cover;
+  transition: all 0.4s ease;
 }
 
-/* About Us Section */
-.about-us img {
-  width: 100%;
-  border-radius: 8px;
+.product-card:hover img {
+  transform: scale(1.1);
 }
 
-.about-us h2 {
-  font-size: 2rem;
-  margin-bottom: 20px;
-  color: #333;
+.product-card .card-body {
+  padding: 1.25rem;
 }
 
-.about-us p {
+.product-card .card-title {
   font-size: 1rem;
-  color: #555;
+  font-weight: 600;
+  height: 2.8rem;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.product-card .price {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.product-card .btn {
+  width: 100%;
+  padding: 0.5rem;
+  font-weight: 500;
+}
+
+
+/* Best Sellers Section - replace the bg-light-custom */
+.best-sellers {
+  background: linear-gradient(to right, rgba(78, 159, 61, 0.1), rgba(255, 126, 46, 0.1));
+  position: relative;
 }
 
 /* Testimonials Section */
+.testimonials {
+  background: linear-gradient(to right, rgba(48, 81, 114, 0.9), rgba(240, 242, 245, 0.5));
+  position: relative;
+}
+
+/* Brands Section - enhance existing */
+.brands {
+  background: linear-gradient(135deg, rgba(67, 218, 155, 0.534) 0%, rgb(145, 43, 43) 50%, rgba(38, 78, 139, 0.836) 100%);
+  position: relative;
+}
+
+/* Additional decorative elements */
+
+/* Add subtle paw print to sections */
+.categories:before,
+.about-section:before,
+.testimonials:before {
+  content: "";
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background-image: url('cat_paw.png');
+  background-size: contain;
+  opacity: 0.05;
+  z-index: 0;
+}
+
+.categories:before {
+  top: 20px;
+  left: 20px;
+}
+
+.about-section:before {
+  bottom: 20px;
+  right: 20px;
+}
+
+.testimonials:before {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+}
+
+/* Testimonial Cards */
 .testimonial-card {
+  border-radius: 10px;
   border: none;
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 25px;
+  background: linear-gradient(to bottom, #ffffff, #f8f9fa);
 }
 
-.testimonial-card p {
+.testimonial-card .quote-icon {
+  font-size: 2rem;
+  color: var(--primary);
+  opacity: 0.2;
+  margin-bottom: 15px;
+}
+
+.testimonial-card .card-text {
   font-style: italic;
-  color: #666;
+  margin-bottom: 20px;
 }
 
-.testimonial-card h6 {
+.testimonial-card .author {
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.testimonial-card .author-info h6 {
+  margin-bottom: 0;
   font-weight: 600;
-  margin-top: 10px;
 }
 
-/* Footer */
+/* Footer Enhancement */
 footer {
-  background-color: #343a40;
-  color: #fff;
-  padding: 40px 0;
+  background: linear-gradient(to bottom, #212529, #17191c);
+  position: relative;
+  overflow: hidden;
+  color: white;
+  padding-top: 70px;
+  padding-bottom: 30px;
 }
 
-footer a {
-  color: #ff6600;
-  text-decoration: none;
+
+footer .container {
+  position: relative;
+  z-index: 1;
 }
 
-footer a:hover {
-  text-decoration: underline;
+footer .footer-logo img {
+  height: 60px;
+  margin-bottom: 20px;
+}
+
+footer p {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 20px;
+}
+
+footer .contact-info {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+footer .contact-info i {
+  color: var(--primary);
+  font-size: 1.2rem;
+  margin-right: 15px;
+  margin-top: 5px;
+}
+
+footer .contact-info span {
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+/* Enhanced back to top button */
+.back-to-top {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  transition: all 0.3s ease;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(145deg, var(--primary), var(--primary-dark));
+}
+
+.back-to-top.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.back-to-top i {
+  color: white;
+  font-size: 1.2rem;
+}
+
+.back-to-top:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.25);
+}
+
+/* Responsive tweaks */
+@media (max-width: 992px) {
+  .hero-content h1 {
+    font-size: 2.8rem;
+  }
+  section {
+    padding: 70px 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 2.5rem;
+  }
+  .hero-section {
+    height: 70vh;
+  }
+  .section-title {
+    font-size: 2rem;
+  }
+  .about-content {
+    margin-top: 2rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .hero-content h1 {
+    font-size: 2rem;
+  }
+  .hero-content p {
+    font-size: 1rem;
+  }
+  section {
+    padding: 50px 0;
+  }
+}
+
+/* Toast notifications styling */
+.toast-container {
+  z-index: 9999;
+}
+
+.toast {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Form styling */
+.form-control:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 0.25rem rgba(78, 159, 61, 0.25);
+}
+
+/* Brand boxes with hover effect */
+.brand-box {
+  transition: all 0.3s ease;
+}
+
+.brand-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Add animation to CTA button */
+.cta-section .btn {
+  transition: all 0.3s ease;
+}
+
+.cta-section .btn:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+}
+
+/* Enhance dropdown menu styling */
+.dropdown-menu {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  padding: 10px 0;
+}
+
+.dropdown-item {
+  padding: 8px 20px;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(78, 159, 61, 0.1);
+  color: var(--primary);
+}
+
+.dropdown-item i {
+  transition: all 0.3s ease;
+}
+
+.dropdown-item:hover i {
+  transform: translateX(3px);
+}
+
+/* Animate sections on scroll (works with AOS) */
+[data-aos] {
+  opacity: 0;
+  transition-duration: 800ms;
+  transition-timing-function: ease-out;
+}
+
+[data-aos].aos-animate {
+  opacity: 1;
 }
