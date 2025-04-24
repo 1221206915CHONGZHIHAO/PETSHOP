@@ -86,7 +86,7 @@ $conn->close();
 echo json_encode($response);
 exit;
 
-// Function to handle database cart for logged-in users
+// Function to handle database cart for logged-in users - updated to handle cart count correctly
 function handleDatabaseCart($product, $quantity, $customer_id, $conn, &$response) {
     $product_id = $product['product_id'];
     $price = $product['price'];
@@ -114,6 +114,19 @@ function handleDatabaseCart($product, $quantity, $customer_id, $conn, &$response
         }
         
         $update_cart->close();
+        
+        // Update session cart with the TOTAL quantity
+        if (isset($_SESSION['cart'][$product_id])) {
+            $_SESSION['cart'][$product_id]['quantity'] = $new_quantity;
+        } else {
+            $_SESSION['cart'][$product_id] = [
+                'product_id' => $product_id,
+                'quantity' => $new_quantity,
+                'price' => $price,
+                'name' => $product['product_name'],
+                'image' => $product['image_url']
+            ];
+        }
     } else {
         // Add new cart item
         $insert_cart = $conn->prepare("INSERT INTO cart (Customer_ID, Inventory_ID, Price, Quantity) VALUES (?, ?, ?, ?)");
@@ -128,17 +141,26 @@ function handleDatabaseCart($product, $quantity, $customer_id, $conn, &$response
         }
         
         $insert_cart->close();
+        
+        // Add to session cart
+        $_SESSION['cart'][$product_id] = [
+            'product_id' => $product_id,
+            'quantity' => $quantity,
+            'price' => $price,
+            'name' => $product['product_name'],
+            'image' => $product['image_url']
+        ];
     }
     
     $check_cart->close();
     
-    // Get cart count
-    $count_cart = $conn->prepare("SELECT COUNT(*) AS cart_count FROM cart WHERE Customer_ID = ?");
+    // Get total cart count (sum of all quantities)
+    $count_cart = $conn->prepare("SELECT SUM(Quantity) AS cart_count FROM cart WHERE Customer_ID = ?");
     $count_cart->bind_param("i", $customer_id);
     $count_cart->execute();
     $count_result = $count_cart->get_result();
     $count_row = $count_result->fetch_assoc();
-    $cart_count = $count_row['cart_count'];
+    $cart_count = $count_row['cart_count'] ? (int)$count_row['cart_count'] : 0;
     $count_cart->close();
     
     // Set success response
@@ -153,14 +175,5 @@ function handleDatabaseCart($product, $quantity, $customer_id, $conn, &$response
     if (!isset($_SESSION['cart'])) {
         $_SESSION['cart'] = [];
     }
-    
-    // Update session cart to match database
-    $_SESSION['cart'][$product_id] = [
-        'product_id' => $product_id,
-        'quantity' => $quantity,
-        'price' => $price,
-        'name' => $product['product_name'],
-        'image' => $product['image_url']
-    ];
 }
 ?>

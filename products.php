@@ -16,11 +16,35 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Function to get current cart count - updated to use cart_count or calculate from quantities
+function getCartCount() {
+    if(isset($_SESSION['cart_count'])) {
+        return (int)$_SESSION['cart_count'];
+    } else if(isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
+        // Fall back to calculating from cart items if cart_count not set
+        $total = 0;
+        foreach($_SESSION['cart'] as $item) {
+            $total += isset($item['quantity']) ? (int)$item['quantity'] : 1;
+        }
+        return $total;
+    }
+    return 0;
+}
+
 // Get products from database
-function getProducts($sort = 'newest') {
+function getProducts($sort = 'newest', $category = '') {
     global $conn;
     
-    $sql = "SELECT * FROM products WHERE Category LIKE '%Food%' OR Category LIKE '%Treats%'";
+    $sql = "SELECT * FROM products WHERE 1=1";
+    
+    // Add category filter if provided
+    if (!empty($category)) {
+        $category = $conn->real_escape_string($category);
+        $sql .= " AND Category LIKE '%$category%'";
+    } else {
+        // Default to showing food and treats if no category specified
+        $sql .= " AND (Category LIKE '%Food%' OR Category LIKE '%Treats%')";
+    }
     
     // Add sorting logic
     switch ($sort) {
@@ -50,11 +74,11 @@ function getProducts($sort = 'newest') {
     return $products;
 }
 
-// Get categories for sidebar
+// Get categories for sidebar - now fetching all pet categories
 function getCategories() {
     global $conn;
     
-    $sql = "SELECT DISTINCT Category FROM products WHERE Category LIKE '%Dog%' ORDER BY Category";
+    $sql = "SELECT DISTINCT Category FROM products ORDER BY Category";
     $result = $conn->query($sql);
     $categories = [];
     
@@ -70,12 +94,18 @@ function getCategories() {
 // Get sort parameter
 $sort = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
 
+// Get category parameter
+$category = isset($_GET['category']) ? $_GET['category'] : '';
+
 // Get products and categories
-$products = getProducts($sort);
+$products = getProducts($sort, $category);
 $categories = getCategories();
 
 // Count items
 $product_count = count($products);
+
+// Page title - change based on category
+$page_title = !empty($category) ? htmlspecialchars($category) : "Food & Treats";
 ?>
 
 <!DOCTYPE html>
@@ -83,25 +113,27 @@ $product_count = count($products);
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hachi Pet Shop - Products</title>
+  <title>Hachi Pet Shop - <?php echo $page_title; ?></title>
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <!-- AOS Animation Library -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
   <!-- Toastr CSS for notifications -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="products.css">
+  <link rel="stylesheet" href="userhomepage.css">
 </head>
 <body>
 <!-- Navigation -->
-<nav class="navbar navbar-expand-lg navbar-dark custom-nav">
+<nav class="navbar navbar-expand-lg navbar-dark custom-nav fixed-top">
   <div class="container">
     <!-- Brand on the left -->
     <a class="navbar-brand" href="userhomepage.php">
-    <img src="Hachi_Logo.png" alt="Pet Shop">
+      <img src="Hachi_Logo.png" alt="Pet Shop">
     </a>
     
     <!-- Toggler for mobile view -->
@@ -114,20 +146,20 @@ $product_count = count($products);
       <ul class="navbar-nav mx-auto">
         <li class="nav-item"><a class="nav-link" href="userhomepage.php">Home</a></li>
         <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
-        <li class="nav-item"><a class="nav-link active" href="products.php">Product</a></li>
-        <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
+        <li class="nav-item"><a class="nav-link active" href="products.php">Products</a></li>
+        <li class="nav-item"><a class="nav-link" href="contact.php">Contact</a></li>
       </ul>
 
       <!-- Icons on the right -->
-      <ul class="navbar-nav ms-auto">
+      <ul class="navbar-nav ms-auto nav-icons">
         <!-- Search Icon with Dropdown -->
         <li class="nav-item dropdown">
           <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="bi bi-search" style="font-size: 1.2rem;"></i>
+            <i class="bi bi-search"></i>
           </a>
-          <ul class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="searchDropdown" style="min-width: 250px;">
+          <ul class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="searchDropdown" style="min-width: 300px;">
             <form class="d-flex">
-              <input class="form-control me-2" type="search" placeholder="Search..." aria-label="Search">
+              <input class="form-control me-2" type="search" placeholder="Search products..." aria-label="Search">
               <button class="btn btn-primary" type="submit">Go</button>
             </form>
           </ul>
@@ -136,10 +168,10 @@ $product_count = count($products);
         <!-- Cart Icon with item count -->
         <li class="nav-item">
           <a class="nav-link position-relative" href="cart.php">
-            <i class="bi bi-cart" style="font-size: 1.2rem;"></i>
-            <?php if(isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
-              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                <?php echo count($_SESSION['cart']); ?>
+            <i class="bi bi-cart"></i>
+            <?php $cartCount = getCartCount(); if($cartCount > 0): ?>
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                <?php echo $cartCount; ?>
               </span>
             <?php endif; ?>
           </a>
@@ -152,7 +184,7 @@ $product_count = count($products);
               <!-- Show username when logged in -->
               <span class="me-1"><?php echo htmlspecialchars($_SESSION['customer_name']); ?></span>
             <?php else: ?>
-              <i class="bi bi-person" style="font-size: 1.2rem;"></i>
+              <i class="bi bi-person"></i>
             <?php endif; ?>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
@@ -160,7 +192,7 @@ $product_count = count($products);
               <!-- If user is logged in, show dashboard options -->
               <li><a class="dropdown-item" href="user_dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
               <li><a class="dropdown-item" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
-              <li><a class="dropdown-item" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favourite</a></li>
+              <li><a class="dropdown-item" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favorites</a></li>
               <li><a class="dropdown-item" href="myprofile_address.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
@@ -178,31 +210,34 @@ $product_count = count($products);
 
 <!-- Main Container -->
 <div class="container py-4">
-
   <div class="row">
     <!-- Filter sidebar -->
-    <aside class="col-md-3 filter-section">
+    <aside class="col-lg-3 filter-section mb-4">
       <!-- Categories -->
-      <h5>Categories</h5>
-      <ul class="list-group mb-4">
-        <?php foreach($categories as $category): ?>
-          <li class="list-group-item">
-            <a href="products.php?category=<?php echo urlencode($category); ?>">
-              <?php echo htmlspecialchars($category); ?>
-            </a>
-          </li>
-        <?php endforeach; ?>
-        <?php if(empty($categories)): ?>
-          <li class="list-group-item">No categories found</li>
-        <?php endif; ?>
-      </ul>
+      <div class="card shadow-sm border-0 rounded-3 mb-4">
+        <div class="card-body">
+          <h5>Categories</h5>
+          <ul class="list-group list-group-flush">
+            <?php foreach($categories as $cat): ?>
+              <li class="list-group-item">
+                <a href="products.php?category=<?php echo urlencode($cat); ?>">
+                  <?php echo htmlspecialchars($cat); ?>
+                </a>
+              </li>
+            <?php endforeach; ?>
+            <?php if(empty($categories)): ?>
+              <li class="list-group-item">No categories found</li>
+            <?php endif; ?>
+          </ul>
+        </div>
+      </div>
     </aside>
 
     <!-- Product listing -->
-    <div class="col-md-9">
+    <div class="col-lg-9">
       <!-- Top info and sorting -->
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <p class="mb-0"><?php echo $product_count; ?> items found for Food &amp; Treats</p>
+      <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <p class="mb-0"><strong><?php echo $product_count; ?></strong> items found</p>
         
         <div class="d-flex align-items-center">
           <label for="sortSelect" class="me-2">Sort By:</label>
@@ -215,20 +250,22 @@ $product_count = count($products);
         </div>
       </div>
 
-      <!-- Product cards -->
-      <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+      <!-- Product cards with AOS animations -->
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
         <?php if(!empty($products)): ?>
-          <?php foreach($products as $product): ?>
-            <div class="col">
+          <?php foreach($products as $index => $product): ?>
+            <div class="col" data-aos="fade-up" data-aos-delay="<?php echo 50 * ($index % 6); ?>">
               <div class="card product-card h-100">
-                <img src="<?php echo htmlspecialchars($product['image_url']); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
+                <div class="overflow-hidden">
+                  <img src="<?php echo htmlspecialchars($product['image_url']); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
+                </div>
                 <div class="card-body">
                   <h5 class="card-title"><?php echo htmlspecialchars($product['product_name']); ?></h5>
-                  <p class="product-price">Price: RM<?php echo number_format($product['price'], 2); ?></p>
+                  <p class="product-price">RM<?php echo number_format($product['price'], 2); ?></p>
                   <?php if($product['stock_quantity'] > 0): ?>
-                    <p class="text-success small">In Stock (<?php echo $product['stock_quantity']; ?>)</p>
+                    <p class="text-success small mb-0"><i class="bi bi-check-circle-fill me-1"></i>In Stock (<?php echo $product['stock_quantity']; ?>)</p>
                   <?php else: ?>
-                    <p class="text-danger small">Out of Stock</p>
+                    <p class="text-danger small mb-0"><i class="bi bi-x-circle-fill me-1"></i>Out of Stock</p>
                   <?php endif; ?>
                 </div>
                 <div class="card-footer bg-white">
@@ -236,7 +273,7 @@ $product_count = count($products);
                           data-product-id="<?php echo $product['product_id']; ?>" 
                           data-product-name="<?php echo htmlspecialchars($product['product_name']); ?>"
                           <?php echo ($product['stock_quantity'] <= 0) ? 'disabled' : ''; ?>>
-                    Add to Cart
+                    <i class="bi bi-cart-plus me-2"></i>Add to Cart
                   </button>
                 </div>
               </div>
@@ -245,7 +282,7 @@ $product_count = count($products);
         <?php else: ?>
           <div class="col-12">
             <div class="alert alert-info">
-              No products found. Please try different filters.
+              <i class="bi bi-info-circle me-2"></i>No products found. Please try different filters.
             </div>
           </div>
         <?php endif; ?>
@@ -254,96 +291,212 @@ $product_count = count($products);
   </div>
 </div>
 
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Toastr JS for notifications -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-
-<script>
-$(document).ready(function() {
-  // Configure toastr notification settings
-  toastr.options = {
-    "closeButton": true,
-    "newestOnTop": false,
-    "progressBar": true,
-    "positionClass": "toast-top-right",
-    "preventDuplicates": false,
-    "showDuration": "300",
-    "hideDuration": "1000",
-    "timeOut": "5000",
-    "extendedTimeOut": "1000",
-    "showEasing": "swing",
-    "hideEasing": "linear",
-    "showMethod": "fadeIn",
-    "hideMethod": "fadeOut"
-  };
-  
-  // Sort select change handler
-  $('#sortSelect').change(function() {
-    window.location.href = 'products.php?sort=' + $(this).val();
-  });
-  
-  // Add to cart button click handler
-  $('.add-to-cart-btn').click(function() {
-    const productId = $(this).data('product-id');
-    const productName = $(this).data('product-name');
+<!-- Footer -->
+<footer style="background: linear-gradient(to bottom,rgb(134, 138, 135),rgba(46, 21, 1, 0.69));">
+  <div class="container">
+    <div class="row">
+      <!-- Footer About -->
+      <div class="col-md-5 mb-4 mb-lg-0">
+        <div class="footer-about">
+          <div class="footer-logo">
+            <img src="Hachi_Logo.png" alt="Hachi Pet Shop">
+          </div>
+          <p>Your trusted partner in pet care since 2015. We're dedicated to providing quality products and exceptional service for pet lovers everywhere.</p>
+          <div class="social-links">
+            <a href="#"><i class="bi bi-facebook"></i></a>
+            <a href="#"><i class="bi bi-instagram"></i></a>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Contact Info -->
+      <div class="col-md-7">
+        <h4 class="footer-title">Contact Us</h4>
+        <div class="row">
+          <div class="col-sm-6 mb-3">
+            <div class="contact-info">
+              <i class="bi bi-geo-alt"></i>
+              <span>123 Pet Street, Animal City<br>Singapore 123456</span>
+            </div>
+          </div>
+          <div class="col-sm-6 mb-3">
+            <div class="contact-info">
+              <i class="bi bi-telephone"></i>
+              <span>+65 1234 5678</span>
+            </div>
+          </div>
+          <div class="col-sm-6 mb-3">
+            <div class="contact-info">
+              <i class="bi bi-envelope"></i>
+              <span>info@hachipetshop.com</span>
+            </div>
+          </div>
+          <div class="col-sm-6 mb-3">
+            <div class="contact-info">
+              <i class="bi bi-clock"></i>
+              <span>Mon-Fri: 9am-6pm<br>Sat-Sun: 10am-4pm</span>
+            </div>
+          </div>
+        </div>
+      </div>
     
-    // AJAX request to add item to cart
-    $.ajax({
-      url: 'add_to_cart.php',
-      type: 'POST',
-      data: {
-        product_id: productId,
-        quantity: 1
-      },
-      success: function(response) {
-        try {
-          const result = JSON.parse(response);
-          if (result.success) {
-            // Show success notification
-            toastr.success(productName + ' added to cart!');
-            
-            // Update cart count if necessary
-            if (result.cart_count) {
-              updateCartCount(result.cart_count);
-            }
-          } else if (result.require_login) {
-            // Show login required message
-            toastr.warning(result.message);
-            
-            // Show login modal or redirect to login page after a short delay
-            setTimeout(function() {
-              window.location.href = 'login.php?redirect=products.php';
-            }, 2000);
-          } else {
-            // Show error message
-            toastr.error(result.message || 'Failed to add item to cart');
-          }
-        } catch(e) {
-          toastr.error('Error processing response');
-          console.error('Error parsing JSON: ', e);
-        }
-      },
-      error: function() {
-        toastr.error('Error processing your request');
+      <!-- Footer Bottom -->
+      <div class="col-12">
+        <div class="footer-bottom" style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 40px; padding-top: 20px;">
+          <div class="row align-items-center">
+            <div class="col-md-6 text-center text-md-start">
+              <p class="mb-md-0">© 2025 Hachi Pet Shop. All Rights Reserved.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+  <!-- Back to Top Button with improved styling -->
+  <a href="#" class="back-to-top" id="backToTop" style="background: linear-gradient(145deg, var(--primary), var(--primary-dark));">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- AOS Animation Library -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <!-- Custom JavaScript -->
+  <script>
+    // Initialize AOS Animation
+    AOS.init({
+      once: true,
+      duration: 800,
+      offset: 100
+    });
+    
+    // Navbar Scroll Effect
+    const navbar = document.querySelector('.custom-nav');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 50) {
+        navbar.classList.add('navbar-scrolled');
+      } else {
+        navbar.classList.remove('navbar-scrolled');
       }
     });
-  });
-  
-  // Function to update cart count badge
-  function updateCartCount(count) {
-    const cartIcon = $('.bi-cart');
-    // Remove existing badge if any
-    cartIcon.next('.badge').remove();
     
-    // Add badge if count > 0
-    if (count > 0) {
-      cartIcon.after('<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">' + count + '</span>');
-    }
-  }
-});
-</script>
+    // Back to Top Button
+    const backToTopButton = document.getElementById('backToTop');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 300) {
+        backToTopButton.classList.add('active');
+      } else {
+        backToTopButton.classList.remove('active');
+      }
+    });
+    
+    // Sort select functionality
+    document.getElementById('sortSelect').addEventListener('change', function() {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('sort', this.value);
+      window.location.href = currentUrl.toString();
+    });
+
+    // Updated Add to Cart Functionality with correct cart count
+    const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+    addToCartButtons.forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const productId = this.getAttribute('data-product-id');
+        const productName = this.getAttribute('data-product-name');
+        
+        // Disable button temporarily to prevent double clicks
+        this.disabled = true;
+        const originalText = this.innerHTML;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+        
+        // Send AJAX request to add item to cart
+        fetch('add_to_cart.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `product_id=${productId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+          // Re-enable button
+          this.disabled = false;
+          this.innerHTML = originalText;
+          
+          if (data.success) {
+            // Create toast notification
+            const toastContainer = document.createElement('div');
+            toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
+            toastContainer.style.zIndex = '9999';
+            
+            const toastElement = document.createElement('div');
+            toastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
+            toastElement.style.backgroundColor = '#4e9f3d'; // Green background
+            toastElement.setAttribute('role', 'alert');
+            toastElement.setAttribute('aria-live', 'assertive');
+            toastElement.setAttribute('aria-atomic', 'true');
+            
+            toastElement.innerHTML = `
+              <div class="d-flex">
+                <div class="toast-body">
+                  <i class="bi bi-check-circle me-2"></i> ${productName} added to cart!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+            `;
+            
+            toastContainer.appendChild(toastElement);
+            document.body.appendChild(toastContainer);
+            
+            // Show the toast
+            const toast = new bootstrap.Toast(toastElement, {
+              autohide: true,
+              delay: 3000
+            });
+            toast.show();
+            
+            // Update cart icon with count directly from server response
+            const cartLink = document.querySelector('.nav-link[href="cart.php"]');
+            let cartBadge = cartLink.querySelector('.badge');
+            
+            if (data.cart_count > 0) {
+              if (!cartBadge) {
+                // Create new badge if none exists
+                cartBadge = document.createElement('span');
+                cartBadge.classList.add('position-absolute', 'top-0', 'start-100', 'translate-middle', 'badge', 'rounded-pill', 'bg-primary');
+                cartLink.appendChild(cartBadge);
+              }
+              // Update the badge with correct count from server
+              cartBadge.textContent = data.cart_count;
+            } else if (cartBadge) {
+              // Remove badge if count is 0
+              cartBadge.remove();
+            }
+            
+            // Remove the toast container after it's hidden
+            toastElement.addEventListener('hidden.bs.toast', function () {
+              document.body.removeChild(toastContainer);
+            });
+          } else if (data.require_login) {
+            // Redirect to login page if needed
+            window.location.href = 'login.php';
+          } else {
+            // Show error message
+            alert(data.message || 'Failed to add item to cart');
+            console.error('Failed to add item to cart:', data.message);
+          }
+        })
+        .catch(error => {
+          // Re-enable button on error
+          this.disabled = false;
+          this.innerHTML = originalText;
+          console.error('Error:', error);
+        });
+      });
+    });
+  </script>
 </body>
 </html>
