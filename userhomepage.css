@@ -17,7 +17,7 @@ body {
   overflow-x: hidden;
 
   /* ── FIX ── push content below fixed navbar ── */
-  padding-top: 90px; /* adjust to match your .custom-nav total height */
+  padding-top: 114px; /* 导航栏总高度 = logo(90px) + 上下 padding(12px*2) */
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -31,6 +31,7 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 2px 15px rgba(255, 255, 255, 0.205);
   padding: 12px 0;
   transition: all 0.3s ease;
+  /* fixed-top 已由 Bootstrap 提供 */
 }
 
 .navbar-scrolled {
@@ -220,10 +221,9 @@ section {
   font-size: 1.25rem;
 }
 
-/* ── FIX ── keep sidebar visible as you scroll ── */
 aside.col-lg-3 {
   position: sticky;
-  top: 100px;  /* navbar height (90px) + 10px breathing room */
+  top: 114px;
   z-index: 2;
 }
 

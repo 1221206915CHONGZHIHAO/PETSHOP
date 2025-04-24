@@ -395,7 +395,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
             <div class="footer-logo">
               <img src="Hachi_Logo.png" alt="Hachi Pet Shop">
             </div>
-            <p>Your trusted partner in pet care since 2015. We're dedicated to providing quality products and exceptional service for pet lovers everywhere.</p>
+            <p>Your trusted partner in pet product. We're dedicated to providing quality products for pet lovers everywhere.</p>
             <div class="social-links">
               <a href="#"><i class="bi bi-facebook"></i></a>
               <a href="#"><i class="bi bi-instagram"></i></a>

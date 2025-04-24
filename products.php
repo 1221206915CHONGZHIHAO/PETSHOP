@@ -16,6 +16,21 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Function to get current cart count - updated to use cart_count or calculate from quantities
+function getCartCount() {
+    if(isset($_SESSION['cart_count'])) {
+        return (int)$_SESSION['cart_count'];
+    } else if(isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
+        // Fall back to calculating from cart items if cart_count not set
+        $total = 0;
+        foreach($_SESSION['cart'] as $item) {
+            $total += isset($item['quantity']) ? (int)$item['quantity'] : 1;
+        }
+        return $total;
+    }
+    return 0;
+}
+
 // Get products from database
 function getProducts($sort = 'newest', $category = '') {
     global $conn;
@@ -154,9 +169,9 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "Food & Treats";
         <li class="nav-item">
           <a class="nav-link position-relative" href="cart.php">
             <i class="bi bi-cart"></i>
-            <?php if(isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
-              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                <?php echo count($_SESSION['cart']); ?>
+            <?php $cartCount = getCartCount(); if($cartCount > 0): ?>
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                <?php echo $cartCount; ?>
               </span>
             <?php endif; ?>
           </a>
@@ -192,28 +207,6 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "Food & Treats";
     </div>
   </div>
 </nav>
-
-<!-- Page Header with background -->
-<div class="bg-light-custom py-4 mb-4">
-  <div class="container">
-    <div class="row">
-      <div class="col-12">
-        <h1 class="h2 mb-0"><?php echo $page_title; ?></h1>
-        <nav aria-label="breadcrumb">
-          <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item"><a href="userhomepage.php" class="text-decoration-none">Home</a></li>
-            <li class="breadcrumb-item"><a href="products.php" class="text-decoration-none">Products</a></li>
-            <?php if(!empty($category)): ?>
-              <li class="breadcrumb-item active" aria-current="page"><?php echo htmlspecialchars($category); ?></li>
-            <?php else: ?>
-              <li class="breadcrumb-item active" aria-current="page">Food & Treats</li>
-            <?php endif; ?>
-          </ol>
-        </nav>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- Main Container -->
 <div class="container py-4">
@@ -361,132 +354,149 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "Food & Treats";
   </div>
 </footer>
 
-<!-- Back to Top Button -->
-<a href="#" class="back-to-top" id="backToTop">
-  <i class="bi bi-arrow-up"></i>
-</a>
+  <!-- Back to Top Button with improved styling -->
+  <a href="#" class="back-to-top" id="backToTop" style="background: linear-gradient(145deg, var(--primary), var(--primary-dark));">
+    <i class="bi bi-arrow-up"></i>
+  </a>
 
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- AOS Animation Library -->
-<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-<!-- Toastr JS for notifications -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-
-<script>
-$(document).ready(function() {
-  // Initialize AOS animations
-  AOS.init({
-    once: true,
-    duration: 800,
-    offset: 100
-  });
-  
-  // Navbar Scroll Effect
-  const navbar = document.querySelector('.custom-nav');
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) {
-      navbar.classList.add('navbar-scrolled');
-    } else {
-      navbar.classList.remove('navbar-scrolled');
-    }
-  });
-  
-  // Back to Top Button
-  const backToTopButton = document.getElementById('backToTop');
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 300) {
-      backToTopButton.classList.add('active');
-    } else {
-      backToTopButton.classList.remove('active');
-    }
-  });
-  
-  // Configure toastr notification settings
-  toastr.options = {
-    "closeButton": true,
-    "newestOnTop": false,
-    "progressBar": true,
-    "positionClass": "toast-top-right",
-    "preventDuplicates": false,
-    "showDuration": "300",
-    "hideDuration": "1000",
-    "timeOut": "5000",
-    "extendedTimeOut": "1000",
-    "showEasing": "swing",
-    "hideEasing": "linear",
-    "showMethod": "fadeIn",
-    "hideMethod": "fadeOut"
-  };
-  
-  // Sort select change handler
-  $('#sortSelect').change(function() {
-    let url = new URL(window.location.href);
-    url.searchParams.set('sort', $(this).val());
-    window.location.href = url.toString();
-  });
-  
-  // Add to cart button click handler
-  $('.add-to-cart-btn').click(function() {
-    const productId = $(this).data('product-id');
-    const productName = $(this).data('product-name');
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- AOS Animation Library -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <!-- Custom JavaScript -->
+  <script>
+    // Initialize AOS Animation
+    AOS.init({
+      once: true,
+      duration: 800,
+      offset: 100
+    });
     
-    // AJAX request to add item to cart
-    $.ajax({
-      url: 'add_to_cart.php',
-      type: 'POST',
-      data: {
-        product_id: productId,
-        quantity: 1
-      },
-      success: function(response) {
-        try {
-          const result = JSON.parse(response);
-          if (result.success) {
-            // Show success notification
-            toastr.success('<i class="bi bi-check-circle me-2"></i>' + productName + ' added to cart!');
-            
-            // Update cart count if necessary
-            if (result.cart_count) {
-              updateCartCount(result.cart_count);
-            }
-          } else if (result.require_login) {
-            // Show login required message
-            toastr.warning(result.message);
-            
-            // Show login modal or redirect to login page after a short delay
-            setTimeout(function() {
-              window.location.href = 'login.php?redirect=products.php';
-            }, 2000);
-          } else {
-            // Show error message
-            toastr.error(result.message || 'Failed to add item to cart');
-          }
-        } catch(e) {
-          toastr.error('Error processing response');
-          console.error('Error parsing JSON: ', e);
-        }
-      },
-      error: function() {
-        toastr.error('Error processing your request');
+    // Navbar Scroll Effect
+    const navbar = document.querySelector('.custom-nav');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 50) {
+        navbar.classList.add('navbar-scrolled');
+      } else {
+        navbar.classList.remove('navbar-scrolled');
       }
     });
-  });
-  
-  // Function to update cart count badge
-  function updateCartCount(count) {
-    const cartIcon = $('.bi-cart');
-    // Remove existing badge if any
-    cartIcon.next('.badge').remove();
     
-    // Add badge if count > 0
-    if (count > 0) {
-      cartIcon.after('<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">' + count + '</span>');
-    }
-  }
-});
-</script>
+    // Back to Top Button
+    const backToTopButton = document.getElementById('backToTop');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 300) {
+        backToTopButton.classList.add('active');
+      } else {
+        backToTopButton.classList.remove('active');
+      }
+    });
+    
+    // Sort select functionality
+    document.getElementById('sortSelect').addEventListener('change', function() {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('sort', this.value);
+      window.location.href = currentUrl.toString();
+    });
+
+    // Updated Add to Cart Functionality with correct cart count
+    const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+    addToCartButtons.forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const productId = this.getAttribute('data-product-id');
+        const productName = this.getAttribute('data-product-name');
+        
+        // Disable button temporarily to prevent double clicks
+        this.disabled = true;
+        const originalText = this.innerHTML;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+        
+        // Send AJAX request to add item to cart
+        fetch('add_to_cart.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `product_id=${productId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+          // Re-enable button
+          this.disabled = false;
+          this.innerHTML = originalText;
+          
+          if (data.success) {
+            // Create toast notification
+            const toastContainer = document.createElement('div');
+            toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
+            toastContainer.style.zIndex = '9999';
+            
+            const toastElement = document.createElement('div');
+            toastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
+            toastElement.style.backgroundColor = '#4e9f3d'; // Green background
+            toastElement.setAttribute('role', 'alert');
+            toastElement.setAttribute('aria-live', 'assertive');
+            toastElement.setAttribute('aria-atomic', 'true');
+            
+            toastElement.innerHTML = `
+              <div class="d-flex">
+                <div class="toast-body">
+                  <i class="bi bi-check-circle me-2"></i> ${productName} added to cart!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+            `;
+            
+            toastContainer.appendChild(toastElement);
+            document.body.appendChild(toastContainer);
+            
+            // Show the toast
+            const toast = new bootstrap.Toast(toastElement, {
+              autohide: true,
+              delay: 3000
+            });
+            toast.show();
+            
+            // Update cart icon with count directly from server response
+            const cartLink = document.querySelector('.nav-link[href="cart.php"]');
+            let cartBadge = cartLink.querySelector('.badge');
+            
+            if (data.cart_count > 0) {
+              if (!cartBadge) {
+                // Create new badge if none exists
+                cartBadge = document.createElement('span');
+                cartBadge.classList.add('position-absolute', 'top-0', 'start-100', 'translate-middle', 'badge', 'rounded-pill', 'bg-primary');
+                cartLink.appendChild(cartBadge);
+              }
+              // Update the badge with correct count from server
+              cartBadge.textContent = data.cart_count;
+            } else if (cartBadge) {
+              // Remove badge if count is 0
+              cartBadge.remove();
+            }
+            
+            // Remove the toast container after it's hidden
+            toastElement.addEventListener('hidden.bs.toast', function () {
+              document.body.removeChild(toastContainer);
+            });
+          } else if (data.require_login) {
+            // Redirect to login page if needed
+            window.location.href = 'login.php';
+          } else {
+            // Show error message
+            alert(data.message || 'Failed to add item to cart');
+            console.error('Failed to add item to cart:', data.message);
+          }
+        })
+        .catch(error => {
+          // Re-enable button on error
+          this.disabled = false;
+          this.innerHTML = originalText;
+          console.error('Error:', error);
+        });
+      });
+    });
+  </script>
 </body>
 </html>

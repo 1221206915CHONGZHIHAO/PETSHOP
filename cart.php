@@ -80,28 +80,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $success_message = 'Cart updated successfully';
                 break;
                 
-            case 'remove':
-                // Remove from session
-                if (isset($_SESSION['cart'][$product_id])) {
-                    unset($_SESSION['cart'][$product_id]);
-                }
-                
-                // Remove from database if user is logged in
-                if (isset($_SESSION['Customer_ID'])) {
-                    $stmt = $conn->prepare("DELETE FROM cart WHERE Customer_ID = ? AND Inventory_ID = ?");
-                    $stmt->bind_param("ii", $_SESSION['Customer_ID'], $product_id);
-                    $stmt->execute();
-                }
-                
-                $success_message = 'Item removed from cart';
-                break;
-                
-            default:
-                throw new Exception('Invalid action');
-        }
-    } catch (Exception $e) {
-        $error_message = $e->getMessage();
-    }
+                case 'remove':
+                  // Remove item from session cart array
+                  if (isset($_SESSION['cart'][$product_id])) {
+                      unset($_SESSION['cart'][$product_id]);
+                  }
+  
+                  // Remove from database if user is logged in
+                  if (isset($_SESSION['customer_id'])) {
+                      $stmt = $conn->prepare(
+                          "DELETE FROM cart 
+                           WHERE Customer_ID = ? 
+                             AND Inventory_ID = ?"
+                      );
+                      $stmt->bind_param("ii", $_SESSION['customer_id'], $product_id);
+                      $stmt->execute();
+                      $stmt->close();
+                  }
+  
+                  // Update session cart_count
+                  $_SESSION['cart_count'] = count($_SESSION['cart']);
+  
+                  $success_message = 'Item removed from cart';
+                  break;
+  
+              default:
+                  throw new Exception('Invalid action');
+          }
+      } catch (Exception $e) {
+          $error_message = $e->getMessage();
+      }
     
     // If this was an AJAX request, return JSON response and exit
     if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
