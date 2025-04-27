@@ -16,9 +16,7 @@ body {
   line-height: 1.6;
   color: var(--dark);
   overflow-x: hidden;
-
-  /* ── FIX ── push content below fixed navbar ── */
-  padding-top: 114px; /* 导航栏总高度 = logo(90px) + 上下 padding(12px*2) */
+  padding-top: 114px; /* Adjusted for fixed navbar */
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -32,7 +30,6 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 2px 15px rgba(255, 255, 255, 0.205);
   padding: 12px 0;
   transition: all 0.3s ease;
-  /* fixed-top 已由 Bootstrap 提供 */
 }
 
 .navbar-scrolled {
@@ -86,15 +83,17 @@ h1, h2, h3, h4, h5, h6 {
 .hero-section {
   height: 85vh;
   min-height: 600px;
-  background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url("hero image.jpg");
+  background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url("hero_image.jpg");
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
   position: relative;
   display: flex;
-  align-items: center;
+  justify-content: center; /* Center horizontally */
+  align-items: center; /* Center vertically */
   color: white;
   overflow: hidden;
+  text-align: center;
 }
 
 .hero-section:after {
@@ -115,12 +114,20 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 1.5rem;
   position: relative;
   z-index: 2;
+  padding: 20px; /* Add padding to ensure text isn't too close to edges */
+}
+
+.hero-content h1 {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
 }
 
 .hero-content p {
   font-size: 1.2rem;
   margin-bottom: 2rem;
   max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Buttons */

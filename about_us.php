@@ -1,34 +1,31 @@
 <?php
 session_start();
+require_once 'db_connection.php'; // Use the existing db_connection.php for consistency
 
-$servername  = "localhost";
-$db_username = "root";
-$db_password = "";
-$dbname      = "petshop";
-
-$conn = new mysqli($servername, $db_username, $db_password, $dbname);
-if ($conn->connect_error) {
-    die("数据库连接失败: " . $conn->connect_error);
-}
-
+// Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset($_POST['password'])) {
-    $username = $conn->real_escape_string($_POST['username']);
-    $password = $conn->real_escape_string($_POST['password']);
+    $username = $_POST['username'];
+    $password = $_POST['password'];
     
-    $sql = "SELECT * FROM customer WHERE customer_name='$username' AND customer_password='$password'";
-    $result = $conn->query($sql);
+    // Use prepared statements to prevent SQL injection
+    $stmt = $conn->prepare("SELECT * FROM customer WHERE customer_name = ? AND customer_password = ?");
+    $stmt->bind_param("ss", $username, $password);
+    $stmt->execute();
+    $result = $stmt->get_result();
     
     if ($result && $result->num_rows > 0) {
         $row = $result->fetch_assoc();
-        $_SESSION['customer_id'] = $row['customer_id'];
-        $_SESSION['customer_name'] = $row['customer_name'];
+        $_SESSION['customer_id'] = $row['Customer_ID'];
+        $_SESSION['customer_name'] = $row['Customer_name'];
         header("Location: userhomepage.php");
         exit();
     } else {
-        $login_error = "用户名或密码错误";
+        $login_error = "Username or password incorrect";
     }
+    $stmt->close();
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -50,15 +47,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
   <!-- Navigation -->
   <nav class="navbar navbar-expand-lg custom-nav fixed-top">
     <div class="container">
+      <!-- Brand on the left -->
       <a class="navbar-brand" href="userhomepage.php">
         <img src="Hachi_Logo.png" alt="Hachi Pet Shop">
       </a>
       
+      <!-- Toggler for mobile view -->
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
 
       <div class="collapse navbar-collapse" id="navbarNav">
+        <!-- Main nav links centered -->
         <ul class="navbar-nav mx-auto">
           <li class="nav-item"><a class="nav-link" href="userhomepage.php">Home</a></li>
           <li class="nav-item"><a class="nav-link active" href="about_us.php">About Us</a></li>
@@ -66,21 +66,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
           <li class="nav-item"><a class="nav-link" href="contact.php">Contact</a></li>
         </ul>
 
+        <!-- Icons on the right -->
         <ul class="navbar-nav ms-auto nav-icons">
-          <!-- Search Dropdown -->
+          <!-- Search Icon with Dropdown -->
           <li class="nav-item dropdown">
-            <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown">
+            <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-search"></i>
             </a>
-            <ul class="dropdown-menu dropdown-menu-end p-3" style="min-width: 300px;">
+            <ul class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="searchDropdown" style="min-width: 300px;">
               <form class="d-flex">
-                <input class="form-control me-2" type="search" placeholder="Search products...">
+                <input class="form-control me-2" type="search" placeholder="Search products..." aria-label="Search">
                 <button class="btn btn-primary" type="submit">Go</button>
               </form>
             </ul>
           </li>
 
-          <!-- Cart -->
+          <!-- Cart Icon with item count -->
           <li class="nav-item">
             <a class="nav-link position-relative" href="cart.php">
               <i class="bi bi-cart"></i>
@@ -92,20 +93,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
             </a>
           </li>
 
-          <!-- User Dropdown -->
+          <!-- User Icon with Dynamic Dropdown -->
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" data-bs-toggle="dropdown">
+            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <?php if(isset($_SESSION['customer_id'])): ?>
                 <span class="me-1"><?php echo htmlspecialchars($_SESSION['customer_name']); ?></span>
               <?php else: ?>
                 <i class="bi bi-person"></i>
               <?php endif; ?>
             </a>
-            <ul class="dropdown-menu dropdown-menu-end">
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
               <?php if(isset($_SESSION['customer_id'])): ?>
                 <li><a class="dropdown-item" href="user_dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
                 <li><a class="dropdown-item" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
-                <li><a class="dropdown-item" href="myprofile_address.php"><i class="bi bi-person-lines-fill me-2"></i>Profile</a></li>
+                <li><a class="dropdown-item" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favorites</a></li>
+                <li><a class="dropdown-item" href="myprofile_address.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
               <?php else: ?>
@@ -120,11 +122,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
   </nav>
 
   <!-- Hero Section -->
-  <div class="hero-section">
-    <div class="container" data-aos="fade-up">
-      <div class="hero-content text-center">
+  <div class="hero-section" style="background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url('aboutus_image.png');">
+    <div class="container">
+      <div class="hero-content">
         <h1>About Hachi Pet Shop</h1>
-        <p class="lead">Discover our passion for pet care and commitment to quality</p>
+        <p>Discover our passion for pet and commitment to pet product quality</p>
       </div>
     </div>
   </div>
@@ -134,11 +136,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
     <div class="container">
       <div class="row align-items-center" data-aos="fade-up">
         <div class="col-lg-6 mb-4">
-          <img src="about_us_image.jpg" class="img-fluid rounded shadow" alt="Our Team">
+          <img src="ourstory_image.png" class="img-fluid rounded shadow" alt="Our Team">
         </div>
         <div class="col-lg-6">
           <h2 class="section-title">Our Story</h2>
-          <p class="lead">Founded in 2025, Hachi Pet Shop was born from our deep love for animals. What started as a small local store has grown into Singapore's trusted online destination for premium pet products.</p>
+          <p class="lead">Founded in 2025, Hachi Pet Shop was born from our deep love for animals. What started as a small local store has grown into Malaysia's trusted online pet shop for pet products.</p>
           <div class="row mt-4">
             <div class="col-md-6">
               <div class="card border-0 shadow-sm mb-3">
@@ -159,36 +161,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
           </div>
         </div>
       </div>
-
-      <div class="row mt-5" data-aos="fade-up">
-        <div class="col-md-4">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body text-center">
-              <i class="bi bi-truck fs-1 text-primary"></i>
-              <h5 class="my-3">Fast Delivery</h5>
-              <p>Islandwide delivery within 2 working days</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body text-center">
-              <i class="bi bi-shield-check fs-1 text-primary"></i>
-              <h5 class="my-3">Secure Payments</h5>
-              <p>100% secure payment processing</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body text-center">
-              <i class="bi bi-chat-dots fs-1 text-primary"></i>
-              <h5 class="my-3">Expert Support</h5>
-              <p>24/7 customer service via chat and email</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -202,20 +174,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
       <div class="row">
         <div class="col-md-3" data-aos="fade-up" data-aos-delay="100">
           <div class="card border-0 shadow-sm">
-            <img src="team1.jpg" class="card-img-top" alt="Veterinarian">
+            <img src="teammember1.jpg" class="card-img-top" alt="CTO">
             <div class="card-body text-center">
-              <h5>Dr. Sarah Lim</h5>
-              <p class="text-muted">Chief Veterinarian</p>
+              <h5>David Hi Zhe Ya</h5>
+              <p class="text-muted">CTO</p>
             </div>
           </div>
         </div>
-        <!-- Add more team members -->
+        <!-- Add more team members as needed -->
       </div>
     </div>
   </section>
 
- <!-- Footer with simplified structure -->
- <footer style="background: linear-gradient(to bottom,rgb(134, 138, 135),rgba(46, 21, 1, 0.69));">
+  <!-- Footer -->
+  <footer style="background: linear-gradient(to bottom, rgb(134, 138, 135), rgba(46, 21, 1, 0.69));">
     <div class="container">
       <div class="row">
         <!-- Footer About -->
@@ -261,7 +233,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
               </div>
             </div>
           </div>
-          
+        </div>
+      </div>
       
       <!-- Footer Bottom -->
       <div class="footer-bottom" style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 40px; padding-top: 20px;">
@@ -274,7 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
     </div>
   </footer>
 
-  <!-- Back to Top Button with improved styling -->
+  <!-- Back to Top Button -->
   <a href="#" class="back-to-top" id="backToTop" style="background: linear-gradient(145deg, var(--primary), var(--primary-dark));">
     <i class="bi bi-arrow-up"></i>
   </a>
@@ -310,52 +283,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
       } else {
         backToTopButton.classList.remove('active');
       }
-    });
-    
-    // Add to Cart Functionality
-    const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
-    addToCartButtons.forEach(button => {
-      button.addEventListener('click', function(e) {
-        e.preventDefault();
-        const productId = this.getAttribute('data-product-id');
-        const productName = this.getAttribute('data-product-name');
-        
-        // Create a toast notification
-        const toastContainer = document.createElement('div');
-        toastContainer.classList.add('toast-container', 'position-fixed', 'bottom-0', 'end-0', 'p-3');
-        toastContainer.style.zIndex = '5';
-        
-        const toastElement = document.createElement('div');
-        toastElement.classList.add('toast', 'align-items-center', 'text-white', 'bg-primary', 'border-0');
-        toastElement.setAttribute('role', 'alert');
-        toastElement.setAttribute('aria-live', 'assertive');
-        toastElement.setAttribute('aria-atomic', 'true');
-        
-        toastElement.innerHTML = `
-          <div class="d-flex">
-            <div class="toast-body">
-              <i class="bi bi-check-circle me-2"></i> ${productName} added to cart!
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-          </div>
-        `;
-        
-        toastContainer.appendChild(toastElement);
-        document.body.appendChild(toastContainer);
-        
-        // Show the toast
-        const toast = new bootstrap.Toast(toastElement);
-        toast.show();
-        
-        // Send AJAX request to add item to cart
-        // This is where you would normally add AJAX code to update the cart on the server
-        console.log(`Product added to cart: ID - ${productId}, Name - ${productName}`);
-        
-        // For demo purposes, remove the toast container after it's hidden
-        toastElement.addEventListener('hidden.bs.toast', function () {
-          document.body.removeChild(toastContainer);
-        });
-      });
     });
   </script>
 </body>

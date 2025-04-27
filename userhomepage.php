@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
   </nav>
 
   <!-- Hero Section -->
-  <div class="hero-section">
+  <div class="hero-section" style="background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url('hero image.jpg');">
     <div class="container" data-aos="fade-up" data-aos-duration="1000">
       <div class="hero-content">
         <h1>Pamper Your Pets<br>With Premium Care</h1>
