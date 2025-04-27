@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
 
   <!-- Hero Section -->
   <div class="hero-section" style="background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url('aboutus_image.png');">
-    <div class="container">
+    <div class="container" data-aos="fade-up" data-aos-duration="1000">
       <div class="hero-content">
         <h1>About Hachi Pet Shop</h1>
         <p>Discover our passion for pet and commitment to pet product quality</p>
@@ -247,8 +247,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
     </div>
   </footer>
 
-  <!-- Back to Top Button -->
-  <a href="#" class="back-to-top" id="backToTop" style="background: linear-gradient(145deg, var(--primary), var(--primary-dark));">
+   <!-- Back to Top Button with improved styling -->
+   <a href="#" class="back-to-top" id="backToTop" style="background: linear-gradient(145deg, var(--primary), var(--primary-dark));">
     <i class="bi bi-arrow-up"></i>
   </a>
 
@@ -283,6 +283,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
       } else {
         backToTopButton.classList.remove('active');
       }
+    });
+    
+    // Add to Cart Functionality
+    const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+    addToCartButtons.forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const productId = this.getAttribute('data-product-id');
+        const productName = this.getAttribute('data-product-name');
+        
+        // Create a toast notification
+        const toastContainer = document.createElement('div');
+        toastContainer.classList.add('toast-container', 'position-fixed', 'bottom-0', 'end-0', 'p-3');
+        toastContainer.style.zIndex = '5';
+        
+        const toastElement = document.createElement('div');
+        toastElement.classList.add('toast', 'align-items-center', 'text-white', 'bg-primary', 'border-0');
+        toastElement.setAttribute('role', 'alert');
+        toastElement.setAttribute('aria-live', 'assertive');
+        toastElement.setAttribute('aria-atomic', 'true');
+        
+        toastElement.innerHTML = `
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="bi bi-check-circle me-2"></i> ${productName} added to cart!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        `;
+        
+        toastContainer.appendChild(toastElement);
+        document.body.appendChild(toastContainer);
+        
+        // Show the toast
+        const toast = new bootstrap.Toast(toastElement);
+        toast.show();
+        
+        // Send AJAX request to add item to cart
+        // This is where you would normally add AJAX code to update the cart on the server
+        console.log(`Product added to cart: ID - ${productId}, Name - ${productName}`);
+        
+        // For demo purposes, remove the toast container after it's hidden
+        toastElement.addEventListener('hidden.bs.toast', function () {
+          document.body.removeChild(toastContainer);
+        });
+      });
     });
   </script>
 </body>
