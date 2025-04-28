@@ -23,10 +23,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $role = $_POST['role']; 
     $login_input = trim($_POST['login_input']); 
     $password = $_POST['password'];
-    // Get the redirect parameter from the form
     $redirect = isset($_POST['redirect']) ? $_POST['redirect'] : 'userhomepage.php';
 
-    // Input validation
     if (empty($login_input) || empty($password)) {
         $error_message = "All fields are required.";
     } else {
@@ -40,7 +38,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $redirect_url = "admin_homepage.php";
         }
         else {
-            // Staff and customer login
             if ($role === "staff") {
                 $sql = "SELECT Staff_id, Staff_Username, Staff_Email, Staff_Password, status, password_reset_token 
                         FROM Staff 
@@ -70,7 +67,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         }
                         $stmt->fetch();
 
-                        
                         if ($role === "staff" && $db_status !== 'Active') {
                             $error_message = "Account is inactive. Please contact administrator.";
                         } 
@@ -97,6 +93,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 $_SESSION['customer_name'] = $db_username;
                                 $_SESSION['email'] = $db_email;
                                 $redirect_url = "userhomepage.php";
+                                
+                                // Record successful customer login
+                                $conn->query("INSERT INTO customer_login_logs (username, email, status) 
+                                            VALUES ('$db_username', '$db_email', 'login')");
                             }
                             $success_message = "Login successful! Redirecting...";
                         } else {
@@ -107,9 +107,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     last_failed_login = NOW() 
                                     WHERE Staff_id = $db_staff_id");
                             }
+                            
+                            // Record failed login attempt if customer
+                            if ($role === "customer") {
+                                $conn->query("INSERT INTO customer_login_logs (username, email, status) 
+                                            VALUES ('', '$login_input', 'failed')");
+                            }
                         }
                     } else {
                         $error_message = "Username or email not found.";
+                        // Record failed login attempt if customer
+                        if ($role === "customer") {
+                            $conn->query("INSERT INTO customer_login_logs (username, email, status) 
+                                        VALUES ('', '$login_input', 'failed')");
+                        }
                     }
                     $stmt->close();
                 }
