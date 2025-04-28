@@ -140,13 +140,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
         </div>
         <div class="col-lg-6">
           <h2 class="section-title">Our Story</h2>
-          <p class="lead">Founded in 2025, Hachi Pet Shop was born from our deep love for animals. What started as a small local store has grown into Malaysia's trusted online pet shop for pet products.</p>
+          <p class="lead">Founded in 2025, Hachi Pet Shop was born from our deep love for animals. What started as a small local store has grown into Singapore's trusted online destination for premium pet products.</p>
           <div class="row mt-4">
             <div class="col-md-6">
               <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body">
                   <h5 class="text-primary"><i class="bi bi-heart-pulse me-2"></i>Our Mission</h5>
-                  <p>Delivering happiness and health to every pet through quality products and expert advice.</p>
+                  <p>Delivering happiness and health to every pet through quality products.</p>
                 </div>
               </div>
             </div>
@@ -161,6 +161,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
           </div>
         </div>
       </div>
+
+      <div class="row mt-5" data-aos="fade-up">
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+              <i class="bi bi-truck fs-1 text-primary"></i>
+              <h5 class="my-3">Fast Delivery</h5>
+              <p>Islandwide delivery within 2 working days</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+              <i class="bi bi-shield-check fs-1 text-primary"></i>
+              <h5 class="my-3">Secure Payments</h5>
+              <p>100% secure payment processing</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+              <i class="bi bi-chat-dots fs-1 text-primary"></i>
+              <h5 class="my-3">Expert Support</h5>
+              <p>24/7 customer service via chat and email</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -169,7 +199,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
     <div class="container">
       <div class="text-center mb-5" data-aos="fade-up">
         <h2 class="section-title">Meet Our Team</h2>
-        <p class="section-subtitle">Passionate professionals dedicated to pet care</p>
       </div>
       <div class="row">
         <div class="col-md-3" data-aos="fade-up" data-aos-delay="100">

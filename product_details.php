@@ -18,11 +18,11 @@ if ($conn->connect_error) {
 
 // Function to get current cart count
 function getCartCount() {
-    if(isset($_SESSION['cart_count'])) {
+    if (isset($_SESSION['cart_count'])) {
         return (int)$_SESSION['cart_count'];
-    } else if(isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
+    } else if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
         $total = 0;
-        foreach($_SESSION['cart'] as $item) {
+        foreach ($_SESSION['cart'] as $item) {
             $total += isset($item['quantity']) ? (int)$item['quantity'] : 1;
         }
         return $total;
@@ -30,78 +30,31 @@ function getCartCount() {
     return 0;
 }
 
-// Get products from database
-function getProducts($sort = 'newest', $category = '') {
-    global $conn;
-    
-    $sql = "SELECT * FROM products WHERE 1=1";
-    
-    // Add category filter if provided
-    if (!empty($category)) {
-        $category = $conn->real_escape_string($category);
-        $sql .= " AND category = '$category'";
+// Get product ID from URL
+$product_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+// Fetch product details
+$product = null;
+if ($product_id > 0) {
+    $sql = "SELECT * FROM products WHERE product_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $product_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $product = $result->fetch_assoc();
     }
-    
-    // Add sorting logic
-    switch ($sort) {
-        case 'lowest-price':
-            $sql .= " ORDER BY price ASC";
-            break;
-        case 'highest-price':
-            $sql .= " ORDER BY price DESC";
-            break;
-        case 'best-selling':
-            $sql .= " ORDER BY updated_at DESC";
-            break;
-        default: // newest
-            $sql .= " ORDER BY created_at DESC";
-            break;
-    }
-    
-    $result = $conn->query($sql);
-    $products = [];
-    
-    if ($result && $result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
-            $products[] = $row;
-        }
-    }
-    
-    return $products;
+    $stmt->close();
 }
 
-// Get categories for sidebar
-function getCategories() {
-    global $conn;
-    
-    $sql = "SELECT DISTINCT category FROM products ORDER BY category";
-    $result = $conn->query($sql);
-    $categories = [];
-    
-    if ($result && $result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
-            $categories[] = $row['category'];
-        }
-    }
-    
-    return $categories;
+// If product not found, redirect to products page
+if (!$product) {
+    header("Location: products.php");
+    exit();
 }
 
-// Get sort parameter
-$sort = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
-
-// Get category parameter
-$category = isset($_GET['category']) ? $_GET['category'] : '';
-
-// Get products and categories
-$products = getProducts($sort, $category);
-$categories = getCategories();
-
-// Count items
-$product_count = count($products);
-
-// Page title - change based on category
-$page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
+// Page title
+$page_title = htmlspecialchars($product['product_name']);
 ?>
 
 <!DOCTYPE html>
@@ -122,6 +75,64 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
   <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
   <!-- Custom CSS -->
   <link rel="stylesheet" href="userhomepage.css">
+  <style>
+    /* Custom styles for product details page */
+    .product-details-section {
+      padding: 100px 0;
+      background-color: var(--light-gray);
+    }
+    .product-image-container {
+      max-width: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    }
+    .product-image-container img {
+      width: 100%;
+      height: auto;
+      object-fit: cover;
+    }
+    .product-details {
+      padding: 20px;
+    }
+    .product-details h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .product-details .price {
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+    .product-details .category {
+      color: var(--gray);
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+    .product-details .stock-status {
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .product-details .description {
+      font-size: 1.1rem;
+      color: var(--dark);
+      margin-bottom: 2rem;
+      line-height: 1.8;
+    }
+    @media (max-width: 768px) {
+      .product-details h1 {
+        font-size: 2rem;
+      }
+      .product-details .price {
+        font-size: 1.5rem;
+      }
+      .product-details-section {
+        padding: 70px 0;
+      }
+    }
+  </style>
 </head>
 <body>
 <!-- Navigation -->
@@ -201,95 +212,44 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
   </div>
 </nav>
 
-<!-- Main Container -->
-<div class="container py-4">
-  <div class="row">
-    <!-- Filter sidebar -->
-    <aside class="col-lg-3 filter-section mb-4">
-      <!-- Categories -->
-      <div class="card shadow-sm border-0 rounded-3 mb-4">
-        <div class="card-body">
-          <h5>Categories</h5>
-          <ul class="list-group list-group-flush">
-            <li class="list-group-item">
-              <a href="products.php" class="<?php echo empty($category) ? 'text-primary' : ''; ?>">
-                All Products
-              </a>
-            </li>
-            <?php foreach($categories as $cat): ?>
-              <li class="list-group-item">
-                <a href="products.php?category=<?php echo urlencode($cat); ?>" class="<?php echo $category === $cat ? 'text-primary' : ''; ?>">
-                  <?php echo htmlspecialchars($cat); ?>
-                </a>
-              </li>
-            <?php endforeach; ?>
-            <?php if(empty($categories)): ?>
-              <li class="list-group-item">No categories found</li>
+<!-- Product Details Section -->
+<section class="product-details-section">
+  <div class="container">
+    <div class="row" data-aos="fade-up" data-aos-duration="800">
+      <!-- Product Image -->
+      <div class="col-lg-6 mb-4 mb-lg-0">
+        <div class="product-image-container">
+          <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
+        </div>
+      </div>
+      <!-- Product Details -->
+      <div class="col-lg-6">
+        <div class="product-details">
+          <h1><?php echo htmlspecialchars($product['product_name']); ?></h1>
+          <p class="price">RM<?php echo number_format($product['price'], 2); ?></p>
+          <p class="category"><strong>Category:</strong> <?php echo htmlspecialchars($product['category']); ?></p>
+          <p class="stock-status">
+            <?php if ($product['stock_quantity'] > 0): ?>
+              <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>In Stock (<?php echo $product['stock_quantity']; ?>)</span>
+            <?php else: ?>
+              <span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Out of Stock</span>
             <?php endif; ?>
-          </ul>
-        </div>
-      </div>
-    </aside>
-
-    <!-- Product listing -->
-    <div class="col-lg-9">
-      <!-- Top info and sorting -->
-      <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
-        <p class="mb-0"><strong><?php echo $product_count; ?></strong> items found</p>
-        
-        <div class="d-flex align-items-center">
-          <label for="sortSelect" class="me-2">Sort By:</label>
-          <select id="sortSelect" class="form-select form-select-sm" style="width: auto;">
-            <option value="newest" <?php echo $sort == 'newest' ? 'selected' : ''; ?>>New Arrivals</option>
-            <option value="lowest-price" <?php echo $sort == 'lowest-price' ? 'selected' : ''; ?>>Lowest Price</option>
-            <option value="highest-price" <?php echo $sort == 'highest-price' ? 'selected' : ''; ?>>Highest Price</option>
-            <option value="best-selling" <?php echo $sort == 'best-selling' ? 'selected' : ''; ?>>Best Selling</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Product cards with AOS animations -->
-      <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
-        <?php if(!empty($products)): ?>
-          <?php foreach($products as $index => $product): ?>
-            <div class="col" data-aos="fade-up" data-aos-delay="<?php echo 50 * ($index % 6); ?>">
-              <div class="card product-card h-100">
-                <div class="overflow-hidden">
-                  <a href="product_details.php?id=<?php echo $product['product_id']; ?>">
-                    <img src="<?php echo htmlspecialchars($product['image_url']); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
-                  </a>
-                </div>
-                <div class="card-body">
-                  <h5 class="card-title"><?php echo htmlspecialchars($product['product_name']); ?></h5>
-                  <p class="product-price">RM<?php echo number_format($product['price'], 2); ?></p>
-                  <?php if($product['stock_quantity'] > 0): ?>
-                    <p class="text-success small mb-0"><i class="bi bi-check-circle-fill me-1"></i>In Stock (<?php echo $product['stock_quantity']; ?>)</p>
-                  <?php else: ?>
-                    <p class="text-danger small mb-0"><i class="bi bi-x-circle-fill me-1"></i>Out of Stock</p>
-                  <?php endif; ?>
-                </div>
-                <div class="card-footer bg-white">
-                  <button class="btn btn-primary w-100 add-to-cart-btn" 
-                          data-product-id="<?php echo $product['product_id']; ?>" 
-                          data-product-name="<?php echo htmlspecialchars($product['product_name']); ?>"
-                          <?php echo ($product['stock_quantity'] <= 0) ? 'disabled' : ''; ?>>
-                    <i class="bi bi-cart-plus me-2"></i>Add to Cart
-                  </button>
-                </div>
-              </div>
-            </div>
-          <?php endforeach; ?>
-        <?php else: ?>
-          <div class="col-12">
-            <div class="alert alert-info">
-              <i class="bi bi-info-circle me-2"></i>No products found. Please try different filters.
-            </div>
+          </p>
+          <div class="description">
+            <h5>Description</h5>
+            <p><?php echo htmlspecialchars($product['description']) ?: "No description available."; ?></p>
           </div>
-        <?php endif; ?>
+          <button class="btn btn-primary add-to-cart-btn" 
+                  data-product-id="<?php echo $product['product_id']; ?>" 
+                  data-product-name="<?php echo htmlspecialchars($product['product_name']); ?>"
+                  <?php echo ($product['stock_quantity'] <= 0) ? 'disabled' : ''; ?>>
+            <i class="bi bi-cart-plus me-2"></i>Add to Cart
+          </button>
+        </div>
       </div>
     </div>
   </div>
-</div>
+</section>
 
 <!-- Footer -->
 <footer style="background: linear-gradient(to bottom,rgb(134, 138, 135),rgba(46, 21, 1, 0.69));">
@@ -391,26 +351,21 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
       backToTopButton.classList.remove('active');
     }
   });
-  
-  // Sort select functionality
-  document.getElementById('sortSelect').addEventListener('change', function() {
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('sort', this.value);
-    window.location.href = currentUrl.toString();
-  });
 
-  // Updated Add to Cart Functionality
-  const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
-  addToCartButtons.forEach(button => {
-    button.addEventListener('click', function(e) {
+  // Add to Cart Functionality
+  const addToCartButton = document.querySelector('.add-to-cart-btn');
+  if (addToCartButton) {
+    addToCartButton.addEventListener('click', function(e) {
       e.preventDefault();
       const productId = this.getAttribute('data-product-id');
       const productName = this.getAttribute('data-product-name');
       
+      // Disable button temporarily
       this.disabled = true;
       const originalText = this.innerHTML;
       this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
       
+      // Send AJAX request to add item to cart
       fetch('add_to_cart.php', {
         method: 'POST',
         headers: {
@@ -420,10 +375,12 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
       })
       .then(response => response.json())
       .then(data => {
+        // Re-enable button
         this.disabled = false;
         this.innerHTML = originalText;
         
         if (data.success) {
+          // Create toast notification
           const toastContainer = document.createElement('div');
           toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
           toastContainer.style.zIndex = '9999';
@@ -447,12 +404,14 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
           toastContainer.appendChild(toastElement);
           document.body.appendChild(toastContainer);
           
+          // Show the toast
           const toast = new bootstrap.Toast(toastElement, {
             autohide: true,
             delay: 3000
           });
           toast.show();
           
+          // Update cart icon with count
           const cartLink = document.querySelector('.nav-link[href="cart.php"]');
           let cartBadge = cartLink.querySelector('.badge');
           
@@ -483,7 +442,7 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
         console.error('Error:', error);
       });
     });
-  });
+  }
 </script>
 </body>
 </html>

@@ -88,11 +88,11 @@ h1, h2, h3, h4, h5, h6 {
   background-size: cover;
   position: relative;
   display: flex;
-  justify-content: center; /* Center horizontally */
-  align-items: center; /* Center vertically */
+  justify-content: left;
+  align-items: left;
   color: white;
   overflow: hidden;
-  text-align: center;
+  text-align: left;
 }
 
 .hero-section:after {
@@ -114,7 +114,6 @@ h1, h2, h3, h4, h5, h6 {
   position: relative;
   z-index: 2;
   padding: 20px;
-  text-align: left;
 }
 
 .hero-content h1 {
