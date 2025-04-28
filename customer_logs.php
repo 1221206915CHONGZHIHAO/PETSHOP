@@ -1,16 +1,46 @@
+<?php
+session_start();
+
+// Redirect if not admin
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    header("Location: login.php");
+    exit();
+}
+
+// Database configuration
+$host = "localhost";
+$username_db = "root";
+$password_db = "";
+$database = "petshop";
+
+$conn = new mysqli($host, $username_db, $password_db, $database);
+
+if ($conn->connect_error) {
+    die("Database connection failed: " . $conn->connect_error);
+}
+
+// Get logs from database
+$result = $conn->query("SELECT username, email, status, timestamp 
+                       FROM customer_login_logs 
+                       ORDER BY timestamp DESC");
+
+// Close connection (we'll reopen if needed for filtering)
+$conn->close();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Activity Logs | PetShop Admin</title>
+    <title>Customer Login Logs | PetShop Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin_home.css">
     <style>
-        .log-type-login { color: #28a745; }
-        .log-type-logout { color: #dc3545; }
-        .log-type-failed { color: #ffc107; }
+        .status-login { color: #28a745; }
+        .status-logout { color: #dc3545; }
+        .status-failed { color: #ffc107; }
         .table-responsive { max-height: 600px; overflow-y: auto; }
     </style>
 </head>
@@ -31,7 +61,7 @@
 
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar (same as admin_homepage.php) -->
+        <!-- Sidebar -->
         <nav id="sidebar" class="col-md-2 d-md-block bg-dark sidebar">
             <div class="position-sticky">
                 <h4 class="text-light text-center py-3"><i class="fas fa-paw me-2"></i>Admin Menu</h4>
@@ -51,7 +81,6 @@
                                     <a class="nav-link text-light" href="manage_staff.php">
                                         <i class="fas fa-list me-2"></i>Staff List
                                     </a>
-                                </li>
                             </ul>
                         </div>
                     </li>
@@ -84,7 +113,7 @@
                         </div>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light" href="#">
+                        <a class="nav-link text-light" href="reports.php">
                             <i class="fas fa-chart-line me-2"></i>Reports
                         </a>
                     </li>
@@ -110,143 +139,72 @@
         <!-- Main Content -->
         <main class="col-md-10 ms-sm-auto px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2"><i class="fas fa-history me-2"></i>Customer Activity Logs</h1>
+                <h1 class="h2"><i class="fas fa-user-clock me-2"></i>Customer Login Activity</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary">Export CSV</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary">Print</button>
-                    </div>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown">
-                            <i class="fas fa-filter me-1"></i>Filter
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">All Activities</a></li>
-                            <li><a class="dropdown-item" href="#">Logins Only</a></li>
-                            <li><a class="dropdown-item" href="#">Logouts Only</a></li>
-                            <li><a class="dropdown-item" href="#">Failed Attempts</a></li>
-                        </ul>
-                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
                 </div>
             </div>
 
-            <!-- Date Range Filter -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <form class="row g-3">
-                        <div class="col-md-5">
-                            <label for="startDate" class="form-label">From</label>
-                            <input type="date" class="form-control" id="startDate">
-                        </div>
-                        <div class="col-md-5">
-                            <label for="endDate" class="form-label">To</label>
-                            <input type="date" class="form-control" id="endDate">
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary">Apply</button>
-                        </div>
-                    </form>
+            <!-- Date Filter Form -->
+            <form method="GET" action="" class="row mb-3">
+                <div class="col-md-4">
+                    <input type="date" name="logDate" class="form-control" value="<?php echo isset($_GET['logDate']) ? $_GET['logDate'] : date('Y-m-d'); ?>">
                 </div>
-                <div class="col-md-6">
-                    <div class="input-group mb-3">
-                        <input type="text" class="form-control" placeholder="Search by customer name or email...">
-                        <button class="btn btn-outline-secondary" type="button">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <?php if(isset($_GET['logDate'])): ?>
+                        <a href="customer_logs.php" class="btn btn-secondary ms-2">Clear</a>
+                    <?php endif; ?>
                 </div>
-            </div>
+            </form>
 
-            <!-- Logs Table -->
+            <!-- Logs Table - Now showing real data -->
             <div class="card">
-                <div class="card-header">
-                    <i class="fas fa-table me-2"></i>Customer Login/Logout Activities
-                </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover">
+                        <table class="table table-striped table-hover mb-0">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>#</th>
-                                    <th>Customer</th>
+                                    <th>Username</th>
                                     <th>Email</th>
-                                    <th>Activity Type</th>
-                                    <th>IP Address</th>
-                                    <th>Device/Browser</th>
+                                    <th>Status</th>
                                     <th>Timestamp</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>1</td>
-                                    <td>John Doe</td>
-                                    <td>john@example.com</td>
-                                    <td><span class="log-type-login"><i class="fas fa-sign-in-alt"></i> Login</span></td>
-                                    <td>192.168.1.1</td>
-                                    <td>Chrome, Windows</td>
-                                    <td>2025-03-15 09:30:22</td>
-                                </tr>
-                                <tr>
-                                    <td>2</td>
-                                    <td>Jane Smith</td>
-                                    <td>jane@example.com</td>
-                                    <td><span class="log-type-logout"><i class="fas fa-sign-out-alt"></i> Logout</span></td>
-                                    <td>192.168.1.45</td>
-                                    <td>Firefox, MacOS</td>
-                                    <td>2025-03-15 10:15:42</td>
-                                </tr>
-                                <tr>
-                                    <td>3</td>
-                                    <td>Alice Johnson</td>
-                                    <td>alice@example.com</td>
-                                    <td><span class="log-type-login"><i class="fas fa-sign-in-alt"></i> Login</span></td>
-                                    <td>192.168.1.89</td>
-                                    <td>Safari, iPhone</td>
-                                    <td>2025-03-15 11:22:18</td>
-                                </tr>
-                                <tr>
-                                    <td>4</td>
-                                    <td>Unknown</td>
-                                    <td>failed@attempt.com</td>
-                                    <td><span class="log-type-failed"><i class="fas fa-exclamation-triangle"></i> Failed Login</span></td>
-                                    <td>192.168.1.100</td>
-                                    <td>Edge, Windows</td>
-                                    <td>2025-03-15 12:05:33</td>
-                                </tr>
-                                <tr>
-                                    <td>5</td>
-                                    <td>Robert Brown</td>
-                                    <td>robert@example.com</td>
-                                    <td><span class="log-type-logout"><i class="fas fa-sign-out-alt"></i> Logout</span></td>
-                                    <td>192.168.1.23</td>
-                                    <td>Chrome, Android</td>
-                                    <td>2025-03-15 14:30:10</td>
-                                </tr>
+                                <?php if ($result->num_rows > 0): ?>
+                                    <?php while($row = $result->fetch_assoc()): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($row['username']); ?></td>
+                                            <td><?php echo htmlspecialchars($row['email']); ?></td>
+                                            <td>
+                                                <?php if ($row['status'] === 'login'): ?>
+                                                    <span class="status-login"><i class="fas fa-sign-in-alt"></i> Login</span>
+                                                <?php elseif ($row['status'] === 'logout'): ?>
+                                                    <span class="status-logout"><i class="fas fa-sign-out-alt"></i> Logout</span>
+                                                <?php else: ?>
+                                                    <span class="status-failed"><i class="fas fa-exclamation-triangle"></i> Failed</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td><?php echo htmlspecialchars($row['timestamp']); ?></td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="4" class="text-center">No login records found</td>
+                                    </tr>
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
-                    
-                    <!-- Pagination -->
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination justify-content-center mt-4">
-                            <li class="page-item disabled">
-                                <a class="page-link" href="#" tabindex="-1">Previous</a>
-                            </li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                            <li class="page-item">
-                                <a class="page-link" href="#">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
                 </div>
             </div>
         </main>
     </div>
 </div>
 
-<!-- JavaScript -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -254,16 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('sidebarToggle').addEventListener('click', function() {
         document.getElementById('sidebar').classList.toggle('show');
     });
-
-    // Set default dates for the filter
-    const today = new Date();
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(today.getDate() - 7);
-    
-    document.getElementById('startDate').valueAsDate = sevenDaysAgo;
-    document.getElementById('endDate').valueAsDate = today;
 });
 </script>
-
 </body>
 </html>

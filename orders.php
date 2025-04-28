@@ -1,3 +1,54 @@
+<?php
+session_start();
+
+// Check if admin is logged in
+if (!isset($_SESSION['admin_logged_in'])) {
+    header("Location: login.php");
+    exit();
+}
+
+
+// Database connection
+$host = "localhost";
+$username = "root";
+$password = "";
+$database = "petshop";
+
+$conn = new mysqli($host, $username, $password, $database);
+
+if ($conn->connect_error) {
+    die("Database connection failed: " . $conn->connect_error);
+}
+
+// Fetch orders with customer information
+$sql = "SELECT o.Order_ID, c.Customer_name, o.Total, o.Address, o.PaymentMethod, o.Order_Date, o.Status 
+        FROM `orders` o
+        JOIN Customer c ON o.Customer_ID = c.Customer_id
+        ORDER BY o.Order_Date DESC";
+$result = $conn->query($sql);
+
+// Fetch order items (products) for each order
+$order_items = [];
+if ($result->num_rows > 0) {
+    while($order = $result->fetch_assoc()) {
+        $order_id = $order['Order_ID'];
+        $item_sql = "SELECT p.Product_name, oi.Quantity 
+                     FROM Order_Items oi
+                     JOIN Product p ON oi.Product_ID = p.Product_id
+                     WHERE oi.Order_ID = $order_id";
+        $item_result = $conn->query($item_sql);
+        $items = [];
+        while($item = $item_result->fetch_assoc()) {
+            $items[] = $item['Product_name'] . " (" . $item['Quantity'] . ")";
+        }
+        $order['products'] = implode(", ", $items);
+        $order_items[] = $order;
+    }
+}
+
+$conn->close();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +59,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin_home.css">
     <style>
-        /* Custom modal styles */
         .action-modal .modal-header {
             background-color: #4e73df;
             color: white;
@@ -121,66 +171,81 @@
             </div>
         </nav>
 
-        <main class="col-md-10 ms-sm-auto px-md-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2"><i class="fas fa-shopping-cart me-2"></i>Order Management</h1>
-            </div>
+<main class="col-md-10 ms-sm-auto px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2"><i class="fas fa-shopping-cart me-2"></i>Order Management</h1>
+    </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <i class="fas fa-table me-2"></i>Manage Orders
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead class="table-dark">
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-table me-2"></i>Manage Orders
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Products</th>
+                            <th>Total</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($order_items)): ?>
+                            <?php foreach ($order_items as $order): ?>
                                 <tr>
-                                    <th>Order ID</th>
-                                    <th>Customer</th>
-                                    <th>Products</th>
-                                    <th>Total</th>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>#1001</td>
-                                    <td>John Doe</td>
-                                    <td>Persian Cat (1)</td>
-                                    <td>$1,200</td>
-                                    <td>2025-03-01</td>
-                                    <td><span class="badge bg-success">Completed</span></td>
+                                    <td>#<?php echo htmlspecialchars($order['Order_ID']); ?></td>
+                                    <td><?php echo htmlspecialchars($order['Customer_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($order['products']); ?></td>
+                                    <td>$<?php echo number_format($order['Total'], 2); ?></td>
+                                    <td><?php echo htmlspecialchars($order['Order_Date']); ?></td>
+                                    <td>
+                                        <span class="badge bg-<?php 
+                                            echo $order['Status'] === 'Completed' ? 'success' : 
+                                                 ($order['Status'] === 'Processing' ? 'warning' : 'danger'); 
+                                        ?>">
+                                            <?php echo htmlspecialchars($order['Status']); ?>
+                                        </span>
+                                    </td>
                                     <td>
                                         <button class="btn btn-sm btn-primary view-order-btn" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#viewOrderModal"
-                                                data-order-id="1001"
-                                                data-customer="John Doe"
-                                                data-products="Persian Cat (1)"
-                                                data-total="1200"
-                                                data-date="2025-03-01"
-                                                data-status="Completed">
+                                                data-order-id="<?php echo $order['Order_ID']; ?>"
+                                                data-customer="<?php echo htmlspecialchars($order['Customer_name']); ?>"
+                                                data-products="<?php echo htmlspecialchars($order['products']); ?>"
+                                                data-total="<?php echo $order['Total']; ?>"
+                                                data-date="<?php echo htmlspecialchars($order['Order_Date']); ?>"
+                                                data-status="<?php echo htmlspecialchars($order['Status']); ?>"
+                                                data-address="<?php echo htmlspecialchars($order['Address']); ?>"
+                                                data-payment="<?php echo htmlspecialchars($order['PaymentMethod']); ?>">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                         <button class="btn btn-sm btn-danger delete-order-btn" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#deleteOrderModal"
-                                                data-order-id="1001"
-                                                data-customer="John Doe">
+                                                data-order-id="<?php echo $order['Order_ID']; ?>"
+                                                data-customer="<?php echo htmlspecialchars($order['Customer_name']); ?>">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
                                 </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="7" class="text-center">No orders found</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
-        </main>
+        </div>
     </div>
-</div>
+</main>
 
 <!-- View Order Modal -->
 <div class="modal fade action-modal" id="viewOrderModal" tabindex="-1" aria-labelledby="viewOrderModalLabel" aria-hidden="true">
@@ -196,9 +261,11 @@
                         <p><strong>Order ID:</strong> <span id="viewOrderId"></span></p>
                         <p><strong>Customer:</strong> <span id="viewCustomer"></span></p>
                         <p><strong>Order Date:</strong> <span id="viewOrderDate"></span></p>
+                        <p><strong>Address:</strong> <span id="viewOrderAddress"></span></p>
                     </div>
                     <div class="col-md-6">
                         <p><strong>Status:</strong> <span id="viewOrderStatus" class="badge"></span></p>
+                        <p><strong>Payment Method:</strong> <span id="viewPaymentMethod"></span></p>
                         <p><strong>Total Amount:</strong> $<span id="viewOrderTotal"></span></p>
                     </div>
                 </div>
@@ -241,23 +308,23 @@
 document.addEventListener('DOMContentLoaded', function() {
     // View Order Modal Handler
     const viewOrderModal = document.getElementById('viewOrderModal');
-viewOrderModal.addEventListener('show.bs.modal', function(event) {
-    const button = event.relatedTarget;
-    document.getElementById('viewOrderId').textContent = button.getAttribute('data-order-id');
-    document.getElementById('viewCustomer').textContent = button.getAttribute('data-customer');
-    document.getElementById('viewOrderProducts').textContent = button.getAttribute('data-products');
-    document.getElementById('viewOrderTotal').textContent = button.getAttribute('data-total');
-    document.getElementById('viewOrderDate').textContent = button.getAttribute('data-date');
+    viewOrderModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        document.getElementById('viewOrderId').textContent = button.getAttribute('data-order-id');
+        document.getElementById('viewCustomer').textContent = button.getAttribute('data-customer');
+        document.getElementById('viewOrderProducts').textContent = button.getAttribute('data-products');
+        document.getElementById('viewOrderTotal').textContent = button.getAttribute('data-total');
+        document.getElementById('viewOrderDate').textContent = button.getAttribute('data-date');
+        document.getElementById('viewOrderAddress').textContent = button.getAttribute('data-address');
+        document.getElementById('viewPaymentMethod').textContent = button.getAttribute('data-payment');
 
-    const statusBadge = document.getElementById('viewOrderStatus');
-    statusBadge.textContent = button.getAttribute('data-status');
-    statusBadge.className = 'badge bg-' + (button.getAttribute('data-status') === 'Completed' ? 'success' : 
-                                          (button.getAttribute('data-status') === 'Processing' ? 'warning' : 'danger'));
+        const statusBadge = document.getElementById('viewOrderStatus');
+        statusBadge.textContent = button.getAttribute('data-status');
+        statusBadge.className = 'badge bg-' + (button.getAttribute('data-status') === 'Completed' ? 'success' : 
+                                              (button.getAttribute('data-status') === 'Processing' ? 'warning' : 'danger');
 
-    // ✅ 動態設定 print 按鈕連結
-    document.getElementById('printInvoiceBtn').href = "invoice.php?order_id=" + button.getAttribute('data-order-id');
-});
-
+        document.getElementById('printInvoiceBtn').href = "invoice.php?order_id=" + button.getAttribute('data-order-id');
+    });
 
     // Delete Order Modal Handler
     const deleteOrderModal = document.getElementById('deleteOrderModal');
@@ -270,14 +337,31 @@ viewOrderModal.addEventListener('show.bs.modal', function(event) {
     // Confirm Order Deletion
     document.getElementById('confirmDeleteOrder').addEventListener('click', function() {
         const orderId = document.getElementById('deleteOrderId').textContent;
-        // Add actual deletion logic here
-        alert('Order #' + orderId + ' will be deleted (implement AJAX request in production)');
         
-        // Close modal
+        // AJAX request to delete order
+        fetch('delete_order.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'order_id=' + orderId
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Order #' + orderId + ' has been deleted');
+                location.reload(); // Refresh the page
+            } else {
+                alert('Error deleting order: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the order');
+        });
+        
         const modal = bootstrap.Modal.getInstance(deleteOrderModal);
         modal.hide();
-        
-        // Add page refresh or table row removal logic here
     });
 });
 </script>
