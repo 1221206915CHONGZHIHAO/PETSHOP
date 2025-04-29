@@ -55,6 +55,9 @@ if (!$product) {
 
 // Page title
 $page_title = htmlspecialchars($product['product_name']);
+
+// Mock original price (for discount display, assuming a 20% discount)
+$original_price = $product['price'] * 1.2;
 ?>
 
 <!DOCTYPE html>
@@ -64,7 +67,7 @@ $page_title = htmlspecialchars($product['product_name']);
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hachi Pet Shop - <?php echo $page_title; ?></title>
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Montserrat:wght@600&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
@@ -79,57 +82,324 @@ $page_title = htmlspecialchars($product['product_name']);
     /* Custom styles for product details page */
     .product-details-section {
       padding: 100px 0;
-      background-color: var(--light-gray);
+      background-color: var(--light);
     }
+    /* Breadcrumb */
+    .breadcrumb {
+      background: transparent;
+      padding: 0;
+      margin-bottom: 1rem;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 0.9rem;
+    }
+    .breadcrumb-item a {
+      color: var(--gray);
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    .breadcrumb-item a:hover {
+      color: var(--primary);
+    }
+    .breadcrumb-item.active {
+      color: var(--primary);
+    }
+    /* Product Image Gallery */
     .product-image-container {
       max-width: 100%;
-      border-radius: 10px;
+      border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+      margin-bottom: 10px;
     }
     .product-image-container img {
       width: 100%;
       height: auto;
       object-fit: cover;
+      aspect-ratio: 4 / 3;
+      transition: all 0.5s ease;
     }
+    .product-image-container:hover img {
+      transform: scale(1.05);
+    }
+    .thumbnail-gallery {
+      display: flex;
+      gap: 8px;
+      justify-content: start;
+    }
+    .thumbnail {
+      width: 70px;
+      height: 70px;
+      border-radius: 5px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    .thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: all 0.5s ease;
+    }
+    .thumbnail.active, .thumbnail:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .thumbnail:hover img {
+      transform: scale(1.05);
+    }
+    /* Product Details */
     .product-details {
-      padding: 20px;
+      padding: 15px 0;
     }
     .product-details h1 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 600;
+      margin-bottom: 0.8rem;
+      line-height: 1.2;
+      color: var(--dark);
     }
     .product-details .price {
-      color: var(--primary);
-      font-weight: 700;
-      font-size: 1.8rem;
-      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 0.8rem;
     }
-    .product-details .category {
+    .product-details .price .current-price {
+      color: var(--primary);
+      font-family: 'Open Sans', sans-serif;
+      font-weight: 700;
+      font-size: 2rem;
+    }
+    .product-details .price .original-price {
       color: var(--gray);
-      font-size: 1rem;
-      margin-bottom: 1rem;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 1.3rem;
+      text-decoration: line-through;
+    }
+    .product-details .price .discount {
+      color: #dc3545;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      background-color: rgba(220, 53, 69, 0.1);
+      padding: 2px 8px;
+      border-radius: 12px;
     }
     .product-details .stock-status {
+      font-family: 'Open Sans', sans-serif;
       font-size: 1rem;
+      margin-bottom: 1.2rem;
+      font-weight: 500;
+    }
+    .product-details .stock-status .text-success {
+      display: inline-flex;
+      align-items: center;
+    }
+    .product-details .stock-status .text-danger {
+      display: inline-flex;
+      align-items: center;
+    }
+    .product-details .quantity-selector {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1.2rem;
+    }
+    .quantity-selector label {
+      font-family: 'Open Sans', sans-serif;
+      margin-bottom: 0;
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--dark);
+    }
+    .quantity-selector .input-group {
+      width: 140px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .quantity-selector .btn {
+      background-color: var(--light-gray);
+      border-color: var(--gray);
+      color: var(--dark);
+      padding: 8px 12px;
+      font-size: 1.2rem;
+      transition: all 0.3s ease;
+    }
+    .quantity-selector .btn:hover {
+      background-color: var(--gray);
+      color: var(--light);
+    }
+    .quantity-selector .form-control {
+      border-color: var(--gray);
+      font-family: 'Open Sans', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      padding: 8px;
+    }
+    .product-details .actions {
+      margin-bottom: 1.2rem;
+    }
+    .btn-add-to-cart {
+      background-color: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      padding: 12px 40px;
+      font-family: 'Open Sans', sans-serif;
+      font-weight: 600;
+      font-size: 1.1rem;
+      border-radius: 25px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(255, 126, 46, 0.3);
+    }
+    .btn-add-to-cart:hover {
+      background-color: #e66e26;
+      border-color: #e66e26;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(255, 126, 46, 0.4);
+    }
+    .btn-add-to-cart:disabled {
+      background-color: var(--gray);
+      border-color: var(--gray);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .product-details .extra-actions {
+      display: flex;
+      gap: 20px;
+    }
+    .extra-actions a {
+      color: var(--gray);
+      font-size: 1.3rem;
+      transition: all 0.3s ease;
+    }
+    .extra-actions a:hover {
+      color: var(--primary);
+      transform: translateY(-2px);
+    }
+    /* Tabs for Product Details */
+    .nav-tabs {
+      border-bottom: 2px solid var(--light-gray);
       margin-bottom: 1.5rem;
     }
-    .product-details .description {
-      font-size: 1.1rem;
-      color: var(--dark);
-      margin-bottom: 2rem;
-      line-height: 1.8;
+    .nav-tabs .nav-item {
+      margin-right: 10px;
     }
-    @media (max-width: 768px) {
-      .product-details h1 {
-        font-size: 2rem;
-      }
-      .product-details .price {
-        font-size: 1.5rem;
-      }
+    .nav-tabs .nav-link {
+      color: var(--gray);
+      font-family: 'Open Sans', sans-serif;
+      font-weight: 500;
+      font-size: 1.1rem;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px 8px 0 0;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .nav-tabs .nav-link.active {
+      color: var(--primary);
+      background-color: var(--light-gray);
+      border-bottom: none;
+    }
+    .nav-tabs .nav-link.active:after {
+      content: '';
+      position: absolute;
+      width: 60%;
+      height: 3px;
+      background-color: var(--primary);
+      bottom: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .nav-tabs .nav-link:hover {
+      color: var(--primary);
+      background-color: var(--light-gray);
+    }
+    .tab-content {
+      font-family: 'Open Sans', sans-serif;
+      font-size: 1rem;
+      color: var(--dark);
+      line-height: 1.8;
+      padding: 20px;
+      background-color: white;
+      border-radius: 0 8px 8px 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+    .tab-content h5 {
+      font-family: 'Montserrat', sans-serif;
+      color: var(--primary);
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .tab-content ul {
+      padding-left: 20px;
+    }
+    .tab-content ul li {
+      margin-bottom: 10px;
+    }
+    /* Responsive Adjustments */
+    @media (max-width: 992px) {
       .product-details-section {
         padding: 70px 0;
+      }
+      .product-details h1 {
+        font-size: 1.9rem;
+      }
+      .product-details .price .current-price {
+        font-size: 1.7rem;
+      }
+      .product-details .price .original-price {
+        font-size: 1.1rem;
+      }
+      .product-details .price .discount {
+        font-size: 0.9rem;
+      }
+      .thumbnail {
+        width: 60px;
+        height: 60px;
+      }
+      .nav-tabs .nav-link {
+        font-size: 1rem;
+        padding: 10px 15px;
+      }
+    }
+    @media (max-width: 576px) {
+      .product-details-section {
+        padding: 50px 0;
+      }
+      .product-details h1 {
+        font-size: 1.6rem;
+      }
+      .product-details .price .current-price {
+        font-size: 1.4rem;
+      }
+      .product-details .price .original-price {
+        font-size: 1rem;
+      }
+      .product-details .price .discount {
+        font-size: 0.8rem;
+      }
+      .quantity-selector .input-group {
+        width: 120px;
+      }
+      .btn-add-to-cart {
+        width: 100%;
+        padding: 10px;
+        font-size: 1rem;
+      }
+      .thumbnail {
+        width: 50px;
+        height: 50px;
+      }
+      .nav-tabs .nav-link {
+        font-size: 0.9rem;
+        padding: 8px 12px;
+      }
+      .tab-content {
+        padding: 15px;
       }
     }
   </style>
@@ -215,19 +485,40 @@ $page_title = htmlspecialchars($product['product_name']);
 <!-- Product Details Section -->
 <section class="product-details-section">
   <div class="container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" data-aos="fade-down">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="products.php">Products</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Detail</li>
+      </ol>
+    </nav>
+
     <div class="row" data-aos="fade-up" data-aos-duration="800">
       <!-- Product Image -->
       <div class="col-lg-6 mb-4 mb-lg-0">
         <div class="product-image-container">
-          <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
+          <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>" id="mainImage">
+        </div>
+        <!-- Thumbnail Gallery -->
+        <div class="thumbnail-gallery">
+          <!-- 假设有多个图片，这里用相同的图片占位 -->
+          <div class="thumbnail active" onclick="changeImage('<?php echo htmlspecialchars($product['image_url']); ?>')">
+            <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="Thumbnail 1">
+          </div>
+          <div class="thumbnail" onclick="changeImage('<?php echo htmlspecialchars($product['image_url']); ?>')">
+            <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="Thumbnail 2">
+          </div>
         </div>
       </div>
       <!-- Product Details -->
       <div class="col-lg-6">
         <div class="product-details">
           <h1><?php echo htmlspecialchars($product['product_name']); ?></h1>
-          <p class="price">RM<?php echo number_format($product['price'], 2); ?></p>
-          <p class="category"><strong>Category:</strong> <?php echo htmlspecialchars($product['category']); ?></p>
+          <div class="price">
+            <span class="current-price">RM<?php echo number_format($product['price'], 2); ?></span>
+            <span class="original-price">RM<?php echo number_format($original_price, 2); ?></span>
+            <span class="discount">20% OFF</span>
+          </div>
           <p class="stock-status">
             <?php if ($product['stock_quantity'] > 0): ?>
               <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>In Stock (<?php echo $product['stock_quantity']; ?>)</span>
@@ -235,16 +526,64 @@ $page_title = htmlspecialchars($product['product_name']);
               <span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Out of Stock</span>
             <?php endif; ?>
           </p>
-          <div class="description">
-            <h5>Description</h5>
+          <!-- Quantity Selector -->
+          <div class="quantity-selector">
+            <label for="quantity">Quantity:</label>
+            <div class="input-group">
+              <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity(-1)">-</button>
+              <input type="text" class="form-control text-center" id="quantity" value="1" readonly>
+              <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity(1)">+</button>
+            </div>
+          </div>
+          <!-- Add to Cart Button -->
+          <div class="actions">
+            <button class="btn btn-add-to-cart add-to-cart-btn" 
+                    data-product-id="<?php echo $product['product_id']; ?>" 
+                    data-product-name="<?php echo htmlspecialchars($product['product_name']); ?>"
+                    <?php echo ($product['stock_quantity'] <= 0) ? 'disabled' : ''; ?>>
+              <i class="bi bi-cart-plus me-2"></i>Add to Cart
+            </button>
+          </div>
+          <!-- Extra Actions -->
+          <div class="extra-actions">
+            <a href="#" title="Add to Wishlist"><i class="bi bi-heart"></i></a>
+            <a href="#" title="Share"><i class="bi bi-share"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Details Tabs -->
+    <div class="row mt-5" data-aos="fade-up" data-aos-delay="200">
+      <div class="col-12">
+        <ul class="nav nav-tabs" id="productTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">Overview</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="nutritional-tab" data-bs-toggle="tab" data-bs-target="#nutritional" type="button" role="tab" aria-controls="nutritional" aria-selected="false">Nutritional Info</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="feeding-tab" data-bs-toggle="tab" data-bs-target="#feeding" type="button" role="tab" aria-controls="feeding" aria-selected="false">Feeding Guidelines</button>
+          </li>
+        </ul>
+        <div class="tab-content" id="productTabsContent">
+          <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+            <h5>Product Overview</h5>
             <p><?php echo htmlspecialchars($product['description']) ?: "No description available."; ?></p>
           </div>
-          <button class="btn btn-primary add-to-cart-btn" 
-                  data-product-id="<?php echo $product['product_id']; ?>" 
-                  data-product-name="<?php echo htmlspecialchars($product['product_name']); ?>"
-                  <?php echo ($product['stock_quantity'] <= 0) ? 'disabled' : ''; ?>>
-            <i class="bi bi-cart-plus me-2"></i>Add to Cart
-          </button>
+          <div class="tab-pane fade" id="nutritional" role="tabpanel" aria-labelledby="nutritional-tab">
+            <h5>Nutritional Information</h5>
+            <p>Salmon complete food for dogs of all life stages.</p>
+            <ul>
+              <li><strong>Nourish Hair Follicle:</strong> Vitamin A is the main nutritional ingredient for fur, acting on sebum and delivering nutrition to hair shaft. A rich content of quality protein supports the hair follicles.</li>
+              <li><strong>Nourish Hair Shaft:</strong> Salmon contains ω-3 polyunsaturated fatty acids, recognizing nutrition for hair shaft to help shiny fur.</li>
+            </ul>
+          </div>
+          <div class="tab-pane fade" id="feeding" role="tabpanel" aria-labelledby="feeding-tab">
+            <h5>Feeding Guidelines</h5>
+            <p>Feed according to your dog's weight and activity level. Always provide fresh water. Consult with a veterinarian for specific feeding recommendations.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -325,124 +664,141 @@ $page_title = htmlspecialchars($product['product_name']);
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <!-- Custom JavaScript -->
 <script>
-  // Initialize AOS Animation
-  AOS.init({
-    once: true,
-    duration: 800,
-    offset: 100
-  });
-  
-  // Navbar Scroll Effect
-  const navbar = document.querySelector('.custom-nav');
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) {
-      navbar.classList.add('navbar-scrolled');
-    } else {
-      navbar.classList.remove('navbar-scrolled');
-    }
-  });
-  
-  // Back to Top Button
-  const backToTopButton = document.getElementById('backToTop');
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 300) {
-      backToTopButton.classList.add('active');
-    } else {
-      backToTopButton.classList.remove('active');
-    }
-  });
+// Initialize AOS Animation
+AOS.init({
+  once: true,
+  duration: 800,
+  offset: 100
+});
 
-  // Add to Cart Functionality
-  const addToCartButton = document.querySelector('.add-to-cart-btn');
-  if (addToCartButton) {
-    addToCartButton.addEventListener('click', function(e) {
-      e.preventDefault();
-      const productId = this.getAttribute('data-product-id');
-      const productName = this.getAttribute('data-product-name');
-      
-      // Disable button temporarily
-      this.disabled = true;
-      const originalText = this.innerHTML;
-      this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
-      
-      // Send AJAX request to add item to cart
-      fetch('add_to_cart.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `product_id=${productId}`
-      })
-      .then(response => response.json())
-      .then(data => {
-        // Re-enable button
-        this.disabled = false;
-        this.innerHTML = originalText;
-        
-        if (data.success) {
-          // Create toast notification
-          const toastContainer = document.createElement('div');
-          toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
-          toastContainer.style.zIndex = '9999';
-          
-          const toastElement = document.createElement('div');
-          toastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
-          toastElement.style.backgroundColor = '#4e9f3d';
-          toastElement.setAttribute('role', 'alert');
-          toastElement.setAttribute('aria-live', 'assertive');
-          toastElement.setAttribute('aria-atomic', 'true');
-          
-          toastElement.innerHTML = `
-            <div class="d-flex">
-              <div class="toast-body">
-                <i class="bi bi-check-circle me-2"></i> ${productName} added to cart!
-              </div>
-              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-          `;
-          
-          toastContainer.appendChild(toastElement);
-          document.body.appendChild(toastContainer);
-          
-          // Show the toast
-          const toast = new bootstrap.Toast(toastElement, {
-            autohide: true,
-            delay: 3000
-          });
-          toast.show();
-          
-          // Update cart icon with count
-          const cartLink = document.querySelector('.nav-link[href="cart.php"]');
-          let cartBadge = cartLink.querySelector('.badge');
-          
-          if (data.cart_count > 0) {
-            if (!cartBadge) {
-              cartBadge = document.createElement('span');
-              cartBadge.classList.add('position-absolute', 'top-0', 'start-100', 'translate-middle', 'badge', 'rounded-pill', 'bg-primary');
-              cartLink.appendChild(cartBadge);
-            }
-            cartBadge.textContent = data.cart_count;
-          } else if (cartBadge) {
-            cartBadge.remove();
-          }
-          
-          toastElement.addEventListener('hidden.bs.toast', function () {
-            document.body.removeChild(toastContainer);
-          });
-        } else if (data.require_login) {
-          window.location.href = 'login.php';
-        } else {
-          alert(data.message || 'Failed to add item to cart');
-          console.error('Failed to add item to cart:', data.message);
-        }
-      })
-      .catch(error => {
-        this.disabled = false;
-        this.innerHTML = originalText;
-        console.error('Error:', error);
-      });
-    });
+// Navbar Scroll Effect
+const navbar = document.querySelector('.custom-nav');
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 50) {
+    navbar.classList.add('navbar-scrolled');
+  } else {
+    navbar.classList.remove('navbar-scrolled');
   }
+});
+
+// Back to Top Button
+const backToTopButton = document.getElementById('backToTop');
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 300) {
+    backToTopButton.classList.add('active');
+  } else {
+    backToTopButton.classList.remove('active');
+  }
+});
+
+// Image Gallery Functionality
+function changeImage(imageSrc) {
+  document.getElementById('mainImage').src = imageSrc;
+  // Update active thumbnail
+  document.querySelectorAll('.thumbnail').forEach(thumb => {
+    thumb.classList.remove('active');
+    if (thumb.querySelector('img').src === imageSrc) {
+      thumb.classList.add('active');
+    }
+  });
+}
+
+// Quantity Selector Functionality
+function updateQuantity(change) {
+  const quantityInput = document.getElementById('quantity');
+  let quantity = parseInt(quantityInput.value);
+  quantity += change;
+  if (quantity < 1) quantity = 1;
+  if (quantity > <?php echo $product['stock_quantity']; ?>) quantity = <?php echo $product['stock_quantity']; ?>;
+  quantityInput.value = quantity;
+}
+
+// Add to Cart Functionality
+const addToCartButton = document.querySelector('.add-to-cart-btn');
+if (addToCartButton) {
+  addToCartButton.addEventListener('click', function(e) {
+    e.preventDefault();
+    const productId = this.getAttribute('data-product-id');
+    const productName = this.getAttribute('data-product-name');
+    const quantity = parseInt(document.getElementById('quantity').value);
+    
+    this.disabled = true;
+    const originalText = this.innerHTML;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+    
+    fetch('add_to_cart.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `product_id=${productId}&quantity=${quantity}`
+    })
+    .then(response => response.json())
+    .then(data => {
+      this.disabled = false;
+      this.innerHTML = originalText;
+      
+      if (data.success) {
+        const toastContainer = document.createElement('div');
+        toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
+        toastContainer.style.zIndex = '9999';
+        
+        const toastElement = document.createElement('div');
+        toastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
+        toastElement.style.backgroundColor = '#4e9f3d';
+        toastElement.setAttribute('role', 'alert');
+        toastElement.setAttribute('aria-live', 'assertive');
+        toastElement.setAttribute('aria-atomic', 'true');
+        
+        toastElement.innerHTML = `
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="bi bi-check-circle me-2"></i> ${productName} added to cart!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        `;
+        
+        toastContainer.appendChild(toastElement);
+        document.body.appendChild(toastContainer);
+        
+        const toast = new bootstrap.Toast(toastElement, {
+          autohide: true,
+          delay: 3000
+        });
+        toast.show();
+        
+        const cartLink = document.querySelector('.nav-link[href="cart.php"]');
+        let cartBadge = cartLink.querySelector('.badge');
+        
+        if (data.cart_count > 0) {
+          if (!cartBadge) {
+            cartBadge = document.createElement('span');
+            cartBadge.classList.add('position-absolute', 'top-0', 'start-100', 'translate-middle', 'badge', 'rounded-pill', 'bg-primary');
+            cartLink.appendChild(cartBadge);
+          }
+          cartBadge.textContent = data.cart_count;
+        } else if (cartBadge) {
+          cartBadge.remove();
+        }
+        
+        toastElement.addEventListener('hidden.bs.toast', function () {
+          document.body.removeChild(toastContainer);
+        });
+      } else if (data.require_login) {
+        window.location.href = 'login.php';
+      } else {
+        alert(data.message || 'Failed to add item to cart');
+        console.error('Failed to add item to cart:', data.message);
+      }
+    })
+    .catch(error => {
+      this.disabled = false;
+      this.innerHTML = originalText;
+      console.error('Error:', error);
+    });
+  });
+}
 </script>
 </body>
 </html>
