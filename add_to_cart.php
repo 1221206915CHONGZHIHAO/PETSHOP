@@ -155,7 +155,7 @@ function handleDatabaseCart($product, $quantity, $customer_id, $conn, &$response
     $check_cart->close();
     
     // Get total cart count (sum of all quantities)
-    $count_cart = $conn->prepare("SELECT SUM(Quantity) AS cart_count FROM cart WHERE Customer_ID = ?");
+    $count_cart = $conn->prepare("SELECT COUNT(*) AS cart_count FROM cart WHERE Customer_ID = ?");
     $count_cart->bind_param("i", $customer_id);
     $count_cart->execute();
     $count_result = $count_cart->get_result();
