@@ -88,7 +88,7 @@ $conn->close();
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
                             <i class="fas fa-user-friends me-2"></i>Customer Management
                         </a>
-                        <div class="collapse" id="customerMenu">
+                        <div class="collapse show" id="customerMenu">
                             <ul class="nav flex-column ps-4">
                                 <li class="nav-item">
                                     <a class="nav-link text-light" href="customer_list.php">
@@ -96,7 +96,7 @@ $conn->close();
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-light" href="customer_logs.php">
+                                    <a class="nav-link text-light active" href="customer_logs.php">
                                         <i class="fas fa-history me-2"></i>Login/Logout Logs
                                     </a>
                                 </li>
