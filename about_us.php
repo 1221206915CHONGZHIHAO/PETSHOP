@@ -186,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
             <div class="card-body text-center">
               <i class="bi bi-chat-dots fs-1 text-primary"></i>
               <h5 class="my-3">Expert Support</h5>
-              <p>24/7 customer service via chat and email</p>
+              <p>24/7 customer service via email</p>
             </div>
           </div>
         </div>
