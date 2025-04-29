@@ -152,6 +152,11 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
                         <div class="collapse" id="customerMenu">
                             <ul class="nav flex-column ps-4">
                                 <li class="nav-item">
+                                    <a class="nav-link text-light" href="customer_list.php">
+                                        <i class="fas fa-list me-2"></i>Customer List
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a class="nav-link text-light" href="customer_logs.php">
                                         <i class="fas fa-history me-2"></i>Login/Logout Logs
                                     </a>

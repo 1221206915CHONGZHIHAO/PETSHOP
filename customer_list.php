@@ -43,35 +43,63 @@ $conn->close();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin_home.css">
     <style>
-        .table-responsive {
-            overflow-x: auto;
+        /* Ensure charts render correctly */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
         }
-        .card {
-            margin-top: -1px;
+        canvas {
+            display: block;
+            height: 300px !important;
+            width: 100% !important;
         }
-        .address-line {
-            margin-bottom: 5px;
-        }
-        /* Sidebar fix */
+        
+        /* Sidebar styling */
         #sidebar {
             min-height: 100vh;
         }
-        /* Ensure content does not overlap sidebar */
-        .main-content {
-            margin-left: 250px; /* Match the sidebar width */
-            padding: 20px;
+        
+        /* Main content area */
+        main {
+            padding-top: 1rem;
         }
-
+        
+        /* Table styling */
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .table th {
+            white-space: nowrap;
+        }
+        
+        /* Address formatting */
+        .address-line {
+            margin-bottom: 3px;
+            line-height: 1.3;
+        }
+        
+        /* Card header styling */
+        .card-header {
+            font-weight: 500;
+        }
+        
+        /* Responsive adjustments */
         @media (max-width: 768px) {
-            .main-content {
-                margin-left: 0;
+            #sidebar {
+                position: fixed;
+                z-index: 1000;
+                width: 250px;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            #sidebar.show {
+                transform: translateX(0);
+            }
+            main {
+                margin-left: 0 !important;
             }
         }
-        .card {
-    max-width: 1000px; /* 控制最大宽度，可调整如800px、900px等 */
-    margin: 20px auto; /* 上下 20px 外边距，左右自动居中 */
-}
-
     </style>
 </head>
 <body>
@@ -80,11 +108,11 @@ $conn->close();
         <button class="btn btn-dark me-3 d-md-none" id="sidebarToggle">
             <i class="fas fa-bars"></i>
         </button>
-        <a class="navbar-brand" href="#">PetShop Admin</a>
+        <a class="navbar-brand" href="admin_homepage.php">PetShop Admin</a>
     </div>
     <div>
-        <span class="text-light me-3">Welcome, Admin</span>
-        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <span class="text-light me-3">Welcome, <?php echo $_SESSION['username'] ?? 'Admin'; ?></span>
+        <a href="logout.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 
@@ -96,7 +124,7 @@ $conn->close();
                 <h4 class="text-light text-center py-3"><i class="fas fa-paw me-2"></i>Admin Menu</h4>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link text-light active" href="admin_homepage.php">
+                        <a class="nav-link text-light" href="admin_homepage.php">
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
                     </li>
@@ -110,17 +138,18 @@ $conn->close();
                                     <a class="nav-link text-light" href="manage_staff.php">
                                         <i class="fas fa-list me-2"></i>Staff List
                                     </a>
+                                </li>
                             </ul>
                         </div>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
+                        <a class="nav-link text-light active" data-bs-toggle="collapse" href="#customerMenu">
                             <i class="fas fa-user-friends me-2"></i>Customer Management
                         </a>
-                        <div class="collapse" id="customerMenu">
+                        <div class="collapse show" id="customerMenu">
                             <ul class="nav flex-column ps-4">
                                 <li class="nav-item">
-                                    <a class="nav-link text-light" href="customer_list.php">
+                                    <a class="nav-link text-light active" href="customer_list.php">
                                         <i class="fas fa-list me-2"></i>Customer List
                                     </a>
                                 </li>
@@ -171,14 +200,23 @@ $conn->close();
         </nav>
 
         <!-- Main Content -->
-        <div class="main-content">
-            <div class="card">
-                <div class="card-header bg-dark text-white">
-                    <h4 class="mb-0"><i class="fas fa-users me-2"></i>Registered Customers</h4>
+        <main class="col-md-10 ms-sm-auto px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="fas fa-users me-2"></i>Customer List</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-table me-2"></i>Registered Customers
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-striped">
+                        <table class="table table-striped table-hover">
                             <thead class="table-dark">
                                 <tr>
                                     <th>Username</th>
@@ -220,10 +258,16 @@ $conn->close();
                     </div>
                 </div>
             </div>
-        </div> <!-- end main-content -->
+        </main>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Sidebar toggle functionality
+document.getElementById('sidebarToggle').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.toggle('show');
+});
+</script>
 </body>
 </html>
