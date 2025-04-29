@@ -88,8 +88,8 @@ h1, h2, h3, h4, h5, h6 {
   background-size: cover;
   position: relative;
   display: flex;
-  justify-content: left;
-  align-items: left;
+  justify-content: center;
+  align-items: center;
   color: white;
   overflow: hidden;
   text-align: left;
