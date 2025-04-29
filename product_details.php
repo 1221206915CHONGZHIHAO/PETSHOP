@@ -424,7 +424,7 @@ $original_price = $product['price'] * 1.2;
         <li class="nav-item"><a class="nav-link" href="userhomepage.php">Home</a></li>
         <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
         <li class="nav-item"><a class="nav-link active" href="products.php">Products</a></li>
-        <li class="nav-item"><a class="nav-link" href="contact.php">Contact Us</a></li>
+        <li class="nav-item"><a class="nav-link" href="contact_us.php">Contact Us</a></li>
       </ul>
 
       <!-- Icons on the right -->
