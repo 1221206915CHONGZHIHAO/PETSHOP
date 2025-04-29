@@ -17,6 +17,7 @@ $error_message = "";
 $success_message = "";
 $redirect_url = "";
 
+// Get redirect URL from GET parameter or set default
 $redirect = isset($_GET['redirect']) ? $_GET['redirect'] : 'userhomepage.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -35,7 +36,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['username'] = "ADMIN";
             $_SESSION['email'] = "admin@petshop.com";
             $success_message = "Login successful! Redirecting...";
-            $redirect_url = "admin_homepage.php";
+            
+            // Check if there's a redirect URL
+            $redirect_url = !empty($redirect) ? $redirect : 'admin_homepage.php';
         }
         else {
             if ($role === "staff") {

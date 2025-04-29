@@ -148,7 +148,7 @@ $conn->close();
                         </div>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light" href="#">
+                        <a class="nav-link text-light" href="reports.php">
                             <i class="fas fa-chart-line me-2"></i>Reports
                         </a>
                     </li>
