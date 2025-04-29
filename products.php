@@ -17,17 +17,14 @@ if ($conn->connect_error) {
 }
 
 // Function to get current cart count
+// In products.php, replace the getCartCount() function
 function getCartCount() {
-    if(isset($_SESSION['cart_count'])) {
-        return (int)$_SESSION['cart_count'];
-    } else if(isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
-        $total = 0;
-        foreach($_SESSION['cart'] as $item) {
-            $total += isset($item['quantity']) ? (int)$item['quantity'] : 1;
-        }
-        return $total;
-    }
-    return 0;
+  if (isset($_SESSION['cart_count'])) {
+      return (int)$_SESSION['cart_count'];
+  } else if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
+      return count($_SESSION['cart']); // Count items, not quantities
+  }
+  return 0;
 }
 
 // Get products from database
@@ -143,7 +140,7 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
         <li class="nav-item"><a class="nav-link" href="userhomepage.php">Home</a></li>
         <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
         <li class="nav-item"><a class="nav-link active" href="products.php">Products</a></li>
-        <li class="nav-item"><a class="nav-link" href="contact.php">Contact</a></li>
+        <li class="nav-item"><a class="nav-link" href="contact.php">Contact Us</a></li>
       </ul>
 
       <!-- Icons on the right -->
