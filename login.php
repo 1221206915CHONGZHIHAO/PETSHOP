@@ -17,13 +17,14 @@ $error_message = "";
 $success_message = "";
 $redirect_url = "";
 
-$redirect = isset($_GET['redirect']) ? $_GET['redirect'] : 'userhomepage.php';
+// Get redirect URL from GET parameter or set default
+$redirect = isset($_GET['redirect']) ? $_GET['redirect'] : '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $role = $_POST['role']; 
     $login_input = trim($_POST['login_input']); 
     $password = $_POST['password'];
-    $redirect = isset($_POST['redirect']) ? $_POST['redirect'] : 'userhomepage.php';
+    $redirect = isset($_POST['redirect']) ? $_POST['redirect'] : '';
 
     if (empty($login_input) || empty($password)) {
         $error_message = "All fields are required.";
@@ -35,7 +36,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['username'] = "ADMIN";
             $_SESSION['email'] = "admin@petshop.com";
             $success_message = "Login successful! Redirecting...";
-            $redirect_url = "admin_homepage.php";
+            
+            // Set redirect URL for admin
+            $redirect_url = !empty($redirect) ? $redirect : 'admin_homepage.php';
         }
         else {
             if ($role === "staff") {
@@ -87,12 +90,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 $_SESSION['username'] = $db_username;
                                 $_SESSION['email'] = $db_email;
                                 $conn->query("UPDATE Staff SET password_reset_token = NULL WHERE Staff_id = $db_staff_id");
-                                $redirect_url = "staff_homepage.php";
+                                $redirect_url = !empty($redirect) ? $redirect : 'staff_homepage.php';
                             } elseif ($role === "customer") {
                                 $_SESSION['customer_id'] = $db_customer_id;
                                 $_SESSION['customer_name'] = $db_username;
                                 $_SESSION['email'] = $db_email;
-                                $redirect_url = "userhomepage.php";
+                                $redirect_url = !empty($redirect) ? $redirect : 'userhomepage.php';
                                 
                                 // Record successful customer login
                                 $conn->query("INSERT INTO customer_login_logs (username, email, status) 
@@ -131,7 +134,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 $conn->close();
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -228,18 +230,6 @@ document.getElementById('togglePassword').addEventListener('click', function () 
         icon.classList.remove('bi-eye-slash');
         icon.classList.add('bi-eye'); 
     }
-
-    // Check if password reset is required
-if ($role === "staff" && !empty($db_reset_token)) {
-    if (password_verify($password, $db_password)) {
-        $_SESSION['reset_token'] = $db_reset_token;
-        $_SESSION['staff_id'] = $db_staff_id;
-        $redirect_url = "force_password_reset.php";
-        $success_message = "Please set a new password";
-    } else {
-        $error_message = "Invalid temporary password";
-    }
-}
 });
 
 <?php if (!empty($redirect_url)): ?>

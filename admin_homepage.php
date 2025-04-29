@@ -1,3 +1,94 @@
+<?php
+session_start();
+
+// Check if admin is logged in
+if (!isset($_SESSION['admin_logged_in'])) {
+    header("Location: login.php");
+    exit;
+}
+
+// Database connection
+$host = "localhost";
+$username = "root";
+$password = "";
+$database = "petshop";
+
+$conn = new mysqli($host, $username, $password, $database);
+
+if ($conn->connect_error) {
+    die("Database connection failed: " . $conn->connect_error);
+}
+
+// Fetch data for summary cards
+$summaryData = [];
+$result = $conn->query("SELECT COUNT(*) as total_orders FROM orders");
+$summaryData['total_orders'] = $result->fetch_assoc()['total_orders'];
+
+$result = $conn->query("SELECT SUM(Total) as total_revenue FROM orders WHERE status = 'completed'");
+$summaryData['total_revenue'] = $result->fetch_assoc()['total_revenue'] ?? 0;
+
+$result = $conn->query("SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending'");
+$summaryData['pending_orders'] = $result->fetch_assoc()['pending_orders'];
+
+$result = $conn->query("SELECT COUNT(*) as low_stock FROM products WHERE stock_quantity < 10");
+$summaryData['low_stock'] = $result->fetch_assoc()['low_stock'];
+
+// Fetch data for sales chart (last 6 months)
+$salesData = [];
+$result = $conn->query("SELECT 
+    DATE_FORMAT(order_date, '%b') as month,
+    SUM(Total) as amount 
+    FROM orders 
+    WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+    GROUP BY MONTH(order_date)
+    ORDER BY order_date ASC");
+while ($row = $result->fetch_assoc()) {
+    $salesData['labels'][] = $row['month'];
+    $salesData['data'][] = $row['amount'];
+}
+
+// Fetch data for category chart
+$categoryData = [];
+$result = $conn->query("SELECT 
+    c.category_name,
+    SUM(oi.quantity * oi.unit_price) AS revenue
+    FROM order_items oi
+    JOIN products p ON oi.product_id = p.product_id
+    JOIN pet_categories c ON p.Category = c.category_id
+    GROUP BY c.category_id
+    ORDER BY revenue DESC");
+
+while ($row = $result->fetch_assoc()) {
+    $categoryData['labels'][] = $row['category_name'];
+    $categoryData['data'][] = $row['revenue'];
+}
+
+
+// Fetch recent orders
+$recentOrders = [];
+$result = $conn->query("SELECT 
+    o.order_id, 
+    c.customer_name, 
+    o.Total, 
+    o.order_date, 
+    o.status,
+    GROUP_CONCAT(CONCAT(p.product_name, ' (', oi.quantity, ')')) as products
+    FROM orders o
+    JOIN customer c ON o.customer_id = c.customer_id
+    JOIN order_items oi ON o.order_id = oi.order_id
+    JOIN products p ON oi.product_id = p.product_id
+    GROUP BY o.order_id
+    ORDER BY o.order_date DESC
+    LIMIT 5");
+while ($row = $result->fetch_assoc()) {
+    $recentOrders[] = $row;
+}
+
+
+
+$conn->close();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +99,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin_home.css">
     <style>
-        /* 确保图表容器正确渲染 */
         .chart-container {
             position: relative;
             height: 300px;
@@ -18,6 +108,10 @@
             display: block;
             height: 300px !important;
             width: 100% !important;
+        }
+        .badge {
+            font-size: 0.85em;
+            padding: 0.35em 0.65em;
         }
     </style>
 </head>
@@ -31,8 +125,8 @@
         <a class="navbar-brand" href="#">PetShop Admin</a>
     </div>
     <div>
-        <span class="text-light me-3">Welcome, Admin</span>
-        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <span class="text-light me-3">Welcome, <?php echo $_SESSION['username'] ?? 'Admin'; ?></span>
+        <a href="logout.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 
@@ -58,6 +152,7 @@
                                     <a class="nav-link text-light" href="manage_staff.php">
                                         <i class="fas fa-list me-2"></i>Staff List
                                     </a>
+                                </li>
                             </ul>
                         </div>
                     </li>
@@ -67,6 +162,11 @@
                         </a>
                         <div class="collapse" id="customerMenu">
                             <ul class="nav flex-column ps-4">
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="customer_list.php">
+                                        <i class="fas fa-list me-2"></i>Customer List
+                                    </a>
+                                </li>
                                 <li class="nav-item">
                                     <a class="nav-link text-light" href="customer_logs.php">
                                         <i class="fas fa-history me-2"></i>Login/Logout Logs
@@ -136,7 +236,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="card-title">TOTAL ORDERS</h6>
-                                    <h2 class="mb-0">124</h2>
+                                    <h2 class="mb-0"><?php echo $summaryData['total_orders']; ?></h2>
                                 </div>
                                 <i class="fas fa-shopping-cart fa-3x"></i>
                             </div>
@@ -149,7 +249,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="card-title">TOTAL REVENUE</h6>
-                                    <h2 class="mb-0">$12,345</h2>
+                                    <h2 class="mb-0">$<?php echo number_format($summaryData['total_revenue'], 2); ?></h2>
                                 </div>
                                 <i class="fas fa-dollar-sign fa-3x"></i>
                             </div>
@@ -162,7 +262,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="card-title">PENDING ORDERS</h6>
-                                    <h2 class="mb-0">8</h2>
+                                    <h2 class="mb-0"><?php echo $summaryData['pending_orders']; ?></h2>
                                 </div>
                                 <i class="fas fa-clock fa-3x"></i>
                             </div>
@@ -175,7 +275,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="card-title">LOW STOCK</h6>
-                                    <h2 class="mb-0">5</h2>
+                                    <h2 class="mb-0"><?php echo $summaryData['low_stock']; ?></h2>
                                 </div>
                                 <i class="fas fa-exclamation-triangle fa-3x"></i>
                             </div>
@@ -227,42 +327,33 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                <?php foreach ($recentOrders as $order): ?>
                                 <tr>
-                                    <td>#1001</td>
-                                    <td>John Doe</td>
-                                    <td>Persian Cat (1)</td>
-                                    <td>$1,200</td>
-                                    <td>2025-03-01</td>
-                                    <td><span class="badge bg-success">Completed</span></td>
+                                    <td>#<?php echo $order['order_id']; ?></td>
+                                    <td><?php echo htmlspecialchars($order['customer_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($order['products']); ?></td>
+                                    <td>$<?php echo number_format($order['total_amount'], 2); ?></td>
+                                    <td><?php echo date('Y-m-d', strtotime($order['order_date'])); ?></td>
+                                    <td>
+                                        <?php 
+                                        $badgeClass = [
+                                            'completed' => 'bg-success',
+                                            'pending' => 'bg-warning text-dark',
+                                            'shipping' => 'bg-info',
+                                            'cancelled' => 'bg-danger'
+                                        ];
+                                        $status = strtolower($order['status']);
+                                        ?>
+                                        <span class="badge <?php echo $badgeClass[$status] ?? 'bg-secondary'; ?>">
+                                            <?php echo ucfirst($order['status']); ?>
+                                        </span>
+                                    </td>
                                     <td>
                                         <button class="btn btn-sm btn-primary"><i class="fas fa-eye"></i></button>
                                         <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td>#1002</td>
-                                    <td>Jane Smith</td>
-                                    <td>Golden Retriever (2)</td>
-                                    <td>$800</td>
-                                    <td>2025-03-02</td>
-                                    <td><span class="badge bg-warning text-dark">Shipping</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-primary"><i class="fas fa-eye"></i></button>
-                                        <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#1003</td>
-                                    <td>Alice Johnson</td>
-                                    <td>Parrot (1)</td>
-                                    <td>$500</td>
-                                    <td>2025-03-03</td>
-                                    <td><span class="badge bg-info">Processing</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-primary"><i class="fas fa-eye"></i></button>
-                                        <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
-                                    </td>
-                                </tr>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
@@ -272,102 +363,100 @@
     </div>
 </div>
 
-<!-- JavaScript 加载顺序非常重要 -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// 直接内联的图表初始化代码确保执行顺序
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM fully loaded');
-    
-    // 侧边栏切换
+    // Sidebar toggle
     document.getElementById('sidebarToggle').addEventListener('click', function() {
         document.getElementById('sidebar').classList.toggle('show');
     });
 
-    // 图表初始化
-    const initCharts = function() {
-        console.log('Initializing charts...');
-        
-        // 销售图表（折线图）
-        const salesCtx = document.getElementById('salesChart').getContext('2d');
-        new Chart(salesCtx, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                datasets: [{
-                    label: 'Sales',
-                    data: [5000, 8000, 12000, 9000, 15000, 18000],
-                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
-                    borderColor: 'rgba(78, 115, 223, 1)',
-                    pointBackgroundColor: 'rgba(78, 115, 223, 1)',
-                    pointBorderColor: '#fff',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
-                    borderWidth: 2,
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { mode: 'index', intersect: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
-                        ticks: { callback: value => '$' + value.toLocaleString() }
-                    },
-                    x: { grid: { display: false } }
+    // Sales Chart
+    const salesCtx = document.getElementById('salesChart').getContext('2d');
+    new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: <?php echo json_encode($salesData['labels'] ?? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']); ?>,
+            datasets: [{
+                label: 'Sales',
+                data: <?php echo json_encode($salesData['data'] ?? [5000, 8000, 12000, 9000, 15000, 18000]); ?>,
+                backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                borderColor: 'rgba(78, 115, 223, 1)',
+                pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+                borderWidth: 2,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { 
+                    mode: 'index', 
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return '$' + context.raw.toLocaleString();
+                        }
+                    }
                 }
-            }
-        });
-
-        // 分类图表（饼图）
-        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-        new Chart(categoryCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Dogs', 'Cats', 'Birds', 'Fish', 'Others'],
-                datasets: [{
-                    data: [35, 30, 15, 10, 10],
-                    backgroundColor: [
-                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'
-                    ],
-                    hoverBackgroundColor: [
-                        '#2e59d9', '#17a673', '#2c9faf', '#dda20a', '#be2617'
-                    ],
-                    hoverBorderColor: "rgba(234, 236, 244, 1)",
-                }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { padding: 20, usePointStyle: true }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: context => `${context.label}: ${context.raw}%`
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                    ticks: { 
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
                         }
                     }
                 },
-                cutout: '70%'
+                x: { grid: { display: false } }
             }
-        });
-    };
+        }
+    });
 
-    // 确保Canvas元素已完全加载
-    if (document.readyState === 'complete') {
-        initCharts();
-    } else {
-        window.addEventListener('load', initCharts);
-    }
+    // Category Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: <?php echo json_encode($categoryData['labels'] ?? ['Dogs', 'Cats', 'Birds', 'Fish', 'Others']); ?>,
+            datasets: [{
+                data: <?php echo json_encode($categoryData['data'] ?? [35, 30, 15, 10, 10]); ?>,
+                backgroundColor: [
+                    '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'
+                ],
+                hoverBackgroundColor: [
+                    '#2e59d9', '#17a673', '#2c9faf', '#dda20a', '#be2617'
+                ],
+                hoverBorderColor: "rgba(234, 236, 244, 1)",
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { padding: 20, usePointStyle: true }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': $' + context.raw.toLocaleString();
+                        }
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
 });
 </script>
 

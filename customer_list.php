@@ -1,30 +1,35 @@
 <?php
 session_start();
 
-// Redirect if not admin
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header("Location: login.php");
-    exit();
+// Check if admin is logged in
+if (!isset($_SESSION['admin_logged_in'])) {
+    header("Location: login.php?redirect=customer_list.php");
+    exit;
 }
 
-// Database configuration
 $host = "localhost";
-$username_db = "root";
-$password_db = "";
+$username = "root";
+$password = "";
 $database = "petshop";
 
-$conn = new mysqli($host, $username_db, $password_db, $database);
+$conn = new mysqli($host, $username, $password, $database);
 
 if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
-// Get logs from database
-$result = $conn->query("SELECT username, email, status, timestamp 
-                       FROM customer_login_logs 
-                       ORDER BY timestamp DESC");
-
-// Close connection (we'll reopen if needed for filtering)
+// Fetch customers with their addresses
+$sql = "SELECT c.Customer_id, c.Customer_name, c.Customer_email, 
+               a.Address_line1, a.Address_line2, a.City, a.State, a.Postal_Code, a.Country
+        FROM customer c
+        LEFT JOIN customer_address a ON c.Customer_id = a.Customer_id AND a.Is_Default = 1";
+$result = $conn->query($sql);
+$customers = [];
+if ($result->num_rows > 0) {
+    while($row = $result->fetch_assoc()) {
+        $customers[] = $row;
+    }
+}
 $conn->close();
 ?>
 
@@ -33,29 +38,81 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Login Logs | PetShop Admin</title>
+    <title>Customer List</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin_home.css">
     <style>
-        .status-login { color: #28a745; }
-        .status-logout { color: #dc3545; }
-        .status-failed { color: #ffc107; }
-        .table-responsive { max-height: 600px; overflow-y: auto; }
+        /* Ensure charts render correctly */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        canvas {
+            display: block;
+            height: 300px !important;
+            width: 100% !important;
+        }
+        
+        /* Sidebar styling */
+        #sidebar {
+            min-height: 100vh;
+        }
+        
+        /* Main content area */
+        main {
+            padding-top: 1rem;
+        }
+        
+        /* Table styling */
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .table th {
+            white-space: nowrap;
+        }
+        
+        /* Address formatting */
+        .address-line {
+            margin-bottom: 3px;
+            line-height: 1.3;
+        }
+        
+        /* Card header styling */
+        .card-header {
+            font-weight: 500;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #sidebar {
+                position: fixed;
+                z-index: 1000;
+                width: 250px;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            #sidebar.show {
+                transform: translateX(0);
+            }
+            main {
+                margin-left: 0 !important;
+            }
+        }
     </style>
 </head>
 <body>
-
 <nav class="navbar navbar-dark bg-dark px-3">
     <div class="d-flex align-items-center">
         <button class="btn btn-dark me-3 d-md-none" id="sidebarToggle">
             <i class="fas fa-bars"></i>
         </button>
-        <a class="navbar-brand" href="#">PetShop Admin</a>
+        <a class="navbar-brand" href="admin_homepage.php">PetShop Admin</a>
     </div>
     <div>
-        <span class="text-light me-3">Welcome, Admin</span>
-        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <span class="text-light me-3">Welcome, <?php echo $_SESSION['username'] ?? 'Admin'; ?></span>
+        <a href="logout.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 
@@ -81,22 +138,23 @@ $conn->close();
                                     <a class="nav-link text-light" href="manage_staff.php">
                                         <i class="fas fa-list me-2"></i>Staff List
                                     </a>
+                                </li>
                             </ul>
                         </div>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
+                        <a class="nav-link text-light active" data-bs-toggle="collapse" href="#customerMenu">
                             <i class="fas fa-user-friends me-2"></i>Customer Management
                         </a>
                         <div class="collapse show" id="customerMenu">
                             <ul class="nav flex-column ps-4">
                                 <li class="nav-item">
-                                    <a class="nav-link text-light" href="customer_list.php">
+                                    <a class="nav-link text-light active" href="customer_list.php">
                                         <i class="fas fa-list me-2"></i>Customer List
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-light active" href="customer_logs.php">
+                                    <a class="nav-link text-light" href="customer_logs.php">
                                         <i class="fas fa-history me-2"></i>Login/Logout Logs
                                     </a>
                                 </li>
@@ -144,61 +202,55 @@ $conn->close();
         <!-- Main Content -->
         <main class="col-md-10 ms-sm-auto px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2"><i class="fas fa-user-clock me-2"></i>Customer Login Activity</h1>
+                <h1 class="h2"><i class="fas fa-users me-2"></i>Customer List</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
-                        <i class="fas fa-sync-alt me-1"></i>Refresh
-                    </button>
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Date Filter Form -->
-            <form method="GET" action="" class="row mb-3">
-                <div class="col-md-4">
-                    <input type="date" name="logDate" class="form-control" value="<?php echo isset($_GET['logDate']) ? $_GET['logDate'] : date('Y-m-d'); ?>">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-table me-2"></i>Registered Customers
                 </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                    <?php if(isset($_GET['logDate'])): ?>
-                        <a href="customer_logs.php" class="btn btn-secondary ms-2">Clear</a>
-                    <?php endif; ?>
-                </div>
-            </form>
-
-            <!-- Logs Table - Now showing real data -->
-            <div class="card">
-                <div class="card-body p-0">
+                <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover mb-0">
+                        <table class="table table-striped table-hover">
                             <thead class="table-dark">
                                 <tr>
                                     <th>Username</th>
                                     <th>Email</th>
-                                    <th>Status</th>
-                                    <th>Timestamp</th>
+                                    <th>Address</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if ($result->num_rows > 0): ?>
-                                    <?php while($row = $result->fetch_assoc()): ?>
-                                        <tr>
-                                            <td><?php echo htmlspecialchars($row['username']); ?></td>
-                                            <td><?php echo htmlspecialchars($row['email']); ?></td>
-                                            <td>
-                                                <?php if ($row['status'] === 'login'): ?>
-                                                    <span class="status-login"><i class="fas fa-sign-in-alt"></i> Login</span>
-                                                <?php elseif ($row['status'] === 'logout'): ?>
-                                                    <span class="status-logout"><i class="fas fa-sign-out-alt"></i> Logout</span>
-                                                <?php else: ?>
-                                                    <span class="status-failed"><i class="fas fa-exclamation-triangle"></i> Failed</span>
+                                <?php if (!empty($customers)): ?>
+                                    <?php foreach ($customers as $customer): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($customer['Customer_name'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($customer['Customer_email'] ?? ''); ?></td>
+                                        <td>
+                                            <?php if (!empty($customer['Address_line1'])): ?>
+                                                <div class="address-line"><?php echo htmlspecialchars($customer['Address_line1']); ?></div>
+                                                <?php if (!empty($customer['Address_line2'])): ?>
+                                                    <div class="address-line"><?php echo htmlspecialchars($customer['Address_line2']); ?></div>
                                                 <?php endif; ?>
-                                            </td>
-                                            <td><?php echo htmlspecialchars($row['timestamp']); ?></td>
-                                        </tr>
-                                    <?php endwhile; ?>
+                                                <div class="address-line">
+                                                    <?php echo htmlspecialchars($customer['City'] ?? ''); ?>
+                                                    <?php if (!empty($customer['State'])): ?>, <?php echo htmlspecialchars($customer['State']); ?><?php endif; ?>
+                                                    <?php if (!empty($customer['Postal_Code'])): ?>, <?php echo htmlspecialchars($customer['Postal_Code']); ?><?php endif; ?>
+                                                </div>
+                                                <div class="address-line"><?php echo htmlspecialchars($customer['Country'] ?? ''); ?></div>
+                                            <?php else: ?>
+                                                No address found
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="4" class="text-center">No login records found</td>
+                                        <td colspan="3" class="text-center">No registered customers found</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
@@ -212,11 +264,9 @@ $conn->close();
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Sidebar toggle
-    document.getElementById('sidebarToggle').addEventListener('click', function() {
-        document.getElementById('sidebar').classList.toggle('show');
-    });
+// Sidebar toggle functionality
+document.getElementById('sidebarToggle').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.toggle('show');
 });
 </script>
 </body>
