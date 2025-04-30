@@ -126,7 +126,7 @@ $conn->close();
     </div>
     <div>
         <span class="text-light me-3">Welcome, <?php echo $_SESSION['username'] ?? 'Admin'; ?></span>
-        <a href="logout.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 
@@ -332,7 +332,7 @@ $conn->close();
                                     <td>#<?php echo $order['order_id']; ?></td>
                                     <td><?php echo htmlspecialchars($order['customer_name']); ?></td>
                                     <td><?php echo htmlspecialchars($order['products']); ?></td>
-                                    <td>$<?php echo number_format($order['total_amount'], 2); ?></td>
+                                    <td>$<?php echo number_format($order['Total'], 2); ?></td>
                                     <td><?php echo date('Y-m-d', strtotime($order['order_date'])); ?></td>
                                     <td>
                                         <?php 
