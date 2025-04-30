@@ -22,7 +22,7 @@ if ($conn->connect_error) {
 
 // Get order details
 $stmt = $conn->prepare("
-    SELECT o.Order_ID, o.order_date, o.total_amount, o.payment_method, 
+    SELECT o.Order_ID, o.order_date, o.Total, o.PaymentMethod, 
            COUNT(oi.order_item_id) as item_count 
     FROM Orders o
     JOIN Order_Items oi ON o.Order_ID = oi.order_id
@@ -89,12 +89,12 @@ if (!$order) {
               <p><strong>Order Date:</strong> <?php echo date('F j, Y', strtotime($order['order_date'])); ?></p>
             </div>
             <div class="col-md-6">
-              <p><strong>Total Amount:</strong> RM<?php echo number_format($order['total_amount'], 2); ?></p>
-              <p><strong>Payment Method:</strong> <?php echo htmlspecialchars($order['payment_method']); ?></p>
+              <p><strong>Total Amount:</strong> RM<?php echo number_format($order['Total'], 2); ?></p>
+              <p><strong>Payment Method:</strong> <?php echo htmlspecialchars($order['PaymentMethod']); ?></p>
             </div>
           </div>
           
-          <p>We've sent an order confirmation email to <?php echo htmlspecialchars($_SESSION['customer_email']); ?></p>
+          <p>We've sent an order confirmation email to <?php echo htmlspecialchars($_SESSION['Customer_email']); ?></p>
           <p>You can track your order in <a href="my_orders.php">My Orders</a>.</p>
         </div>
         
