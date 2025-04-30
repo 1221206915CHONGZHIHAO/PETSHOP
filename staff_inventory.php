@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // Redirect to prevent form resubmission
-        header("Location: inventory.php");
+        header("Location: staff_inventory.php");
         exit();
     }
 }
@@ -223,6 +223,9 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
                     <i class="fas fa-boxes me-2"></i>Inventory
                 </h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
+                    <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                        <i class="fas fa-plus me-1"></i>Add New Product
+                    </button>
                     <div class="input-group search-box">
                         <input type="text" class="form-control form-control-sm" placeholder="Search inventory..." id="inventorySearch">
                         <button class="btn btn-sm btn-outline-secondary" type="button">
@@ -322,6 +325,7 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
                                     <th>Stock</th>
                                     <th>Status</th>
                                     <th>Last Updated</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -351,6 +355,22 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
                                         <?php endif; ?>
                                     </td>
                                     <td><?= date('Y-m-d H:i', strtotime($product['updated_at'])) ?></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" 
+                                            data-bs-target="#editModal" 
+                                            data-id="<?= $product['product_id'] ?>"
+                                            onclick="loadEditForm(this)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
+                                            <button type="submit" class="btn btn-sm btn-danger" 
+                                                onclick="return confirm('Are you sure you want to delete this product?')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -374,6 +394,90 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
                 </div>
             </div>
         </main>
+    </div>
+</div>
+
+<!-- Add Product Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="add">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Product Name*</label>
+                            <input type="text" name="product_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Category*</label>
+                            <select name="category" class="form-select" required>
+                                <option value="">Select Category</option>
+                                <option value="Dogs">Dogs</option>
+                                <option value="Cats">Cats</option>
+                                <option value="Birds">Birds</option>
+                                <option value="Fish">Fish</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Price*</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="price" step="0.01" min="0" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Stock Quantity*</label>
+                            <input type="number" name="stock_quantity" min="0" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Product Image</label>
+                        <input type="file" name="product_image" class="form-control" accept="image/*">
+                        <small class="text-muted">Maximum file size: 2MB</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Product
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Product Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" enctype="multipart/form-data" id="editForm">
+                <div class="modal-body">
+                    <!-- Content loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Update Product
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -407,6 +511,27 @@ document.addEventListener('DOMContentLoaded', function() {
         window.print();
     });
 });
+
+// Load edit form via AJAX
+function loadEditForm(button) {
+    const productId = button.getAttribute('data-id');
+    fetch('get_product.php?id=' + productId)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('editForm').querySelector('.modal-body').innerHTML = html;
+        });
+}
+
+// Image preview for edit form
+function previewImage(event, previewId) {
+    const reader = new FileReader();
+    reader.onload = function() {
+        const preview = document.getElementById(previewId);
+        preview.src = reader.result;
+        preview.style.display = 'block';
+    }
+    reader.readAsDataURL(event.target.files[0]);
+}
 </script>
 </body>
 </html>
