@@ -29,10 +29,16 @@ if (!$product) {
     <div class="col-md-6 mb-3">
         <label class="form-label">Category*</label>
         <select name="category" class="form-select" required>
-            <option value="Dogs" <?= $product['Category'] === 'Dogs' ? 'selected' : '' ?>>Dogs</option>
+            <optgroup label="Dogs">
+                <option value="Dogs" <?= $product['Category'] === 'Dogs' ? 'selected' : '' ?>>Dogs (General)</option>
+                <option value="Dog > Dry Food" <?= $product['Category'] === 'Dog > Dry Food' ? 'selected' : '' ?>>Dog > Dry Food</option>
+                <option value="Dog > Treats" <?= $product['Category'] === 'Dog > Treats' ? 'selected' : '' ?>>Dog > Treats</option>
+                <option value="Dog > Wet Food" <?= $product['Category'] === 'Dog > Wet Food' ? 'selected' : '' ?>>Dog > Wet Food</option>
+            </optgroup>
             <option value="Cats" <?= $product['Category'] === 'Cats' ? 'selected' : '' ?>>Cats</option>
             <option value="Birds" <?= $product['Category'] === 'Birds' ? 'selected' : '' ?>>Birds</option>
             <option value="Fish" <?= $product['Category'] === 'Fish' ? 'selected' : '' ?>>Fish</option>
+            <option value="Other" <?= $product['Category'] === 'Other' ? 'selected' : '' ?>>Other</option>
         </select>
     </div>
 </div>
