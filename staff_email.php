@@ -97,6 +97,12 @@
                             <i class="fas fa-tasks me-2"></i>My Tasks
                         </a>
                     </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="staff_inventory.php">
+                            <i class="fas fa-boxes me-2"></i>Inventory
+                        </a>
+                    </li>
                     
                     <li class="nav-item mt-3">
                         <a class="nav-link text-light" href="settings.php">

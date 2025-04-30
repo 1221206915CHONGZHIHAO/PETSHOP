@@ -88,12 +88,18 @@
                     </li>
                     
                     <li class="nav-item">
-                        <a class="nav-link text-light active" href="tasks.php">
+                        <a class="nav-link text-light active" href="staff_tasks.php">
                             <i class="fas fa-tasks me-2"></i>My Tasks
                             <span class="badge bg-primary float-end" id="taskCount">0</span>
                         </a>
                     </li>
-                    
+
+                    <li class="nav-item">
+                         <a class="nav-link text-light" href="staff_inventory.php">
+                            <i class="fas fa-boxes me-2"></i>Inventory
+                        </a>
+                    </li>
+
                     <li class="nav-item mt-3">
                         <a class="nav-link text-light" href="settings.php">
                             <i class="fas fa-cog me-2"></i>Settings
