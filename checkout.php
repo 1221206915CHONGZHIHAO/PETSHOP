@@ -2,7 +2,7 @@
 session_start();
 
 // Redirect if cart is empty
-if (!isset($_SESSION['cart']) {
+if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
     header('Location: cart.php');
     exit;
 }
@@ -80,11 +80,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->begin_transaction();
         
         try {
-            // Create order
+            // Create order - updated to match your table structure
             $stmt = $conn->prepare("
                 INSERT INTO Orders 
-                (Customer_ID, total_amount, shipping_address, billing_address, payment_method) 
-                VALUES (?, ?, ?, ?, ?)
+                (Customer_ID, Address, PaymentMethod, Total, order_date, status) 
+                VALUES (?, ?, ?, ?, NOW(), 'Pending')
             ");
             
             $total_amount = 0;
@@ -92,24 +92,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $total_amount += $item['price'] * $item['quantity'];
             }
             
-            $shipping_address = $_POST['shipping_address'];
-            $billing_address = isset($_POST['same_as_shipping']) ? $shipping_address : $_POST['billing_address'];
+            $address = $_POST['shipping_address'];
             $payment_method = $_POST['payment_method'];
             
             $stmt->bind_param(
-                "idsss", 
+                "issd", 
                 $_SESSION['customer_id'], 
-                $total_amount, 
-                $shipping_address, 
-                $billing_address, 
-                $payment_method
+                $address, 
+                $payment_method, 
+                $total_amount
             );
             
             $stmt->execute();
             $order_id = $conn->insert_id;
             $stmt->close();
             
-            // Add order items
+            // Add order items (assuming you have an Order_Items table)
             foreach ($_SESSION['cart'] as $product_id => $item) {
                 $stmt = $conn->prepare("
                     INSERT INTO Order_Items 
@@ -140,22 +138,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute();
                 $stmt->close();
             }
-            
-            // Record payment (in a real system, this would integrate with a payment gateway)
-            $stmt = $conn->prepare("
-                INSERT INTO Payments 
-                (order_id, customer_id, amount, payment_method, payment_status) 
-                VALUES (?, ?, ?, ?, 'Completed')
-            ");
-            $stmt->bind_param(
-                "iids", 
-                $order_id, 
-                $_SESSION['customer_id'], 
-                $total_amount, 
-                $payment_method
-            );
-            $stmt->execute();
-            $stmt->close();
             
             // Clear cart
             if (isset($_SESSION['customer_id'])) {
