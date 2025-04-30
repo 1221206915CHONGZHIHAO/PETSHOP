@@ -481,6 +481,16 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
     </div>
 </div>
 
+<!-- Scroll to Top/Bottom Buttons -->
+<div class="scroll-buttons">
+    <button id="scrollToTopBtn" class="btn btn-dark rounded-circle shadow">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+    <button id="scrollToBottomBtn" class="btn btn-dark rounded-circle shadow">
+        <i class="fas fa-arrow-down"></i>
+    </button>
+</div>
+
 <!-- JavaScript -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -510,6 +520,46 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('printBtn').addEventListener('click', function() {
         window.print();
     });
+
+    // Scroll functionality
+    const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+    const scrollToBottomBtn = document.getElementById('scrollToBottomBtn');
+    
+    if (scrollToTopBtn && scrollToBottomBtn) {
+        // Scroll to top
+        scrollToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Scroll to bottom
+        scrollToBottomBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Show/hide based on scroll position
+        window.addEventListener('scroll', function() {
+            if (window.scrollY > 300) {
+                scrollToTopBtn.style.display = 'flex';
+            } else {
+                scrollToTopBtn.style.display = 'none';
+            }
+            
+            if ((window.innerHeight + window.scrollY) >= document.body.scrollHeight - 100) {
+                scrollToBottomBtn.style.display = 'none';
+            } else {
+                scrollToBottomBtn.style.display = 'flex';
+            }
+        });
+        
+        // Initialize
+        scrollToTopBtn.style.display = 'none';
+    }
 });
 
 // Load edit form via AJAX
