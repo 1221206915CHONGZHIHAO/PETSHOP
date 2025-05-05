@@ -12,6 +12,17 @@ require 'PHPMailer/Exception.php';
 
 $message = '';
 $messageType = '';
+$name = $email = $userMessage = '';
+
+// Check if there's a flash message from a previous submission
+if(isset($_SESSION['contact_message']) && isset($_SESSION['message_type'])) {
+    $message = $_SESSION['contact_message'];
+    $messageType = $_SESSION['message_type'];
+    
+    // Clear the flash message after displaying it
+    unset($_SESSION['contact_message']);
+    unset($_SESSION['message_type']);
+}
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -22,8 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     // Basic validation
     if (empty($name) || empty($email) || empty($userMessage)) {
-        $message = "Please fill all the fields";
-        $messageType = "danger";
+        $_SESSION['contact_message'] = "Please fill all the fields";
+        $_SESSION['message_type'] = "danger";
     } else {
         // Fetch staff email for notification (sending to all staff members with 'Active' status)
         $stmt = $conn->prepare("SELECT Staff_Email FROM staff WHERE status = 'Active'");
@@ -73,20 +84,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $mail->SMTPDebug = 0;
                 
                 $mail->send();
-                $message = "Thank you for your message! We'll get back to you soon.";
-                $messageType = "success";
+                $_SESSION['contact_message'] = "Thank you for your message! We'll get back to you soon.";
+                $_SESSION['message_type'] = "success";
                 
                 // Clear form data after successful submission
                 $name = $email = $userMessage = "";
             } catch (Exception $e) {
-                $message = "Message could not be sent. Error: " . $mail->ErrorInfo;
-                $messageType = "danger";
+                $_SESSION['contact_message'] = "Message could not be sent. Error: " . $mail->ErrorInfo;
+                $_SESSION['message_type'] = "danger";
             }
         } else {
-            $message = "Unable to process your request at this time. Please try again later.";
-            $messageType = "danger";
+            $_SESSION['contact_message'] = "Unable to process your request at this time. Please try again later.";
+            $_SESSION['message_type'] = "danger";
         }
     }
+    
+    // Redirect back to the contact page to prevent form resubmission on refresh
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
 }
 ?>
 
