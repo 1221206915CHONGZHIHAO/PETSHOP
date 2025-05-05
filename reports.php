@@ -198,6 +198,12 @@ $conn->close();
                                     <a class="nav-link text-light" href="manage_staff.php">
                                         <i class="fas fa-list me-2"></i>Staff List
                                     </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_logs.php">
+                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </li>

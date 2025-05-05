@@ -19,6 +19,53 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
+// Handle order deletion
+if (isset($_GET['delete_order'])) {
+    $order_id = $_GET['delete_order'];
+    $conn->query("DELETE FROM orders WHERE order_id = $order_id");
+    $conn->query("DELETE FROM order_items WHERE order_id = $order_id");
+    header("Location: admin_homepage.php");
+    exit;
+}
+
+// Handle export functionality
+if (isset($_GET['export'])) {
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="orders_export.csv"');
+    
+    $output = fopen('php://output', 'w');
+    fputcsv($output, array('Order ID', 'Customer', 'Products', 'Total', 'Date', 'Status'));
+    
+    $result = $conn->query("SELECT 
+        o.order_id, 
+        c.customer_name, 
+        o.Total, 
+        o.order_date, 
+        o.status,
+        GROUP_CONCAT(CONCAT(p.product_name, ' (', oi.quantity, ')')) as products
+        FROM orders o
+        JOIN customer c ON o.customer_id = c.customer_id
+        JOIN order_items oi ON o.order_id = oi.order_id
+        JOIN products p ON oi.product_id = p.product_id
+        GROUP BY o.order_id
+        ORDER BY o.order_date DESC
+        LIMIT 5");
+    
+    while ($row = $result->fetch_assoc()) {
+        fputcsv($output, array(
+            $row['order_id'],
+            $row['customer_name'],
+            $row['products'],
+            $row['Total'],
+            $row['order_date'],
+            $row['status']
+        ));
+    }
+    
+    fclose($output);
+    exit;
+}
+
 // Fetch data for summary cards
 $summaryData = [];
 $result = $conn->query("SELECT COUNT(*) as total_orders FROM orders");
@@ -32,6 +79,12 @@ $summaryData['pending_orders'] = $result->fetch_assoc()['pending_orders'];
 
 $result = $conn->query("SELECT COUNT(*) as low_stock FROM products WHERE stock_quantity < 10");
 $summaryData['low_stock'] = $result->fetch_assoc()['low_stock'];
+
+// Handle week filter
+$dateFilter = "";
+if (isset($_GET['week_filter'])) {
+    $dateFilter = "WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK)";
+}
 
 // Fetch data for sales chart (last 6 months)
 $salesData = [];
@@ -63,8 +116,7 @@ while ($row = $result->fetch_assoc()) {
     $categoryData['data'][] = $row['revenue'];
 }
 
-
-// Fetch recent orders
+// Fetch recent orders (always limit to 5)
 $recentOrders = [];
 $result = $conn->query("SELECT 
     o.order_id, 
@@ -77,14 +129,13 @@ $result = $conn->query("SELECT
     JOIN customer c ON o.customer_id = c.customer_id
     JOIN order_items oi ON o.order_id = oi.order_id
     JOIN products p ON oi.product_id = p.product_id
+    $dateFilter
     GROUP BY o.order_id
     ORDER BY o.order_date DESC
     LIMIT 5");
 while ($row = $result->fetch_assoc()) {
     $recentOrders[] = $row;
 }
-
-
 
 $conn->close();
 ?>
@@ -112,6 +163,9 @@ $conn->close();
         .badge {
             font-size: 0.85em;
             padding: 0.35em 0.65em;
+        }
+        .dropdown-toggle::after {
+            display: none;
         }
     </style>
 </head>
@@ -143,6 +197,7 @@ $conn->close();
                         </a>
                     </li>
                     <li class="nav-item">
+                    <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
                             <i class="fas fa-users me-2"></i>Staff Management
                         </a>
@@ -151,6 +206,11 @@ $conn->close();
                                 <li class="nav-item">
                                     <a class="nav-link text-light" href="manage_staff.php">
                                         <i class="fas fa-list me-2"></i>Staff List
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_logs.php">
+                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
                                     </a>
                                 </li>
                             </ul>
@@ -219,12 +279,19 @@ $conn->close();
                 <h1 class="h2"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary">Share</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+                        <a href="?export=1" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-download me-1"></i> Export
+                        </a>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
-                        <i class="fas fa-calendar me-1"></i>This week
-                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="weekDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-calendar me-1"></i>This week
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="weekDropdown">
+                            <li><a class="dropdown-item" href="?week_filter=1">This Week</a></li>
+                            <li><a class="dropdown-item" href="admin_homepage.php">All Time</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
@@ -310,7 +377,7 @@ $conn->close();
 
             <div class="card">
                 <div class="card-header">
-                    <i class="fas fa-table me-2"></i>Recent Orders
+                    <i class="fas fa-table me-2"></i>Recent Orders (Last 5)
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -349,8 +416,9 @@ $conn->close();
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-primary"><i class="fas fa-eye"></i></button>
-                                        <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                        <a href="?delete_order=<?php echo $order['order_id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this order?')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>

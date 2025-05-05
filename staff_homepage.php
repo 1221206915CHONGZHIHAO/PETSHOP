@@ -27,11 +27,9 @@
                     <i class="fas fa-user-circle me-1"></i>Welcome, John
                 </span>
             </li>
-            <li class="nav-item">
-                <a href="login.php" class="btn btn-danger btn-sm">
-                    <i class="fas fa-sign-out-alt me-1"></i> Logout
-                </a>
-            </li>
+                        <a href="login.php" class="btn btn-danger btn-sm">
+                <i class="fas fa-sign-out-alt me-1"></i> Logout
+            </a>
         </ul>
     </div>
 </nav>

@@ -38,6 +38,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     exit;
 }
 
+// Handle order deletion
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_order'])) {
+    $order_id = intval($_POST['order_id']);
+    
+    // Start transaction
+    $conn->begin_transaction();
+    
+    try {
+        // First delete order items
+        $stmt = $conn->prepare("DELETE FROM Order_Items WHERE Order_ID = ?");
+        $stmt->bind_param("i", $order_id);
+        $stmt->execute();
+        
+        // Then delete the order
+        $stmt = $conn->prepare("DELETE FROM orders WHERE Order_ID = ?");
+        $stmt->bind_param("i", $order_id);
+        $stmt->execute();
+        
+        $conn->commit();
+        $_SESSION['success_message'] = "Order #$order_id has been deleted successfully";
+    } catch (Exception $e) {
+        $conn->rollback();
+        $_SESSION['error_message'] = "Error deleting order: " . $e->getMessage();
+    }
+    
+    header("Location: orders.php");
+    exit;
+}
+
 // Fetch orders with customer information
 $sql = "SELECT o.Order_ID, c.Customer_name, o.Total, o.Address, o.PaymentMethod, o.Order_Date, o.Status 
         FROM `orders` o
@@ -115,7 +144,7 @@ $conn->close();
     </div>
     <div>
         <span class="text-light me-3">Welcome, Admin</span>
-        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <a href="logout.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 
@@ -140,6 +169,11 @@ $conn->close();
                                 <li class="nav-item">
                                     <a class="nav-link text-light" href="manage_staff.php">
                                         <i class="fas fa-list me-2"></i>Staff List
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_logs.php">
+                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
                                     </a>
                                 </li>
                             </ul>
@@ -327,20 +361,24 @@ $conn->close();
 <div class="modal fade delete-modal" id="deleteOrderModal" tabindex="-1" aria-labelledby="deleteOrderModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteOrderModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this order?</p>
-                <p><strong>Order ID:</strong> <span id="deleteOrderId"></span></p>
-                <p><strong>Customer:</strong> <span id="deleteCustomer"></span></p>
-                <p class="text-danger"><small>This action cannot be undone!</small></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteOrder">Delete Order</button>
-            </div>
+            <form method="POST" action="orders.php">
+                <input type="hidden" name="delete_order" value="1">
+                <input type="hidden" name="order_id" id="deleteOrderId">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteOrderModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this order?</p>
+                    <p><strong>Order ID:</strong> <span id="displayOrderId"></span></p>
+                    <p><strong>Customer:</strong> <span id="deleteCustomer"></span></p>
+                    <p class="text-danger"><small>This action cannot be undone!</small></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete Order</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -365,38 +403,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const deleteOrderModal = document.getElementById('deleteOrderModal');
     deleteOrderModal.addEventListener('show.bs.modal', function(event) {
         const button = event.relatedTarget;
-        document.getElementById('deleteOrderId').textContent = button.getAttribute('data-order-id');
+        const orderId = button.getAttribute('data-order-id');
+        document.getElementById('deleteOrderId').value = orderId;
+        document.getElementById('displayOrderId').textContent = orderId;
         document.getElementById('deleteCustomer').textContent = button.getAttribute('data-customer');
-    });
-
-    // Confirm Order Deletion
-    document.getElementById('confirmDeleteOrder').addEventListener('click', function() {
-        const orderId = document.getElementById('deleteOrderId').textContent;
-        
-        // AJAX request to delete order
-        fetch('delete_order.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'order_id=' + orderId
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Order #' + orderId + ' has been deleted');
-                location.reload(); // Refresh the page
-            } else {
-                alert('Error deleting order: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting the order');
-        });
-        
-        const modal = bootstrap.Modal.getInstance(deleteOrderModal);
-        modal.hide();
     });
 });
 </script>
