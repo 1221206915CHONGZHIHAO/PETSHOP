@@ -101,6 +101,31 @@ switch ($report_type) {
         break;
 }
 
+// Handle export request
+if (isset($_GET['export'])) {
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="sales_report_' . $report_type . '.csv"');
+    
+    $output = fopen('php://output', 'w');
+    
+    // Write CSV headers
+    fputcsv($output, ['Period', 'Total Sales', 'Number of Orders', 'Average Order Value']);
+    
+    // Write data rows
+    foreach ($report_data as $row) {
+        $avg = $row['orders'] > 0 ? $row['sales'] / $row['orders'] : 0;
+        fputcsv($output, [
+            $row['period'],
+            number_format($row['sales'], 2),
+            number_format($row['orders']),
+            number_format($avg, 2)
+        ]);
+    }
+    
+    fclose($output);
+    exit();
+}
+
 $conn->close();
 ?>
 
@@ -173,6 +198,12 @@ $conn->close();
                                     <a class="nav-link text-light" href="manage_staff.php">
                                         <i class="fas fa-list me-2"></i>Staff List
                                     </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_logs.php">
+                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </li>
@@ -239,12 +270,9 @@ $conn->close();
                 <h1 class="h2"><i class="fas fa-chart-line me-2"></i>Sales Reports</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
-                            <i class="fas fa-print me-1"></i>Print
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="exportBtn">
-                            <i class="fas fa-file-export me-1"></i>Export
-                        </button>
+                        <a href="reports.php?report_type=<?php echo $report_type; ?>&export=1" class="btn btn-sm btn-outline-primary" id="exportBtn">
+                            <i class="fas fa-file-export me-1"></i>Export to CSV
+                        </a>
                     </div>
                 </div>
             </div>
@@ -430,12 +458,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
-    });
-
-    // Export button functionality
-    document.getElementById('exportBtn').addEventListener('click', function() {
-        // In a real implementation, this would export the data to CSV or Excel
-        alert('Export functionality would be implemented here');
     });
 });
 </script>

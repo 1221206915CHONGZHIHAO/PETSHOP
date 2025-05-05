@@ -38,6 +38,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     exit;
 }
 
+// Handle order deletion
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_order'])) {
+    $order_id = intval($_POST['order_id']);
+    
+    // Start transaction
+    $conn->begin_transaction();
+    
+    try {
+        // First delete order items
+        $stmt = $conn->prepare("DELETE FROM Order_Items WHERE Order_ID = ?");
+        $stmt->bind_param("i", $order_id);
+        $stmt->execute();
+        
+        // Then delete the order
+        $stmt = $conn->prepare("DELETE FROM orders WHERE Order_ID = ?");
+        $stmt->bind_param("i", $order_id);
+        $stmt->execute();
+        
+        $conn->commit();
+        $_SESSION['success_message'] = "Order #$order_id has been deleted successfully";
+    } catch (Exception $e) {
+        $conn->rollback();
+        $_SESSION['error_message'] = "Error deleting order: " . $e->getMessage();
+    }
+    
+    header("Location: orders.php");
+    exit;
+}
+
 // Fetch orders with customer information
 $sql = "SELECT o.Order_ID, c.Customer_name, o.Total, o.Address, o.PaymentMethod, o.Order_Date, o.Status 
         FROM `orders` o
@@ -115,7 +144,7 @@ $conn->close();
     </div>
     <div>
         <span class="text-light me-3">Welcome, Admin</span>
-        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <a href="logout.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 
@@ -140,6 +169,11 @@ $conn->close();
                                 <li class="nav-item">
                                     <a class="nav-link text-light" href="manage_staff.php">
                                         <i class="fas fa-list me-2"></i>Staff List
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_logs.php">
+                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
                                     </a>
                                 </li>
                             </ul>
@@ -260,19 +294,6 @@ $conn->close();
                                                 </span>
                                             </td>
                                             <td>
-                                                <button class="btn btn-sm btn-primary view-order-btn" 
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#viewOrderModal"
-                                                        data-order-id="<?php echo $order['Order_ID']; ?>"
-                                                        data-customer="<?php echo htmlspecialchars($order['Customer_name']); ?>"
-                                                        data-products="<?php echo htmlspecialchars($order['products']); ?>"
-                                                        data-total="<?php echo $order['Total']; ?>"
-                                                        data-date="<?php echo htmlspecialchars($order['Order_Date']); ?>"
-                                                        data-status="<?php echo htmlspecialchars($order['Status']); ?>"
-                                                        data-address="<?php echo htmlspecialchars($order['Address']); ?>"
-                                                        data-payment="<?php echo htmlspecialchars($order['PaymentMethod']); ?>">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
                                                 <button class="btn btn-sm btn-warning update-status-btn" 
                                                         data-bs-toggle="modal" 
                                                         data-bs-target="#updateStatusModal"
@@ -301,40 +322,6 @@ $conn->close();
                 </div>
             </div>
         </main>
-    </div>
-</div>
-
-<!-- View Order Modal -->
-<div class="modal fade action-modal" id="viewOrderModal" tabindex="-1" aria-labelledby="viewOrderModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="viewOrderModalLabel"><i class="fas fa-file-invoice me-2"></i>Order Details</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body order-details">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Order ID:</strong> <span id="viewOrderId"></span></p>
-                        <p><strong>Customer:</strong> <span id="viewCustomer"></span></p>
-                        <p><strong>Order Date:</strong> <span id="viewOrderDate"></span></p>
-                        <p><strong>Address:</strong> <span id="viewOrderAddress"></span></p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Status:</strong> <span id="viewOrderStatus" class="badge"></span></p>
-                        <p><strong>Payment Method:</strong> <span id="viewPaymentMethod"></span></p>
-                        <p><strong>Total Amount:</strong> $<span id="viewOrderTotal"></span></p>
-                    </div>
-                </div>
-                <hr>
-                <h6 class="mb-3"><i class="fas fa-box-open me-2"></i>Products</h6>
-                <p id="viewOrderProducts"></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <a id="printInvoiceBtn" href="#" target="_blank" class="btn btn-primary">Print Invoice</a>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -374,20 +361,24 @@ $conn->close();
 <div class="modal fade delete-modal" id="deleteOrderModal" tabindex="-1" aria-labelledby="deleteOrderModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteOrderModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this order?</p>
-                <p><strong>Order ID:</strong> <span id="deleteOrderId"></span></p>
-                <p><strong>Customer:</strong> <span id="deleteCustomer"></span></p>
-                <p class="text-danger"><small>This action cannot be undone!</small></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteOrder">Delete Order</button>
-            </div>
+            <form method="POST" action="orders.php">
+                <input type="hidden" name="delete_order" value="1">
+                <input type="hidden" name="order_id" id="deleteOrderId">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteOrderModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this order?</p>
+                    <p><strong>Order ID:</strong> <span id="displayOrderId"></span></p>
+                    <p><strong>Customer:</strong> <span id="deleteCustomer"></span></p>
+                    <p class="text-danger"><small>This action cannot be undone!</small></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete Order</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -395,27 +386,6 @@ $conn->close();
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // View Order Modal Handler
-    const viewOrderModal = document.getElementById('viewOrderModal');
-    viewOrderModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        document.getElementById('viewOrderId').textContent = button.getAttribute('data-order-id');
-        document.getElementById('viewCustomer').textContent = button.getAttribute('data-customer');
-        document.getElementById('viewOrderProducts').textContent = button.getAttribute('data-products');
-        document.getElementById('viewOrderTotal').textContent = button.getAttribute('data-total');
-        document.getElementById('viewOrderDate').textContent = button.getAttribute('data-date');
-        document.getElementById('viewOrderAddress').textContent = button.getAttribute('data-address');
-        document.getElementById('viewPaymentMethod').textContent = button.getAttribute('data-payment');
-
-        const statusBadge = document.getElementById('viewOrderStatus');
-        statusBadge.textContent = button.getAttribute('data-status');
-        statusBadge.className = 'badge bg-' + (button.getAttribute('data-status') === 'Completed' ? 'success' : 
-                                              (button.getAttribute('data-status') === 'Processing' ? 'warning' : 
-                                              (button.getAttribute('data-status') === 'Shipped' ? 'info' : 'danger'));
-
-        document.getElementById('printInvoiceBtn').href = "invoice.php?order_id=" + button.getAttribute('data-order-id');
-    });
-
     // Update Status Modal Handler
     const updateStatusModal = document.getElementById('updateStatusModal');
     updateStatusModal.addEventListener('show.bs.modal', function(event) {
@@ -433,38 +403,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const deleteOrderModal = document.getElementById('deleteOrderModal');
     deleteOrderModal.addEventListener('show.bs.modal', function(event) {
         const button = event.relatedTarget;
-        document.getElementById('deleteOrderId').textContent = button.getAttribute('data-order-id');
+        const orderId = button.getAttribute('data-order-id');
+        document.getElementById('deleteOrderId').value = orderId;
+        document.getElementById('displayOrderId').textContent = orderId;
         document.getElementById('deleteCustomer').textContent = button.getAttribute('data-customer');
-    });
-
-    // Confirm Order Deletion
-    document.getElementById('confirmDeleteOrder').addEventListener('click', function() {
-        const orderId = document.getElementById('deleteOrderId').textContent;
-        
-        // AJAX request to delete order
-        fetch('delete_order.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'order_id=' + orderId
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Order #' + orderId + ' has been deleted');
-                location.reload(); // Refresh the page
-            } else {
-                alert('Error deleting order: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting the order');
-        });
-        
-        const modal = bootstrap.Modal.getInstance(deleteOrderModal);
-        modal.hide();
     });
 });
 </script>

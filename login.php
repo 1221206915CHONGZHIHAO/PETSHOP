@@ -90,6 +90,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 $_SESSION['username'] = $db_username;
                                 $_SESSION['email'] = $db_email;
                                 $conn->query("UPDATE Staff SET password_reset_token = NULL WHERE Staff_id = $db_staff_id");
+                                
+                                // Record successful staff login
+                                $conn->query("INSERT INTO staff_login_logs (staff_id, username, email, status) 
+                                            VALUES ($db_staff_id, '$db_username', '$db_email', 'login')");
+                                
                                 $redirect_url = !empty($redirect) ? $redirect : 'staff_homepage.php';
                             } elseif ($role === "customer") {
                                 $_SESSION['customer_id'] = $db_customer_id;
@@ -109,6 +114,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     login_attempts = login_attempts + 1, 
                                     last_failed_login = NOW() 
                                     WHERE Staff_id = $db_staff_id");
+                                
+                                // Record failed staff login attempt
+                                $conn->query("INSERT INTO staff_login_logs (staff_id, username, email, status, ip_address) 
+                                            VALUES ($db_staff_id, '$db_username', '$db_email', 'failed', '{$_SERVER['REMOTE_ADDR']}')");
                             }
                             
                             // Record failed login attempt if customer

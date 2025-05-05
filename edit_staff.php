@@ -126,10 +126,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light active" data-bs-toggle="collapse" href="#staffMenu">
+                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
                             <i class="fas fa-users me-2"></i>Staff Management
                         </a>
-                        <div class="collapse show" id="staffMenu">
+                        <div class="collapse" id="staffMenu">
                             <ul class="nav flex-column ps-4">
                                 <li class="nav-item">
                                     <a class="nav-link text-light" href="manage_staff.php">
@@ -137,8 +137,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-light active" href="add_staff.php">
-                                        <i class="fas fa-plus me-2"></i>Add Staff
+                                    <a class="nav-link text-light" href="staff_logs.php">
+                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
                                     </a>
                                 </li>
                             </ul>
