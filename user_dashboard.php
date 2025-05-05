@@ -124,15 +124,15 @@ $masked_password = str_repeat('*', strlen($actual_password));
 
         <!-- Icons on the right -->
         <ul class="navbar-nav ms-auto nav-icons">
-          <!-- Search Icon with Dropdown -->
+          <!-- Search Icon with Dropdown - Modified to redirect to products.php -->
           <li class="nav-item dropdown">
             <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-search"></i>
             </a>
-            <ul class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="searchDropdown" style="min-width: 300px;">
-              <form class="d-flex">
-                <input class="form-control me-2" type="search" placeholder="Search products..." aria-label="Search">
-                <button class="btn btn-primary" type="submit">Go</button>
+            <ul class="dropdown-menu dropdown-menu-end search-dropdown" aria-labelledby="searchDropdown">
+              <form class="d-flex search-form" action="products.php" method="GET">
+                <input class="form-control me-2" type="search" name="search" placeholder="Search products..." aria-label="Search" required>
+                <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
               </form>
             </ul>
           </li>

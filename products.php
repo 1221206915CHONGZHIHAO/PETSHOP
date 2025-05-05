@@ -17,7 +17,6 @@ if ($conn->connect_error) {
 }
 
 // Function to get current cart count
-// In products.php, replace the getCartCount() function
 function getCartCount() {
   if (isset($_SESSION['cart_count'])) {
       return (int)$_SESSION['cart_count'];
@@ -27,11 +26,17 @@ function getCartCount() {
   return 0;
 }
 
-// Get products from database
-function getProducts($sort = 'newest', $category = '') {
+// Get products from database with search functionality
+function getProducts($sort = 'newest', $category = '', $search = '') {
     global $conn;
     
     $sql = "SELECT * FROM products WHERE 1=1";
+    
+    // Add search filter if provided
+    if (!empty($search)) {
+        $search = $conn->real_escape_string($search);
+        $sql .= " AND (product_name LIKE '%$search%' OR description LIKE '%$search%')";
+    }
     
     // Add category filter if provided
     if (!empty($category)) {
@@ -90,15 +95,22 @@ $sort = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
 // Get category parameter
 $category = isset($_GET['category']) ? $_GET['category'] : '';
 
+// Get search parameter
+$search = isset($_GET['search']) ? $_GET['search'] : '';
+
 // Get products and categories
-$products = getProducts($sort, $category);
+$products = getProducts($sort, $category, $search);
 $categories = getCategories();
 
 // Count items
 $product_count = count($products);
 
-// Page title - change based on category
-$page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
+// Page title - change based on category or search
+if (!empty($search)) {
+    $page_title = "Search Results for \"" . htmlspecialchars($search) . "\"";
+} else {
+    $page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
+}
 ?>
 
 <!DOCTYPE html>
@@ -150,10 +162,11 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
           <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
             <i class="bi bi-search"></i>
           </a>
-          <ul class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="searchDropdown" style="min-width: 300px;">
-            <form class="d-flex">
-              <input class="form-control me-2" type="search" placeholder="Search products..." aria-label="Search">
-              <button class="btn btn-primary" type="submit">Go</button>
+          <ul class="dropdown-menu dropdown-menu-end search-dropdown p-3" aria-labelledby="searchDropdown" style="min-width: 300px;">
+            <form class="d-flex search-form" action="products.php" method="GET">
+              <input class="form-control me-2" type="search" name="search" placeholder="Search products..." 
+                     value="<?php echo htmlspecialchars($search); ?>" aria-label="Search">
+              <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
             </form>
           </ul>
         </li>
@@ -199,23 +212,53 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
 </nav>
 
 <!-- Main Container -->
-<div class="container py-4">
+<div class="container py-4 mt-5">
+  <!-- Page Header with Breadcrumbs -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="userhomepage.php">Home</a></li>
+          <li class="breadcrumb-item"><a href="products.php">Products</a></li>
+          <?php if(!empty($category)): ?>
+            <li class="breadcrumb-item active" aria-current="page"><?php echo htmlspecialchars($category); ?></li>
+          <?php elseif(!empty($search)): ?>
+            <li class="breadcrumb-item active" aria-current="page">Search Results</li>
+          <?php else: ?>
+            <li class="breadcrumb-item active" aria-current="page">All Products</li>
+          <?php endif; ?>
+        </ol>
+      </nav>
+      <h1 class="mb-0 h2"><?php echo $page_title; ?></h1>
+    </div>
+  </div>
+
   <div class="row">
     <!-- Filter sidebar -->
     <aside class="col-lg-3 filter-section mb-4">
+      <!-- If there was a search, show it -->
+      <?php if(!empty($search)): ?>
+      <div class="alert alert-info mb-4">
+        <p class="mb-1"><strong>Searching for:</strong> <?php echo htmlspecialchars($search); ?></p>
+        <a href="products.php" class="btn btn-sm btn-outline-primary mt-2">Clear Search</a>
+      </div>
+      <?php endif; ?>
+      
       <!-- Categories -->
       <div class="card shadow-sm border-0 rounded-3 mb-4">
         <div class="card-body">
           <h5>Categories</h5>
           <ul class="list-group list-group-flush">
             <li class="list-group-item">
-              <a href="products.php" class="<?php echo empty($category) ? 'text-primary' : ''; ?>">
+              <a href="products.php<?php echo !empty($search) ? '?search=' . urlencode($search) : ''; ?>" 
+                 class="<?php echo empty($category) ? 'text-primary' : ''; ?>">
                 All Products
               </a>
             </li>
             <?php foreach($categories as $cat): ?>
               <li class="list-group-item">
-                <a href="products.php?category=<?php echo urlencode($cat); ?>" class="<?php echo $category === $cat ? 'text-primary' : ''; ?>">
+                <a href="products.php?category=<?php echo urlencode($cat); ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" 
+                   class="<?php echo $category === $cat ? 'text-primary' : ''; ?>">
                   <?php echo htmlspecialchars($cat); ?>
                 </a>
               </li>
@@ -279,7 +322,11 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
         <?php else: ?>
           <div class="col-12">
             <div class="alert alert-info">
-              <i class="bi bi-info-circle me-2"></i>No products found. Please try different filters.
+              <?php if(!empty($search)): ?>
+                <i class="bi bi-info-circle me-2"></i>No products found matching "<strong><?php echo htmlspecialchars($search); ?></strong>". Please try different search terms or browse our categories.
+              <?php else: ?>
+                <i class="bi bi-info-circle me-2"></i>No products found. Please try different filters.
+              <?php endif; ?>
             </div>
           </div>
         <?php endif; ?>
@@ -389,7 +436,7 @@ $page_title = !empty($category) ? htmlspecialchars($category) : "All Products";
     }
   });
   
-  // Sort select functionality
+  // Sort select functionality with preserving search and category parameters
   document.getElementById('sortSelect').addEventListener('change', function() {
     const currentUrl = new URL(window.location.href);
     currentUrl.searchParams.set('sort', this.value);
