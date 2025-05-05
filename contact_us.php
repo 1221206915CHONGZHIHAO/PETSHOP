@@ -1,14 +1,107 @@
 <?php
 session_start();
+include 'db_connection.php'; // Assuming this establishes the database connection
 
-$servername  = "localhost";
-$db_username = "root";
-$db_password = "";
-$dbname      = "petshop";
+// PHPMailer components
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
-$conn = new mysqli($servername, $db_username, $db_password, $dbname);
-if ($conn->connect_error) {
-    die("数据库连接失败: " . $conn->connect_error);
+require 'PHPMailer/PHPMailer.php';
+require 'PHPMailer/SMTP.php';
+require 'PHPMailer/Exception.php';
+
+$message = '';
+$messageType = '';
+$name = $email = $userMessage = '';
+
+// Check if there's a flash message from a previous submission
+if(isset($_SESSION['contact_message']) && isset($_SESSION['message_type'])) {
+    $message = $_SESSION['contact_message'];
+    $messageType = $_SESSION['message_type'];
+    
+    // Clear the flash message after displaying it
+    unset($_SESSION['contact_message']);
+    unset($_SESSION['message_type']);
+}
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Get form data
+    $name = $_POST['name'];
+    $email = $_POST['email'];
+    $userMessage = $_POST['message'];
+    
+    // Basic validation
+    if (empty($name) || empty($email) || empty($userMessage)) {
+        $_SESSION['contact_message'] = "Please fill all the fields";
+        $_SESSION['message_type'] = "danger";
+    } else {
+        // Fetch staff email for notification (sending to all staff members with 'Active' status)
+        $stmt = $conn->prepare("SELECT Staff_Email FROM staff WHERE status = 'Active'");
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            $mail = new PHPMailer(true);
+            
+            try {
+                // Server settings
+                $mail->isSMTP();
+                $mail->Host = 'smtp.gmail.com';
+                $mail->SMTPAuth = true;
+                $mail->Username = 'zheya1810@gmail.com'; // Use the same email from forgot password
+                $mail->Password = 'rbzs duxv qmho ywlv'; // Use the same App Password
+                $mail->SMTPSecure = 'tls';
+                $mail->Port = 587;
+            
+                $mail->setFrom($email, $name);
+                $mail->addReplyTo($email, $name);
+                
+                // Add all active staff members as recipients
+                while ($row = $result->fetch_assoc()) {
+                    $mail->addAddress($row['Staff_Email']);
+                }
+            
+                // Content
+                $mail->isHTML(true);
+                $mail->Subject = 'New Contact Form Submission from Hachi Pet Shop';
+                
+                // Create email body
+                $emailBody = "
+                    <h2>New Contact Form Submission</h2>
+                    <p><strong>Name:</strong> {$name}</p>
+                    <p><strong>Email:</strong> {$email}</p>
+                    <p><strong>Message:</strong></p>
+                    <p>{$userMessage}</p>
+                    <hr>
+                    <p>This email was sent from the contact form on Hachi Pet Shop website.</p>
+                ";
+                
+                $mail->Body = $emailBody;
+                $mail->AltBody = "Name: {$name}\nEmail: {$email}\nMessage: {$userMessage}";
+                
+                // For debugging - set to 0 for production
+                $mail->SMTPDebug = 0;
+                
+                $mail->send();
+                $_SESSION['contact_message'] = "Thank you for your message! We'll get back to you soon.";
+                $_SESSION['message_type'] = "success";
+                
+                // Clear form data after successful submission
+                $name = $email = $userMessage = "";
+            } catch (Exception $e) {
+                $_SESSION['contact_message'] = "Message could not be sent. Error: " . $mail->ErrorInfo;
+                $_SESSION['message_type'] = "danger";
+            }
+        } else {
+            $_SESSION['contact_message'] = "Unable to process your request at this time. Please try again later.";
+            $_SESSION['message_type'] = "danger";
+        }
+    }
+    
+    // Redirect back to the contact page to prevent form resubmission on refresh
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
 }
 ?>
 
@@ -193,6 +286,24 @@ if ($conn->connect_error) {
         .contact-form button:hover {
             background-color: #e62e2e;
         }
+        
+        /* Alert message styling */
+        .alert {
+            border-radius: 0;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background-color: #4e9f3d;
+            border-color: #38761d;
+            color: white;
+        }
+        
+        .alert-danger {
+            background-color: #ff3333;
+            border-color: #e62e2e;
+            color: white;
+        }
 
         .contact-details {
             background-color: #e6e6e6;
@@ -330,6 +441,16 @@ if ($conn->connect_error) {
         .dropdown-item:hover i {
             transform: translateX(3px);
         }
+        
+        /* Responsive adjustments for mobile */
+        @media (max-width: 768px) {
+            .contact-container {
+                flex-direction: column;
+            }
+            .contact-form, .contact-details {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -416,10 +537,22 @@ if ($conn->connect_error) {
         <div class="contact-form">
             <h1>Get in touch!</h1>
             <div class="underline"></div>
-            <form>
-                <input type="text" placeholder="ENTER YOUR NAME" required>
-                <input type="email" placeholder="ENTER A VALID EMAIL ADDRESS" required>
-                <textarea placeholder="ENTER YOUR MESSAGE" required></textarea>
+            
+            <?php if(!empty($message)): ?>
+                <div class="alert alert-<?php echo $messageType; ?>" role="alert">
+                    <?php echo $message; ?>
+                </div>
+            <?php endif; ?>
+            
+            <form method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>">
+                <input type="text" name="name" placeholder="ENTER YOUR NAME" required 
+                       value="<?php echo isset($name) ? htmlspecialchars($name) : ''; ?>">
+                       
+                <input type="email" name="email" placeholder="ENTER A VALID EMAIL ADDRESS" required
+                       value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>">
+                       
+                <textarea name="message" placeholder="ENTER YOUR MESSAGE" required><?php echo isset($userMessage) ? htmlspecialchars($userMessage) : ''; ?></textarea>
+                
                 <button type="submit">SUBMIT</button>
             </form>
         </div>
@@ -438,7 +571,7 @@ if ($conn->connect_error) {
             </div>
             <div class="map">
                 <!-- Embed a Google Map (you can replace the iframe src with your location) -->
-                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.815173116849!2d103.84661461475363!3d1.283935999053289!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMcKwMTcnMDIuMiJOIDEwM8KwNTAnNDguNiJF!5e0!3m2!1sen!2ssg!4v1697041234567!5m2!1sen!2ssg" width="100%" height="200" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d996.7225547848768!2d102.24827109081896!3d2.1952332685660716!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1szh-CN!2smy!4v1746430278172!5m2!1szh-CN!2smy" width="600" height="350" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
             </div>
         </div>
     </div>
