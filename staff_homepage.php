@@ -38,46 +38,40 @@ $_SESSION['staff_email'] = $staff['Staff_Email'];
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Staff Dashboard - PetShop</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- Bootstrap & Font Awesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="staff.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Custom Styles -->
     <style>
-        /* Prevent FOUC */
         #sidebar {
-            display: none;
+            background-color: #343a40;
+            min-height: 100vh;
+            transition: transform 0.3s ease;
         }
-        @media (min-width: 992px) {
+        #sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+        .main-content {
+            transition: margin-left 0.3s ease;
+        }
+        @media (max-width: 992px) {
             #sidebar {
-                display: block;
+                position: fixed;
+                z-index: 1050;
+                width: 250px;
             }
-        }
-        
-        /* Loading indicator */
-        #loading {
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            background: white; 
-            z-index: 9999; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
+            .main-content.expanded {
+                margin-left: 0;
+            }
         }
     </style>
 </head>
 <body>
-<!-- Loading indicator -->
-<div id="loading">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
-</div>
-
-<!-- Navigation Bar -->
+<!-- Navbar -->
 <nav class="navbar navbar-expand navbar-dark bg-dark px-3">
     <div class="d-flex align-items-center">
         <button class="btn btn-dark me-3 d-lg-none" id="sidebarToggle">
@@ -91,7 +85,8 @@ $_SESSION['staff_email'] = $staff['Staff_Email'];
         <ul class="navbar-nav">
             <li class="nav-item">
                 <span class="nav-link text-light me-2">
-                    <i class="fas fa-user-circle me-1"></i>Welcome, <?php echo htmlspecialchars($_SESSION['staff_name']); ?>
+                    <i class="fas fa-user-circle me-1"></i>
+                    Welcome, <?php echo htmlspecialchars($_SESSION['staff_name']); ?>
                 </span>
             </li>
             <a href="logout.php" class="btn btn-danger btn-sm">
@@ -101,10 +96,11 @@ $_SESSION['staff_email'] = $staff['Staff_Email'];
     </div>
 </nav>
 
+<!-- Page layout -->
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar -->
-        <nav id="sidebar" class="col-lg-2 d-lg-block bg-dark sidebar">
+        <nav id="sidebar" class="col-lg-2 d-lg-block sidebar bg-dark">
             <div class="position-sticky pt-3">
                 <div class="text-center mb-4">
                     <img src="staff_avatars/<?php echo htmlspecialchars($_SESSION['staff_id']); ?>.jpg" 
@@ -115,14 +111,14 @@ $_SESSION['staff_email'] = $staff['Staff_Email'];
                     <h5 class="text-white mb-1"><?php echo htmlspecialchars($_SESSION['staff_name']); ?></h5>
                     <small class="text-muted"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
                 </div>
-                
+
                 <ul class="nav flex-column">
                     <li class="nav-item">
                         <a class="nav-link text-light active" href="staff_homepage.php">
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
                     </li>
-                    
+
                     <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
                             <i class="fas fa-shopping-cart me-2"></i>Order Management
@@ -142,78 +138,44 @@ $_SESSION['staff_email'] = $staff['Staff_Email'];
                             </ul>
                         </div>
                     </li>
-                    
-                    <!-- Rest of your sidebar menu items -->
-                    ...
+
+                    <!-- Add more menu items if needed -->
                 </ul>
             </div>
         </nav>
 
         <!-- Main Content -->
         <main class="col-lg-10 ms-sm-auto p-4 main-content">
-            <!-- Your main content here -->
-            ...
+            <h2>Welcome to your dashboard</h2>
+            <p>This is your staff homepage.</p>
+            <!-- Add dashboard content here -->
         </main>
     </div>
 </div>
 
 <!-- JavaScript -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Hide loading indicator
-    document.getElementById('loading').style.display = 'none';
-    
-    // Show sidebar now that DOM is loaded
-    document.getElementById('sidebar').style.display = 'block';
-    
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.querySelector('.main-content');
     const sidebarToggle = document.getElementById('sidebarToggle');
-    
-    // Check localStorage for sidebar state
-    const sidebarState = localStorage.getItem('sidebarState');
-    
-    // Initialize sidebar state
-    if (sidebarState === 'collapsed') {
-        sidebar.classList.add('collapsed');
-        mainContent.classList.add('expanded');
-    }
-    
-    // Toggle sidebar
+
     sidebarToggle.addEventListener('click', function(e) {
         e.stopPropagation();
         sidebar.classList.toggle('collapsed');
         mainContent.classList.toggle('expanded');
-        
-        // Save state
-        localStorage.setItem('sidebarState', 
-            sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded');
     });
-    
-    // Close sidebar when clicking outside on mobile
+
     document.addEventListener('click', function(e) {
-        if (window.innerWidth <= 992 && 
-            !sidebar.contains(e.target) && 
-            !sidebarToggle.contains(e.target) &&
-            !sidebar.classList.contains('collapsed')) {
+        if (window.innerWidth <= 992 &&
+            !sidebar.contains(e.target) &&
+            !sidebarToggle.contains(e.target)) {
             sidebar.classList.add('collapsed');
-            mainContent.classList.add('expanded');
-            localStorage.setItem('sidebarState', 'collapsed');
+            mainContent.classList.remove('expanded');
         }
     });
-    
-    // Initialize other functionality
-    // ...
 });
-
-// Hide loading indicator if page takes too long
-setTimeout(function() {
-    const loading = document.getElementById('loading');
-    if (loading) loading.style.display = 'none';
-}, 3000);
 </script>
-
 </body>
 </html>
