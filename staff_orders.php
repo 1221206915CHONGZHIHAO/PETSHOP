@@ -137,13 +137,18 @@ $conn->close();
 
 <nav class="navbar navbar-dark bg-dark px-3">
     <div class="d-flex align-items-center">
-        <button class="btn btn-dark me-3 d-md-none" id="sidebarToggle">
+        <button class="btn btn-dark me-3 d-lg-none" id="sidebarToggle">
             <i class="fas fa-bars"></i>
         </button>
-        <a class="navbar-brand" href="#">PetShop Admin</a>
+        <a class="navbar-brand" href="#">
+            <i class="fas fa-paw me-2"></i>PetShop Staff
+        </a>
     </div>
     <div>
-        <span class="text-light me-3">Welcome, Admin</span>
+        <span class="text-light me-3">
+            <i class="fas fa-user-circle me-1"></i>
+            Welcome, <?php echo htmlspecialchars($_SESSION['staff_name']); ?>
+        </span>
         <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
@@ -151,90 +156,80 @@ $conn->close();
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar -->
-        <nav id="sidebar" class="col-md-2 d-md-block bg-dark sidebar">
-            <div class="position-sticky">
-                <h4 class="text-light text-center py-3"><i class="fas fa-paw me-2"></i>Admin Menu</h4>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="admin_homepage.php">
-                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
-                            <i class="fas fa-users me-2"></i>Staff Management
-                        </a>
-                        <div class="collapse" id="staffMenu">
-                            <ul class="nav flex-column ps-4">
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="manage_staff.php">
-                                        <i class="fas fa-list me-2"></i>Staff List
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="staff_logs.php">
+        <nav id="sidebar" class="col-lg-2 d-lg-block bg-dark sidebar">
+    <div class="position-sticky pt-3">
+        <div class="text-center mb-4">
+            <?php
+            // Path to the staff avatar image
+            $avatar_path = "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
+            
+            // Check if the avatar exists, if so, display it
+            if (file_exists($avatar_path)) {
+                echo '<img src="' . $avatar_path . '" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">';
+            }
+            ?>
+            <h5 class="text-white mb-1"><?php echo htmlspecialchars($_SESSION['staff_name']); ?></h5>
+            <small class="text-muted"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link text-light" href="staff_homepage.php">
+                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
+                    <i class="fas fa-user-friends me-2"></i>Customer Management
+                </a>
+                <div class="collapse" id="customerMenu">
+                    <ul class="nav flex-column ps-4">
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="staff_customer_list.php">
+                                <i class="fas fa-list me-2"></i>Customer List
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_customer_logs.php">
                                         <i class="fas fa-history me-2"></i>Login/Logout Logs
                                     </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
-                            <i class="fas fa-user-friends me-2"></i>Customer Management
-                        </a>
-                        <div class="collapse" id="customerMenu">
-                            <ul class="nav flex-column ps-4">
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="customer_list.php">
-                                        <i class="fas fa-list me-2"></i>Customer List
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="customer_logs.php">
-                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-light active" data-bs-toggle="collapse" href="#orderMenu">
-                            <i class="fas fa-shopping-cart me-2"></i>Order Management
-                        </a>
-                        <div class="collapse show" id="orderMenu">
-                            <ul class="nav flex-column ps-4">
-                                <li class="nav-item">
-                                    <a class="nav-link text-light active" href="orders.php">
-                                        <i class="fas fa-list me-2"></i>Current Orders
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="reports.php">
-                            <i class="fas fa-chart-line me-2"></i>Reports
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="promotion.php">
-                            <i class="fas fa-tag me-2"></i>Promotions
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="inventory.php">
-                            <i class="fas fa-boxes me-2"></i>Inventory
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="admin_setting.php">
-                            <i class="fas fa-cog me-2"></i>Settings
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
+                    <i class="fas fa-shopping-cart me-2"></i>Order Management
+                </a>
+                <div class="collapse show" id="orderMenu">
+                    <ul class="nav flex-column ps-4">
+                        <li class="nav-item">
+                            <a class="nav-link text-light active" href="staff_orders.php">
+                                <i class="fas fa-list me-2"></i>Current Orders
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link text-light" href="staff_inventory.php">
+                    <i class="fas fa-boxes me-2"></i>Inventory
+                </a>
+            </li>
+
+            <li class="nav-item mt-3">
+                <a class="nav-link text-light" href="settings.php">
+                    <i class="fas fa-cog me-2"></i>Settings
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
 
         <main class="col-md-10 ms-sm-auto px-md-4">
             <?php if (isset($_SESSION['success_message'])): ?>

@@ -1,5 +1,21 @@
 <?php
+session_start();
+
+// Check if staff is logged in
+if (!isset($_SESSION['staff_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
 require_once 'db_connection.php';
+
+// Fetch staff details
+$staff_id = $_SESSION['staff_id'];
+$stmt = $conn->prepare("SELECT Staff_name, position FROM staff WHERE Staff_ID = ?");
+$stmt->bind_param("i", $staff_id);
+$stmt->execute();
+$staff_result = $stmt->get_result();
+$staff = $staff_result->fetch_assoc();
 
 // Handle form actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -84,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Fetch all products
 $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fetch_all(MYSQLI_ASSOC);
+$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -91,11 +108,26 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory - PetShop</title>
+    <title>Inventory - PetShop Staff</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="staff.css">
+    <link rel="stylesheet" href="admin_home.css">
     <style>
+        #sidebar {
+            background-color: #343a40;
+            min-height: 100vh;
+            transition: transform 0.3s ease;
+        }
+        @media (max-width: 992px) {
+            #sidebar {
+                position: fixed;
+                z-index: 1000;
+                transform: translateX(-100%);
+            }
+            #sidebar.show {
+                transform: translateX(0);
+            }
+        }
         .product-img { 
             max-width: 80px; 
             max-height: 80px; 
@@ -113,12 +145,30 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
             font-size: 0.8rem;
             padding: 0.35em 0.65em;
         }
+        .stat-card {
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .scroll-buttons {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .scroll-buttons button {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
 
-<!-- Navigation Bar -->
-<nav class="navbar navbar-expand navbar-dark bg-dark px-3">
+<nav class="navbar navbar-dark bg-dark px-3">
     <div class="d-flex align-items-center">
         <button class="btn btn-dark me-3 d-lg-none" id="sidebarToggle">
             <i class="fas fa-bars"></i>
@@ -127,19 +177,12 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
             <i class="fas fa-paw me-2"></i>PetShop Staff
         </a>
     </div>
-    <div class="navbar-collapse justify-content-end">
-        <ul class="navbar-nav">
-            <li class="nav-item">
-                <span class="nav-link text-light me-2">
-                    <i class="fas fa-user-circle me-1"></i>Welcome, Staff
-                </span>
-            </li>
-            <li class="nav-item">
-                <a href="login.php" class="btn btn-danger btn-sm">
-                    <i class="fas fa-sign-out-alt me-1"></i> Logout
-                </a>
-            </li>
-        </ul>
+    <div>
+        <span class="text-light me-3">
+            <i class="fas fa-user-circle me-1"></i>
+            Welcome, <?php echo htmlspecialchars($_SESSION['staff_name']); ?>
+        </span>
+        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 
@@ -147,87 +190,93 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
     <div class="row">
         <!-- Sidebar -->
         <nav id="sidebar" class="col-lg-2 d-lg-block bg-dark sidebar">
-            <div class="position-sticky pt-3">
-                <div class="text-center mb-4">
-                    <img src="staff_example.png" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
-                    <h5 class="text-white mb-1">Staff Member</h5>
-                    <small class="text-muted">Position</small>
+    <div class="position-sticky pt-3">
+        <div class="text-center mb-4">
+            <?php
+            // Path to the staff avatar image
+            $avatar_path = "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
+            
+            // Check if the avatar exists, if so, display it
+            if (file_exists($avatar_path)) {
+                echo '<img src="' . $avatar_path . '" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">';
+            }
+            ?>
+            <h5 class="text-white mb-1"><?php echo htmlspecialchars($_SESSION['staff_name']); ?></h5>
+            <small class="text-muted"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link text-light" href="staff_homepage.php">
+                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
+                    <i class="fas fa-user-friends me-2"></i>Customer Management
+                </a>
+                <div class="collapse" id="customerMenu">
+                    <ul class="nav flex-column ps-4">
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="staff_customer_list.php">
+                                <i class="fas fa-list me-2"></i>Customer List
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_customer_logs.php">
+                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
+                                    </a>
+                        </li>
+                    </ul>
                 </div>
-                
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="staff_homepage.php">
-                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
-                            <i class="fas fa-shopping-cart me-2"></i>Order Management
-                        </a>
-                        <div class="collapse" id="orderMenu">
-                            <ul class="nav flex-column ps-4">
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="manage_orders.php">
-                                        <i class="fas fa-list me-2"></i>Current Orders
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="returns.php">
-                                        <i class="fas fa-undo me-2"></i>Returns
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="customer_service.php">
-                            <i class="fas fa-headset me-2"></i>Customer Service
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="staff_email.php">
-                            <i class="fas fa-envelope me-2"></i>Messages
-                            <span class="badge bg-danger float-end" id="messageCount">0</span>
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="staff_tasks.php">
-                            <i class="fas fa-tasks me-2"></i>My Tasks
-                            <span class="badge bg-primary float-end" id="taskCount">0</span>
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link text-light active" href="staff_inventory.php">
-                            <i class="fas fa-boxes me-2"></i>Inventory
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item mt-3">
-                        <a class="nav-link text-light" href="settings.php">
-                            <i class="fas fa-cog me-2"></i>Settings
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
+                    <i class="fas fa-shopping-cart me-2"></i>Order Management
+                </a>
+                <div class="collapse" id="orderMenu">
+                    <ul class="nav flex-column ps-4">
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="staff_orders.php">
+                                <i class="fas fa-list me-2"></i>Current Orders
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link text-light active" href="staff_inventory.php">
+                    <i class="fas fa-boxes me-2"></i>Inventory
+                </a>
+            </li>
+
+            <li class="nav-item mt-3">
+                <a class="nav-link text-light" href="settings.php">
+                    <i class="fas fa-cog me-2"></i>Settings
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+
 
         <!-- Main Content -->
         <main class="col-lg-10 ms-sm-auto p-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">
-                    <i class="fas fa-boxes me-2"></i>Inventory
+                    <i class="fas fa-boxes me-2"></i>Inventory Management
                 </h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addItemModal">
-                        <i class="fas fa-plus me-1"></i>Add New Product
+                        <i class="fas fa-plus me-1"></i>Add Product
                     </button>
                     <div class="input-group search-box">
-                        <input type="text" class="form-control form-control-sm" placeholder="Search inventory..." id="inventorySearch">
+                        <input type="text" class="form-control form-control-sm" placeholder="Search..." id="inventorySearch">
                         <button class="btn btn-sm btn-outline-secondary" type="button">
                             <i class="fas fa-search"></i>
                         </button>
@@ -242,7 +291,7 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">TOTAL ITEMS</h6>
+                                    <h6 class="card-title">TOTAL PRODUCTS</h6>
                                     <h2 class="mb-0"><?= count($products) ?></h2>
                                 </div>
                                 <i class="fas fa-boxes fa-3x"></i>
@@ -298,104 +347,87 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
             </div>
 
             <!-- Inventory Table -->
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold">
-                        <i class="fas fa-warehouse me-2"></i>Current Inventory
-                    </h6>
-                    <div>
-                        <button class="btn btn-sm btn-outline-secondary me-2" id="exportBtn">
-                            <i class="fas fa-file-export me-1"></i> Export
-                        </button>
-                        <button class="btn btn-sm btn-outline-primary" id="printBtn">
-                            <i class="fas fa-print me-1"></i> Print
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0" id="inventoryTable">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Image</th>
-                                    <th>Product Name</th>
-                                    <th>Category</th>
-                                    <th>Price</th>
-                                    <th>Stock</th>
-                                    <th>Status</th>
-                                    <th>Last Updated</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($products as $product): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($product['product_id']) ?></td>
-                                    <td>
-                                        <?php if ($product['image_url']): ?>
-                                        <img src="<?= htmlspecialchars($product['image_url']) ?>" class="product-img" alt="Product Image">
-                                        <?php else: ?>
-                                        <span class="text-muted">No image</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td><?= htmlspecialchars($product['product_name']) ?></td>
-                                    <td><?= htmlspecialchars($product['Category']) ?></td>
-                                    <td>$<?= number_format($product['price'], 2) ?></td>
-                                    <td class="<?= $product['stock_quantity'] < 5 ? 'low-stock' : '' ?>">
-                                        <?= htmlspecialchars($product['stock_quantity']) ?>
-                                    </td>
-                                    <td>
-                                        <?php if ($product['stock_quantity'] > 10): ?>
-                                            <span class="badge bg-success status-badge">In Stock</span>
-                                        <?php elseif ($product['stock_quantity'] > 0): ?>
-                                            <span class="badge bg-warning text-dark status-badge">Low Stock</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-danger status-badge">Out of Stock</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td><?= date('Y-m-d H:i', strtotime($product['updated_at'])) ?></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" 
-                                            data-bs-target="#editModal" 
-                                            data-id="<?= $product['product_id'] ?>"
-                                            onclick="loadEditForm(this)">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <form method="POST" style="display:inline;">
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
-                                            <button type="submit" class="btn btn-sm btn-danger" 
-                                                onclick="return confirm('Are you sure you want to delete this product?')">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="card-footer bg-white">
-                    <nav aria-label="Inventory pagination">
-                        <ul class="pagination justify-content-end mb-0">
-                            <li class="page-item disabled">
-                                <a class="page-link" href="#" tabindex="-1">Previous</a>
-                            </li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                            <li class="page-item">
-                                <a class="page-link" href="#">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
+            <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-warehouse me-2"></i>Current Products
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Image</th>
+                            <th>Product Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($products as $product): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($product['product_id']) ?></td>
+                            <td>
+                                <?php if ($product['image_url']): ?>
+                                <img src="<?= htmlspecialchars($product['image_url']) ?>" class="product-img rounded" alt="Product Image">
+                                <?php else: ?>
+                                <span class="text-muted">No image</span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?= htmlspecialchars($product['product_name']) ?></td>
+                            <td>
+                                <?php 
+                                $category = htmlspecialchars($product['Category']);
+                                if (strpos($category, '>') !== false) {
+                                    $parts = explode('>', $category);
+                                    echo trim($parts[1]);
+                                } else {
+                                    echo $category;
+                                }
+                                ?>
+                            </td>
+                            <td>$<?= number_format($product['price'], 2) ?></td>
+                            <td class="<?= $product['stock_quantity'] < 5 ? 'low-stock' : '' ?>">
+                                <?= htmlspecialchars($product['stock_quantity']) ?>
+                            </td>
+                            <td>
+                                <?php if ($product['stock_quantity'] > 10): ?>
+                                    <span class="badge bg-success">In Stock</span>
+                                <?php elseif ($product['stock_quantity'] > 0): ?>
+                                    <span class="badge bg-warning text-dark">Low Stock</span>
+                                <?php else: ?>
+                                    <span class="badge bg-danger">Out of Stock</span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?= date('Y-m-d H:i', strtotime($product['updated_at'])) ?></td>
+                            <td>
+                                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" 
+                                    data-bs-target="#editModal" 
+                                    data-id="<?= $product['product_id'] ?>"
+                                    onclick="loadEditForm(this)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <form method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
+                                    <button type="submit" class="btn btn-sm btn-danger" 
+                                        onclick="return confirm('Are you sure you want to delete this product?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
-        </main>
+        </div>
     </div>
-</div>
+</main>
 
 <!-- Add Product Modal -->
 <div class="modal fade" id="addItemModal" tabindex="-1">
@@ -417,7 +449,12 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
                             <label class="form-label">Category*</label>
                             <select name="category" class="form-select" required>
                                 <option value="">Select Category</option>
-                                <option value="Dogs">Dogs</option>
+                                <optgroup label="Dogs">
+                                    <option value="Dogs">Dogs (General)</option>
+                                    <option value="Dog > Dry Food">Dog Dry Food</option>
+                                    <option value="Dog > Treats">Dog Treats</option>
+                                    <option value="Dog > Wet Food">Dog Wet Food</option>
+                                </optgroup>
                                 <option value="Cats">Cats</option>
                                 <option value="Birds">Birds</option>
                                 <option value="Fish">Fish</option>
@@ -468,7 +505,7 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
             </div>
             <form method="POST" enctype="multipart/form-data" id="editForm">
                 <div class="modal-body">
-                    <!-- Content loaded dynamically -->
+                    <!-- Content loaded dynamically from get_product.php -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -480,86 +517,12 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
         </div>
     </div>
 </div>
-
-<!-- Scroll to Top/Bottom Buttons -->
-<div class="scroll-buttons">
-    <button id="scrollToTopBtn" class="btn btn-dark rounded-circle shadow">
-        <i class="fas fa-arrow-up"></i>
-    </button>
-    <button id="scrollToBottomBtn" class="btn btn-dark rounded-circle shadow">
-        <i class="fas fa-arrow-down"></i>
-    </button>
-</div>
-
 <!-- JavaScript -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Sidebar toggle
-    document.getElementById('sidebarToggle').addEventListener('click', function() {
-        document.getElementById('sidebar').classList.toggle('show');
-    });
-
-    // Search functionality
-    document.getElementById('inventorySearch').addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        const rows = document.querySelectorAll('#inventoryTable tbody tr');
-        
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            row.style.display = text.includes(searchTerm) ? '' : 'none';
-        });
-    });
-
-    // Export button
-    document.getElementById('exportBtn').addEventListener('click', function() {
-        alert('Export functionality would be implemented here');
-    });
-
-    // Print button
-    document.getElementById('printBtn').addEventListener('click', function() {
-        window.print();
-    });
-
-    // Scroll functionality
-    const scrollToTopBtn = document.getElementById('scrollToTopBtn');
-    const scrollToBottomBtn = document.getElementById('scrollToBottomBtn');
-    
-    if (scrollToTopBtn && scrollToBottomBtn) {
-        // Scroll to top
-        scrollToTopBtn.addEventListener('click', () => {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        });
-        
-        // Scroll to bottom
-        scrollToBottomBtn.addEventListener('click', () => {
-            window.scrollTo({
-                top: document.body.scrollHeight,
-                behavior: 'smooth'
-            });
-        });
-        
-        // Show/hide based on scroll position
-        window.addEventListener('scroll', function() {
-            if (window.scrollY > 300) {
-                scrollToTopBtn.style.display = 'flex';
-            } else {
-                scrollToTopBtn.style.display = 'none';
-            }
-            
-            if ((window.innerHeight + window.scrollY) >= document.body.scrollHeight - 100) {
-                scrollToBottomBtn.style.display = 'none';
-            } else {
-                scrollToBottomBtn.style.display = 'flex';
-            }
-        });
-        
-        // Initialize
-        scrollToTopBtn.style.display = 'none';
-    }
+// Sidebar toggle
+document.getElementById('sidebarToggle').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
 });
 
 // Load edit form via AJAX
