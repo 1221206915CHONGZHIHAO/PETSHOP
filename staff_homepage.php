@@ -1,77 +1,16 @@
-<?php
-session_start();
-
-// Check if staff is logged in
-if (!isset($_SESSION['staff_id'])) {
-    header("Location: login.php");
-    exit();
-}
-
-// Database connection
-$db = new mysqli('localhost', 'root', '', 'petshop');
-if ($db->connect_error) {
-    die("Connection failed: " . $db->connect_error);
-}
-
-// Fetch staff details
-$staff_id = $_SESSION['staff_id'];
-$query = "SELECT Staff_name, position, Staff_Email FROM staff WHERE Staff_ID = ?";
-$stmt = $db->prepare($query);
-$stmt->bind_param("i", $staff_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$staff = $result->fetch_assoc();
-
-if (!$staff) {
-    session_unset();
-    session_destroy();
-    header("Location: login.php");
-    exit();
-}
-
-// Update session
-$_SESSION['staff_name'] = $staff['Staff_name'];
-$_SESSION['position'] = $staff['position'];
-$_SESSION['staff_email'] = $staff['Staff_Email'];
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Staff Dashboard - PetShop</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    
-    <!-- Bootstrap & Font Awesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-
-    <!-- Custom Styles -->
-    <style>
-        #sidebar {
-            background-color: #343a40;
-            min-height: 100vh;
-            transition: transform 0.3s ease;
-        }
-        #sidebar.collapsed {
-            transform: translateX(-100%);
-        }
-        .main-content {
-            transition: margin-left 0.3s ease;
-        }
-        @media (max-width: 992px) {
-            #sidebar {
-                position: fixed;
-                z-index: 1050;
-                width: 250px;
-            }
-            .main-content.expanded {
-                margin-left: 0;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="staff.css">
 </head>
 <body>
-<!-- Navbar -->
+
+<!-- 導航欄 -->
 <nav class="navbar navbar-expand navbar-dark bg-dark px-3">
     <div class="d-flex align-items-center">
         <button class="btn btn-dark me-3 d-lg-none" id="sidebarToggle">
@@ -85,40 +24,34 @@ $_SESSION['staff_email'] = $staff['Staff_Email'];
         <ul class="navbar-nav">
             <li class="nav-item">
                 <span class="nav-link text-light me-2">
-                    <i class="fas fa-user-circle me-1"></i>
-                    Welcome, <?php echo htmlspecialchars($_SESSION['staff_name']); ?>
+                    <i class="fas fa-user-circle me-1"></i>Welcome, John
                 </span>
             </li>
-            <a href="logout.php" class="btn btn-danger btn-sm">
+                        <a href="login.php" class="btn btn-danger btn-sm">
                 <i class="fas fa-sign-out-alt me-1"></i> Logout
             </a>
         </ul>
     </div>
 </nav>
 
-<!-- Page layout -->
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar -->
-        <nav id="sidebar" class="col-lg-2 d-lg-block sidebar bg-dark">
+        <!-- 側邊欄 -->
+        <nav id="sidebar" class="col-lg-2 d-lg-block bg-dark sidebar">
             <div class="position-sticky pt-3">
                 <div class="text-center mb-4">
-                    <img src="staff_avatars/<?php echo htmlspecialchars($_SESSION['staff_id']); ?>.jpg" 
-                         class="rounded-circle mb-2" 
-                         alt="Staff Avatar" 
-                         style="width: 80px; height: 80px; object-fit: cover;"
-                         onerror="this.src='default_avatar.jpg'">
-                    <h5 class="text-white mb-1"><?php echo htmlspecialchars($_SESSION['staff_name']); ?></h5>
-                    <small class="text-muted"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
+                    <img src="staff_example.png" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
+                    <h5 class="text-white mb-1">John Doe</h5>
+                    <small class="text-muted">Staff Member</small>
                 </div>
-
+                
                 <ul class="nav flex-column">
                     <li class="nav-item">
                         <a class="nav-link text-light active" href="staff_homepage.php">
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
                     </li>
-
+                    
                     <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
                             <i class="fas fa-shopping-cart me-2"></i>Order Management
@@ -138,44 +71,348 @@ $_SESSION['staff_email'] = $staff['Staff_Email'];
                             </ul>
                         </div>
                     </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="customer_service.php">
+                            <i class="fas fa-headset me-2"></i>Customer Service
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="staff_email.php">
+                            <i class="fas fa-envelope me-2"></i>Messages
+                            <span class="badge bg-danger float-end">3</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="staff_tasks.php">
+                            <i class="fas fa-tasks me-2"></i>My Tasks
+                        </a>
+                    </li>
 
-                    <!-- Add more menu items if needed -->
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="staff_inventory.php">
+                            <i class="fas fa-boxes me-2"></i>Inventory
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item mt-3">
+                        <a class="nav-link text-light" href="settings.php">
+                            <i class="fas fa-cog me-2"></i>Settings
+                        </a>
+                    </li>
                 </ul>
             </div>
         </nav>
 
-        <!-- Main Content -->
-        <main class="col-lg-10 ms-sm-auto p-4 main-content">
-            <h2>Welcome to your dashboard</h2>
-            <p>This is your staff homepage.</p>
-            <!-- Add dashboard content here -->
+        <!-- 主內容區 -->
+        <main class="col-lg-10 ms-sm-auto p-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    <i class="fas fa-tachometer-alt me-2"></i>Staff Dashboard
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-calendar me-1"></i> Today
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-sync me-1"></i> Refresh
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i> New Task
+                    </button>
+                </div>
+            </div>
+
+            <!-- 統計卡片 -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card text-white bg-primary stat-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">ASSIGNED TASKS</h6>
+                                    <h2 class="mb-0">5</h2>
+                                </div>
+                                <i class="fas fa-tasks fa-3x"></i>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-primary bg-opacity-10 d-flex align-items-center justify-content-between">
+                            <a class="small text-white stretched-link" href="tasks.php">View Details</a>
+                            <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card text-white bg-success stat-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">COMPLETED TODAY</h6>
+                                    <h2 class="mb-0">12</h2>
+                                </div>
+                                <i class="fas fa-check-circle fa-3x"></i>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-success bg-opacity-10 d-flex align-items-center justify-content-between">
+                            <a class="small text-white stretched-link" href="tasks.php?filter=completed">View Details</a>
+                            <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card text-white bg-warning stat-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">PENDING ORDERS</h6>
+                                    <h2 class="mb-0">8</h2>
+                                </div>
+                                <i class="fas fa-clock fa-3x"></i>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-warning bg-opacity-10 d-flex align-items-center justify-content-between">
+                            <a class="small text-white stretched-link" href="manage_orders.php">View Details</a>
+                            <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card text-white bg-danger stat-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">URGENT REQUESTS</h6>
+                                    <h2 class="mb-0">3</h2>
+                                </div>
+                                <i class="fas fa-exclamation-triangle fa-3x"></i>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-danger bg-opacity-10 d-flex align-items-center justify-content-between">
+                            <a class="small text-white stretched-link" href="tasks.php?filter=urgent">View Details</a>
+                            <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- 近期任務 -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold">
+                                <i class="fas fa-tasks me-2"></i>Recent Tasks
+                            </h6>
+                            <a href="tasks.php" class="btn btn-sm btn-link">View All</a>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group list-group-flush">
+                                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">Process Order #1001</h6>
+                                        <small class="text-muted">Due: Today 5:00 PM</small>
+                                    </div>
+                                    <span class="badge bg-warning text-dark">In Progress</span>
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">Respond to Customer Inquiry</h6>
+                                        <small class="text-muted">Priority: High</small>
+                                    </div>
+                                    <span class="badge bg-danger">Urgent</span>
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">Update Inventory Records</h6>
+                                        <small class="text-muted">Due: Tomorrow</small>
+                                    </div>
+                                    <span class="badge bg-primary">New</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 近期消息 -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold">
+                                <i class="fas fa-envelope me-2"></i>Recent Messages
+                            </h6>
+                            <a href="staff_email.php" class="btn btn-sm btn-link">View All</a>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group list-group-flush">
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Order Delivery Question</h6>
+                                        <small>1 hour ago</small>
+                                    </div>
+                                    <p class="mb-1 text-muted">From: customer@example.com</p>
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Product Return Request</h6>
+                                        <small>3 hours ago</small>
+                                    </div>
+                                    <p class="mb-1 text-muted">From: another@customer.com</p>
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Inventory Update</h6>
+                                        <small>Yesterday</small>
+                                    </div>
+                                    <p class="mb-1 text-muted">From: manager@petshop.com</p>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 近期訂單 -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-shopping-cart me-2"></i>Recent Orders
+                    </h6>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary me-2">
+                            <i class="fas fa-download me-1"></i> Export
+                        </button>
+                        <a href="manage_orders.php" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus me-1"></i> New Order
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>#1001</td>
+                                    <td>John Doe</td>
+                                    <td>2025-03-01</td>
+                                    <td>$120.00</td>
+                                    <td><span class="badge bg-success">Completed</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-print"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>#1002</td>
+                                    <td>Jane Smith</td>
+                                    <td>2025-03-02</td>
+                                    <td>$85.50</td>
+                                    <td><span class="badge bg-warning text-dark">Processing</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>#1003</td>
+                                    <td>Robert Johnson</td>
+                                    <td>2025-03-03</td>
+                                    <td>$210.75</td>
+                                    <td><span class="badge bg-info">Shipped</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-truck"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 </div>
 
 <!-- JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.querySelector('.main-content');
-    const sidebarToggle = document.getElementById('sidebarToggle');
-
-    sidebarToggle.addEventListener('click', function(e) {
-        e.stopPropagation();
-        sidebar.classList.toggle('collapsed');
-        mainContent.classList.toggle('expanded');
+    // 側邊欄切換
+    document.getElementById('sidebarToggle').addEventListener('click', function() {
+        document.getElementById('sidebar').classList.toggle('show');
     });
-
-    document.addEventListener('click', function(e) {
-        if (window.innerWidth <= 992 &&
-            !sidebar.contains(e.target) &&
-            !sidebarToggle.contains(e.target)) {
-            sidebar.classList.add('collapsed');
-            mainContent.classList.remove('expanded');
+    
+    // 初始化圖表
+    const salesCtx = document.getElementById('salesChart')?.getContext('2d');
+    if (salesCtx) {
+        new Chart(salesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Orders Processed',
+                    data: [12, 19, 15, 20, 25, 22],
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+    
+    // 模擬實時更新
+    setInterval(() => {
+        const urgentBadge = document.querySelector('.bg-danger h2');
+        if (urgentBadge) {
+            const current = parseInt(urgentBadge.textContent);
+            if (current > 0 && Math.random() > 0.7) {
+                urgentBadge.textContent = current - 1;
+            } else if (Math.random() > 0.9) {
+                urgentBadge.textContent = current + 1;
+            }
         }
-    });
+    }, 5000);
 });
 </script>
+
 </body>
 </html>
