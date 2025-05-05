@@ -193,6 +193,12 @@ $conn->close();
             </li>
 
             <li class="nav-item">
+                        <a class="nav-link text-light" href="staff_reports.php">
+                            <i class="fas fa-chart-line me-2"></i>Reports
+                        </a>
+                    </li>
+
+            <li class="nav-item">
                 <a class="nav-link text-light" href="staff_inventory.php">
                     <i class="fas fa-boxes me-2"></i>Inventory
                 </a>
