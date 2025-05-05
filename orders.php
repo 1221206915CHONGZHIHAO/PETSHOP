@@ -260,19 +260,6 @@ $conn->close();
                                                 </span>
                                             </td>
                                             <td>
-                                                <button class="btn btn-sm btn-primary view-order-btn" 
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#viewOrderModal"
-                                                        data-order-id="<?php echo $order['Order_ID']; ?>"
-                                                        data-customer="<?php echo htmlspecialchars($order['Customer_name']); ?>"
-                                                        data-products="<?php echo htmlspecialchars($order['products']); ?>"
-                                                        data-total="<?php echo $order['Total']; ?>"
-                                                        data-date="<?php echo htmlspecialchars($order['Order_Date']); ?>"
-                                                        data-status="<?php echo htmlspecialchars($order['Status']); ?>"
-                                                        data-address="<?php echo htmlspecialchars($order['Address']); ?>"
-                                                        data-payment="<?php echo htmlspecialchars($order['PaymentMethod']); ?>">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
                                                 <button class="btn btn-sm btn-warning update-status-btn" 
                                                         data-bs-toggle="modal" 
                                                         data-bs-target="#updateStatusModal"
@@ -301,40 +288,6 @@ $conn->close();
                 </div>
             </div>
         </main>
-    </div>
-</div>
-
-<!-- View Order Modal -->
-<div class="modal fade action-modal" id="viewOrderModal" tabindex="-1" aria-labelledby="viewOrderModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="viewOrderModalLabel"><i class="fas fa-file-invoice me-2"></i>Order Details</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body order-details">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Order ID:</strong> <span id="viewOrderId"></span></p>
-                        <p><strong>Customer:</strong> <span id="viewCustomer"></span></p>
-                        <p><strong>Order Date:</strong> <span id="viewOrderDate"></span></p>
-                        <p><strong>Address:</strong> <span id="viewOrderAddress"></span></p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Status:</strong> <span id="viewOrderStatus" class="badge"></span></p>
-                        <p><strong>Payment Method:</strong> <span id="viewPaymentMethod"></span></p>
-                        <p><strong>Total Amount:</strong> $<span id="viewOrderTotal"></span></p>
-                    </div>
-                </div>
-                <hr>
-                <h6 class="mb-3"><i class="fas fa-box-open me-2"></i>Products</h6>
-                <p id="viewOrderProducts"></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <a id="printInvoiceBtn" href="#" target="_blank" class="btn btn-primary">Print Invoice</a>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -395,27 +348,6 @@ $conn->close();
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // View Order Modal Handler
-    const viewOrderModal = document.getElementById('viewOrderModal');
-    viewOrderModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        document.getElementById('viewOrderId').textContent = button.getAttribute('data-order-id');
-        document.getElementById('viewCustomer').textContent = button.getAttribute('data-customer');
-        document.getElementById('viewOrderProducts').textContent = button.getAttribute('data-products');
-        document.getElementById('viewOrderTotal').textContent = button.getAttribute('data-total');
-        document.getElementById('viewOrderDate').textContent = button.getAttribute('data-date');
-        document.getElementById('viewOrderAddress').textContent = button.getAttribute('data-address');
-        document.getElementById('viewPaymentMethod').textContent = button.getAttribute('data-payment');
-
-        const statusBadge = document.getElementById('viewOrderStatus');
-        statusBadge.textContent = button.getAttribute('data-status');
-        statusBadge.className = 'badge bg-' + (button.getAttribute('data-status') === 'Completed' ? 'success' : 
-                                              (button.getAttribute('data-status') === 'Processing' ? 'warning' : 
-                                              (button.getAttribute('data-status') === 'Shipped' ? 'info' : 'danger'));
-
-        document.getElementById('printInvoiceBtn').href = "invoice.php?order_id=" + button.getAttribute('data-order-id');
-    });
-
     // Update Status Modal Handler
     const updateStatusModal = document.getElementById('updateStatusModal');
     updateStatusModal.addEventListener('show.bs.modal', function(event) {
