@@ -1,7 +1,6 @@
 <?php
 session_start();
 
-
 $servername  = "localhost";
 $db_username = "root";
 $db_password = "";
@@ -10,6 +9,19 @@ $dbname      = "petshop";
 $conn = new mysqli($servername, $db_username, $db_password, $dbname);
 if ($conn->connect_error) {
     die("数据库连接失败: " . $conn->connect_error);
+}
+
+// No longer need to process search on homepage
+// Search will be redirected to products.php
+
+// Fetch best sellers (for example, using most recently added products)
+$best_sellers = [];
+$best_sellers_sql = "SELECT * FROM products ORDER BY created_at DESC LIMIT 4";
+$best_sellers_result = $conn->query($best_sellers_sql);
+if ($best_sellers_result && $best_sellers_result->num_rows > 0) {
+    while($row = $best_sellers_result->fetch_assoc()) {
+        $best_sellers[] = $row;
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset($_POST['password'])) {
@@ -73,15 +85,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
 
         <!-- Icons on the right -->
         <ul class="navbar-nav ms-auto nav-icons">
-          <!-- Search Icon with Dropdown -->
+          <!-- Search Icon with Dropdown - Modified to redirect to products.php -->
           <li class="nav-item dropdown">
             <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-search"></i>
             </a>
-            <ul class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="searchDropdown" style="min-width: 300px;">
-              <form class="d-flex">
-                <input class="form-control me-2" type="search" placeholder="Search products..." aria-label="Search">
-                <button class="btn btn-primary" type="submit">Go</button>
+            <ul class="dropdown-menu dropdown-menu-end search-dropdown" aria-labelledby="searchDropdown">
+              <form class="d-flex search-form" action="products.php" method="GET">
+                <input class="form-control me-2" type="search" name="search" placeholder="Search products..." aria-label="Search" required>
+                <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
               </form>
             </ul>
           </li>
@@ -156,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
             <div class="card-body text-center">
               <h5 class="card-title">Dogs</h5>
               <p class="card-text text-muted mb-4">Food, toys, accessories, and more for your canine companion</p>
-              <a href="products.php?category=dogs" class="btn btn-outline-primary">Browse Products</a>
+              <a href="products.php?category=Dogs" class="btn btn-outline-primary">Browse Products</a>
             </div>
           </div>
         </div>
@@ -169,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
             <div class="card-body text-center">
               <h5 class="card-title">Cats</h5>
               <p class="card-text text-muted mb-4">Everything your feline friend needs for a happy, healthy life</p>
-              <a href="products.php?category=cats" class="btn btn-outline-primary">Browse Products</a>
+              <a href="products.php?category=Cats" class="btn btn-outline-primary">Browse Products</a>
             </div>
           </div>
         </div>
@@ -182,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
             <div class="card-body text-center">
               <h5 class="card-title">Other Pets</h5>
               <p class="card-text text-muted mb-4">Supplies for birds, fish, reptiles, and small animals</p>
-              <a href="products.php?category=other" class="btn btn-outline-primary">Browse Products</a>
+              <a href="products.php?category=Other" class="btn btn-outline-primary">Browse Products</a>
             </div>
           </div>
         </div>
@@ -198,58 +210,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
         <p class="section-subtitle">Discover the products our customers love the most</p>
       </div>
       <div class="row">
-        <!-- Best Seller Product 1 -->
-        <div class="col-6 col-md-3 mb-4" data-aos="fade-up" data-aos-delay="100">
-          <div class="card product-card">
-            <div class="product-img-container">
-              <img src="dog_product.png" class="card-img-top" alt="PEDIGREE Complete Nutrition">
+        <?php if(count($best_sellers) > 0): ?>
+          <?php foreach($best_sellers as $index => $product): ?>
+            <div class="col-6 col-md-3 mb-4" data-aos="fade-up" data-aos-delay="<?php echo ($index + 1) * 100; ?>">
+              <div class="card product-card">
+                <div class="product-img-container">
+                  <img src="<?php echo htmlspecialchars($product['image_url'] ?? 'product-placeholder.png'); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
+                </div>
+                <div class="card-body">
+                  <h5 class="card-title"><?php echo htmlspecialchars($product['product_name']); ?></h5>
+                  <div class="price">$<?php echo number_format($product['price'], 2); ?></div>
+                  <a href="#" class="btn btn-primary add-to-cart-btn" 
+                     data-product-id="<?php echo $product['product_id']; ?>" 
+                     data-product-name="<?php echo htmlspecialchars($product['product_name']); ?>">
+                    Add to Cart
+                  </a>
+                </div>
+              </div>
             </div>
-            <div class="card-body">
-              <h5 class="card-title">PEDIGREE Complete Nutrition Dog Food</h5>
-              <div class="price">$29.99</div>
-              <a href="#" class="btn btn-primary add-to-cart-btn" data-product-id="1" data-product-name="PEDIGREE Complete Nutrition">Add to Cart</a>
-            </div>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <div class="col-12 text-center">
+            <p>No products available at the moment. Check back soon!</p>
           </div>
-        </div>
-        <!-- Best Seller Product 2 -->
-        <div class="col-6 col-md-3 mb-4" data-aos="fade-up" data-aos-delay="200">
-          <div class="card product-card">
-            <div class="product-img-container">
-              <img src="cat_scratcher.png" class="card-img-top" alt="Cat Scratcher">
-            </div>
-            <div class="card-body">
-              <h5 class="card-title">Premium Cat Scratcher Tower</h5>
-              <div class="price">$19.99</div>
-              <a href="#" class="btn btn-primary add-to-cart-btn" data-product-id="2" data-product-name="Premium Cat Scratcher">Add to Cart</a>
-            </div>
-          </div>
-        </div>
-        <!-- Best Seller Product 3 -->
-        <div class="col-6 col-md-3 mb-4" data-aos="fade-up" data-aos-delay="300">
-          <div class="card product-card">
-            <div class="product-img-container">
-              <img src="Bird_cage.png" class="card-img-top" alt="Bird Cage">
-            </div>
-            <div class="card-body">
-              <h5 class="card-title">Deluxe Bird Cage with Stand</h5>
-              <div class="price">$49.99</div>
-              <a href="#" class="btn btn-primary add-to-cart-btn" data-product-id="3" data-product-name="Deluxe Bird Cage">Add to Cart</a>
-            </div>
-          </div>
-        </div>
-        <!-- Best Seller Product 4 -->
-        <div class="col-6 col-md-3 mb-4" data-aos="fade-up" data-aos-delay="400">
-          <div class="card product-card">
-            <div class="product-img-container">
-              <img src="fish_tank.png" class="card-img-top" alt="Fish Tank">
-            </div>
-            <div class="card-body">
-              <h5 class="card-title">Complete Aquarium Starter Kit</h5>
-              <div class="price">$89.99</div>
-              <a href="#" class="btn btn-primary add-to-cart-btn" data-product-id="4" data-product-name="Complete Aquarium Kit">Add to Cart</a>
-            </div>
-          </div>
-        </div>
+        <?php endif; ?>
       </div>
       <div class="text-center mt-4" data-aos="fade-up">
         <a href="products.php" class="btn btn-outline-primary">View All Products</a>
@@ -344,7 +328,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
   </section>
 
   <!-- Brands Section with improved visual interest -->
-  <section class="brands py-5" style="background: linear-gradient(135deg, var(--light-gray) 0%, white 50%, var(--light-gray) 100%);">>
+  <section class="brands py-5" style="background: linear-gradient(135deg, var(--light-gray) 0%, white 50%, var(--light-gray) 100%);">
     <div class="container">
       <div class="text-center mb-5" data-aos="fade-up">
         <h2 class="section-title">Trusted Brands</h2>
@@ -432,7 +416,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
               </div>
             </div>
           </div>
-          
+        </div>
+      </div>
       
       <!-- Footer Bottom -->
       <div class="footer-bottom" style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 40px; padding-top: 20px;">
