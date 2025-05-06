@@ -1,10 +1,10 @@
 <?php
 session_start();
 
-// Check if admin is logged in
-if (!isset($_SESSION['admin_logged_in'])) {
-    header("Location: login.php");
-    exit();
+// Check if staff is logged in
+if (!isset($_SESSION['staff_id'])) {
+    header("Location: login.php?redirect=customer_list.php");
+    exit;
 }
 
 // Database connection
