@@ -92,25 +92,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 $conn->query("UPDATE Staff SET password_reset_token = NULL WHERE Staff_id = $db_staff_id");
                                 
                                 // Record successful staff login
-                                    if ($password === $db_password) {
-                                        $_SESSION['role'] = $role;
-                                        if ($role === "staff") {
-                                            $_SESSION['staff_id'] = $db_staff_id;
-                                            $_SESSION['staff_name'] = $db_username;  // Add this line
-                                            $_SESSION['staff_email'] = $db_email;    // Add this line
-                                            $_SESSION['username'] = $db_username;    // Keep for compatibility
-                                            $_SESSION['email'] = $db_email;          // Keep for compatibility
-                                            
-                                            $conn->query("UPDATE Staff SET password_reset_token = NULL WHERE Staff_id = $db_staff_id");
-                                            
-                                            // Record successful staff login
-                                            $conn->query("INSERT INTO staff_login_logs (staff_id, username, email, status) 
-                                                        VALUES ($db_staff_id, '$db_username', '$db_email', 'login')");
-                                            
-                                            $redirect_url = !empty($redirect) ? $redirect : 'staff_homepage.php';
-                                        }
-
-                                                                    
+                                $conn->query("INSERT INTO staff_login_logs (staff_id, username, email, status) 
+                                            VALUES ($db_staff_id, '$db_username', '$db_email', 'login')");
+                                
+                                $redirect_url = !empty($redirect) ? $redirect : 'staff_homepage.php';
+                            } elseif ($role === "customer") {
+                                $_SESSION['customer_id'] = $db_customer_id;
+                                $_SESSION['customer_name'] = $db_username;
+                                $_SESSION['email'] = $db_email;
+                                $redirect_url = !empty($redirect) ? $redirect : 'userhomepage.php';
+                                
                                 // Record successful customer login
                                 $conn->query("INSERT INTO customer_login_logs (username, email, status) 
                                             VALUES ('$db_username', '$db_email', 'login')");
@@ -144,13 +135,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         }
                     }
                     $stmt->close();
-                    }
                 }
             }
         }
     }
 }
-
 
 $conn->close();
 ?>

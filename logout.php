@@ -7,6 +7,9 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
+// Initialize redirect URL (default to login page)
+$redirect_url = "login.php";
+
 // If staff is logged in, record logout activity
 if (isset($_SESSION['staff_id'])) {
     // Use staff_name/staff_email if available, otherwise fall back to username/email
@@ -19,15 +22,21 @@ if (isset($_SESSION['staff_id'])) {
     $stmt->bind_param("iss", $staff_id, $username, $email);
     $stmt->execute();
     $stmt->close();
+    
+    // Set redirect URL for staff
+    $redirect_url = "login.php";
 }
 
-// If customer is logged in (keep existing customer code exactly the same)
+// If customer is logged in
 if (isset($_SESSION['customer_id']) && isset($_SESSION['customer_name']) && isset($_SESSION['email'])) {
     $customer_id = $_SESSION['customer_id'];
     
     // Record logout activity
     $conn->query("INSERT INTO customer_login_logs (username, email, status) 
                 VALUES ('{$_SESSION['customer_name']}', '{$_SESSION['email']}', 'logout')");
+    
+    // Set redirect URL for customer
+    $redirect_url = "userhomepage.php";
 }
 
 // Unset all session variables
@@ -38,7 +47,7 @@ session_destroy();
 
 $conn->close();
 
-// Redirect to login page instead of userhomepage
-header("Location: login.php");
+// Redirect to the appropriate page
+header("Location: $redirect_url");
 exit();
 ?>
