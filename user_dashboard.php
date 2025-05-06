@@ -139,11 +139,11 @@ $masked_password = str_repeat('*', strlen($actual_password));
 
           <!-- Cart Icon with item count -->
           <li class="nav-item">
-            <a class="nav-link position-relative <?php echo basename($_SERVER['PHP_SELF']) == 'cart.php' ? 'active' : ''; ?>" href="cart.php">
+            <a class="nav-link position-relative" href="cart.php">
               <i class="bi bi-cart"></i>
-              <?php if(isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
+              <?php if (isset($_SESSION['cart_count']) && $_SESSION['cart_count'] > 0): ?>
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
-                  <?php echo count($_SESSION['cart']); ?>
+                  <?php echo htmlspecialchars($_SESSION['cart_count']); ?>
                 </span>
               <?php endif; ?>
             </a>

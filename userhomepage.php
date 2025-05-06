@@ -6,12 +6,13 @@ $db_username = "root";
 $db_password = "";
 $dbname      = "petshop";
 
+// Database connection
 $conn = new mysqli($servername, $db_username, $db_password, $dbname);
 if ($conn->connect_error) {
-    die("数据库连接失败: " . $conn->connect_error);
+    die("Database connection failed: " . $conn->connect_error);
 }
 
-// Fetch best sellers (for example, using most recently added products)
+// Fetch best sellers (example: most recently added products)
 $best_sellers = [];
 $best_sellers_sql = "SELECT * FROM products ORDER BY created_at DESC LIMIT 4";
 $best_sellers_result = $conn->query($best_sellers_sql);
@@ -21,21 +22,63 @@ if ($best_sellers_result && $best_sellers_result->num_rows > 0) {
     }
 }
 
+// Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset($_POST['password'])) {
     $username = $conn->real_escape_string($_POST['username']);
     $password = $conn->real_escape_string($_POST['password']);
     
-    $sql = "SELECT * FROM customer WHERE customer_name='$username' AND customer_password='$password'";
-    $result = $conn->query($sql);
+    // Use prepared statement for secure login
+    $stmt = $conn->prepare("SELECT * FROM customer WHERE customer_name = ? AND customer_password = ?");
+    $stmt->bind_param("ss", $username, $password);
+    $stmt->execute();
+    $result = $stmt->get_result();
     
     if ($result && $result->num_rows > 0) {
         $row = $result->fetch_assoc();
         $_SESSION['customer_id'] = $row['customer_id'];
         $_SESSION['customer_name'] = $row['customer_name'];
+        
+        // Sync cart data from database
+        $cart_stmt = $conn->prepare("
+            SELECT COUNT(DISTINCT Inventory_ID) AS cart_count 
+            FROM cart 
+            WHERE Customer_ID = ?
+        ");
+        $cart_stmt->bind_param("i", $_SESSION['customer_id']);
+        $cart_stmt->execute();
+        $cart_result = $cart_stmt->get_result();
+        $cart_row = $cart_result->fetch_assoc();
+        
+        // Initialize session cart data
+        $_SESSION['cart_count'] = $cart_row['cart_count'] ?? 0;
+        $_SESSION['cart'] = [];
+        
+        $cart_stmt->close();
+        $stmt->close();
+        
         header("Location: userhomepage.php");
         exit();
     } else {
-        $login_error = "用户名或密码错误";
+        $login_error = "Invalid username or password";
+    }
+    $stmt->close();
+}
+
+// Ensure cart count is loaded for logged-in users on every page
+if (isset($_SESSION['customer_id'])) {
+    // Only query if cart_count isn't set or needs refresh
+    if (!isset($_SESSION['cart_count'])) {
+        $stmt = $conn->prepare("
+            SELECT COUNT(DISTINCT Inventory_ID) AS cart_count 
+            FROM cart 
+            WHERE Customer_ID = ?
+        ");
+        $stmt->bind_param("i", $_SESSION['customer_id']);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $_SESSION['cart_count'] = $row['cart_count'] ?? 0;
+        $stmt->close();
     }
 }
 ?>
@@ -60,21 +103,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
   <link rel="stylesheet" href="userhomepage.css">
 </head>
 <body>
-  <!-- Navigation -->
-  <nav class="navbar navbar-expand-lg custom-nav fixed-top">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg custom-nav fixed-top">
     <div class="container">
-      <!-- Brand on the left -->
       <a class="navbar-brand" href="userhomepage.php">
         <img src="Hachi_Logo.png" alt="Hachi Pet Shop">
       </a>
       
-      <!-- Toggler for mobile view -->
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
 
       <div class="collapse navbar-collapse" id="navbarNav">
-        <!-- Main nav links centered -->
         <ul class="navbar-nav mx-auto">
           <li class="nav-item"><a class="nav-link active" href="userhomepage.php">Home</a></li>
           <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
@@ -82,9 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
           <li class="nav-item"><a class="nav-link" href="contact_us.php">Contact Us</a></li>
         </ul>
 
-        <!-- Icons on the right -->
         <ul class="navbar-nav ms-auto nav-icons">
-          <!-- Search Icon with Dropdown - Modified to redirect to products.php -->
+          <!-- Search Icon -->
           <li class="nav-item dropdown">
             <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-search"></i>
@@ -97,19 +136,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
             </ul>
           </li>
 
-          <!-- Cart Icon with item count -->
+          <!-- Cart Icon -->
           <li class="nav-item">
             <a class="nav-link position-relative" href="cart.php">
               <i class="bi bi-cart"></i>
-              <?php if(isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
+              <?php if (isset($_SESSION['cart_count']) && $_SESSION['cart_count'] > 0): ?>
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
-                  <?php echo count($_SESSION['cart']); ?>
+                  <?php echo htmlspecialchars($_SESSION['cart_count']); ?>
                 </span>
               <?php endif; ?>
             </a>
           </li>
 
-          <!-- User Icon with Dynamic Dropdown -->
+          <!-- User Icon -->
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <?php if(isset($_SESSION['customer_id'])): ?>
