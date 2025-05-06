@@ -163,15 +163,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                     <!-- Cart Icon with item count -->
                     <li class="nav-item">
-                        <a class="nav-link position-relative" href="cart.php">
-                            <i class="bi bi-cart"></i>
-                            <?php if(isset($_SESSION['cart']) && count($_SESSION['cart']) > 0): ?>
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
-                                    <?php echo count($_SESSION['cart']); ?>
-                                </span>
-                            <?php endif; ?>
-                        </a>
-                    </li>
+            <a class="nav-link position-relative" href="cart.php">
+              <i class="bi bi-cart"></i>
+              <?php if (isset($_SESSION['cart_count']) && $_SESSION['cart_count'] > 0): ?>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                  <?php echo htmlspecialchars($_SESSION['cart_count']); ?>
+                </span>
+              <?php endif; ?>
+            </a>
+          </li>
 
                     <!-- User Icon with Dynamic Dropdown -->
                     <li class="nav-item dropdown">
