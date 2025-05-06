@@ -215,6 +215,11 @@ $settings = array_merge([
                                         echo htmlspecialchars($settings['address']); ?></textarea>
                                 </div>
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label">Opening Hours</label>
+                                <input type="text" name="opening_hours" class="form-control"
+                                    value="<?php echo htmlspecialchars($settings['opening_hours']); ?>" required>
+                            </div>
                         </div>
                         
                         <div class="text-end">

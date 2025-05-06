@@ -314,7 +314,7 @@ $db->close();
 <!-- JavaScript -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function()) {
     // Sidebar toggle
     document.getElementById('sidebarToggle').addEventListener('click', function() {
         document.getElementById('sidebar').classList.toggle('show');
@@ -330,20 +330,55 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Form submission handling
+// Replace the existing form submission handler with this:
     document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        // Add password change logic here
-        alert('Password change functionality will be implemented here');
-    });
-
-    document.getElementById('profilePictureForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        // Add profile picture upload logic here
-        alert('Profile picture upload functionality will be implemented here');
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    formData.append('action', 'change_password');
+    
+    fetch('process_settings.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Password changed successfully!');
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
     });
 });
 
+// Replace the existing form submission handler with this:
+    document.getElementById('profilePictureForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    formData.append('action', 'upload_avatar');
+    
+    fetch('process_settings.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Profile picture updated successfully!');
+            // Refresh the page to show new image
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+});
 function togglePassword() {
     const passwordDisplay = document.getElementById('passwordDisplay');
     const passwordToggleIcon = document.getElementById('passwordToggleIcon');
