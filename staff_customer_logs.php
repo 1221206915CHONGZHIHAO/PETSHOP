@@ -108,7 +108,7 @@ $conn->close();
             <i class="fas fa-user-circle me-1"></i>
             Welcome, <?php echo htmlspecialchars($_SESSION['staff_name']); ?>
         </span>
-        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <a href="logout.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 
