@@ -100,22 +100,6 @@ while ($row = $result->fetch_assoc()) {
     $salesData['data'][] = $row['amount'];
 }
 
-// Fetch data for category chart
-$categoryData = [];
-$result = $conn->query("SELECT 
-    c.category_name,
-    SUM(oi.quantity * oi.unit_price) AS revenue
-    FROM order_items oi
-    JOIN products p ON oi.product_id = p.product_id
-    JOIN pet_categories c ON p.Category = c.category_id
-    GROUP BY c.category_id
-    ORDER BY revenue DESC");
-
-while ($row = $result->fetch_assoc()) {
-    $categoryData['labels'][] = $row['category_name'];
-    $categoryData['data'][] = $row['revenue'];
-}
-
 // Fetch recent orders (always limit to 5)
 $recentOrders = [];
 $result = $conn->query("SELECT 
@@ -353,23 +337,13 @@ $conn->close();
 
             <!-- Charts and Tables -->
             <div class="row">
-                <div class="col-md-8">
+                <div class="col-md-12">
                     <div class="card mb-4">
                         <div class="card-header">
                             <i class="fas fa-chart-line me-2"></i>Sales Overview
                         </div>
                         <div class="card-body chart-container">
                             <canvas id="salesChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <i class="fas fa-chart-pie me-2"></i>Revenue by Category
-                        </div>
-                        <div class="card-body chart-container">
-                            <canvas id="categoryChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -486,43 +460,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 x: { grid: { display: false } }
             }
-        }
-    });
-
-    // Category Chart
-    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-    new Chart(categoryCtx, {
-        type: 'doughnut',
-        data: {
-            labels: <?php echo json_encode($categoryData['labels'] ?? ['Dogs', 'Cats', 'Birds', 'Fish', 'Others']); ?>,
-            datasets: [{
-                data: <?php echo json_encode($categoryData['data'] ?? [35, 30, 15, 10, 10]); ?>,
-                backgroundColor: [
-                    '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'
-                ],
-                hoverBackgroundColor: [
-                    '#2e59d9', '#17a673', '#2c9faf', '#dda20a', '#be2617'
-                ],
-                hoverBorderColor: "rgba(234, 236, 244, 1)",
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { padding: 20, usePointStyle: true }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.label + ': $' + context.raw.toLocaleString();
-                        }
-                    }
-                }
-            },
-            cutout: '70%'
         }
     });
 });

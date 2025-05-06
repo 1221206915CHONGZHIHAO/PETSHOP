@@ -1,12 +1,11 @@
 <?php
 session_start();
 
-if (!isset($_GET['order_id'])) {
-    header('Location: products.php');
+// Redirect if not logged in
+if (!isset($_SESSION['customer_id'])) {
+    header('Location: login.php');
     exit;
 }
-
-$order_id = intval($_GET['order_id']);
 
 // Database connection
 $servername = "localhost";
@@ -20,27 +19,23 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Get order details - updated to match your database schema
+// Get all orders for the current customer
 $stmt = $conn->prepare("
     SELECT o.Order_ID, o.order_date, o.Total, o.PaymentMethod as payment_method, 
            o.status, COUNT(oi.order_item_id) as item_count 
     FROM Orders o
     JOIN Order_Items oi ON o.Order_ID = oi.order_id
-    WHERE o.Order_ID = ? AND o.Customer_ID = ?
+    WHERE o.Customer_ID = ?
     GROUP BY o.Order_ID
+    ORDER BY o.order_date DESC
 ");
-$stmt->bind_param("ii", $order_id, $_SESSION['customer_id']);
+$stmt->bind_param("i", $_SESSION['customer_id']);
 $stmt->execute();
 $result = $stmt->get_result();
-$order = $result->fetch_assoc();
+$orders = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
 $conn->close();
-
-if (!$order) {
-    header('Location: products.php');
-    exit;
-}
 ?>
 
 <!DOCTYPE html>
@@ -48,7 +43,7 @@ if (!$order) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hachi Pet Shop - Order Confirmation</title>
+  <title>Hachi Pet Shop - My Orders</title>
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- Bootstrap CSS -->
@@ -58,6 +53,55 @@ if (!$order) {
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/order_success.css">
   <link rel="stylesheet" href="userhomepage.css">
+  <style>
+    /* Additional styles for the orders list */
+    .order-card {
+      background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      transition: all 0.3s ease;
+      border-left: 4px solid #6c757d;
+    }
+    
+    .order-card:hover {
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+    
+    .status-badge {
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-weight: 600;
+    }
+    
+    .status-pending {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    .status-completed {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .status-processing {
+      background-color: #cce5ff;
+      color: #004085;
+    }
+    
+    .no-orders {
+      text-align: center;
+      padding: 4rem;
+    }
+    
+    .no-orders-icon {
+      font-size: 5rem;
+      color: #6c757d;
+      margin-bottom: 1.5rem;
+    }
+  </style>
 </head>
 <body>
 <!-- Navigation -->
@@ -119,43 +163,48 @@ if (!$order) {
 <!-- Page Content -->
 <div class="page-content">
   <main class="container py-5">
-    <div class="success-container text-center">
-      <i class="bi bi-check-circle-fill success-icon"></i>
-      <h1 class="mb-3">Thank You for Your Order!</h1>
-      <p class="lead mb-4">Your order #<?php echo $order['Order_ID']; ?> has been confirmed.</p>
+    <div class="success-container">
+      <h1 class="mb-4 text-center"><i class="bi bi-box-seam me-2"></i> My Orders</h1>
       
-      <div class="order-details">
-        <h3><i class="bi bi-receipt me-2"></i>Order Summary</h3>
-        
-        <div class="row text-start">
-          <div class="col-md-6">
-            <p><strong>Order Number:</strong> #<?php echo $order['Order_ID']; ?></p>
-            <p><strong>Date Placed:</strong> <?php echo date('F j, Y \a\t g:i a', strtotime($order['order_date'])); ?></p>
-            <p><strong>Items:</strong> <?php echo $order['item_count']; ?></p>
-            <p><strong>Status:</strong> <?php echo htmlspecialchars($order['status']); ?></p>
-          </div>
-          <div class="col-md-6">
-            <p><strong>Total Amount:</strong> RM<?php echo number_format($order['Total'], 2); ?></p>
-            <p><strong>Payment Method:</strong> <?php echo htmlspecialchars($order['payment_method']); ?></p>
-          </div>
+      <?php if (empty($orders)): ?>
+        <div class="no-orders">
+          <i class="bi bi-box2-open no-orders-icon"></i>
+          <h3>No Orders Yet</h3>
+          <p class="lead">You haven't placed any orders with us yet.</p>
+          <a href="products.php" class="btn btn-primary btn-success-page mt-3">
+            <i class="bi bi-cart-plus me-2"></i>Start Shopping
+          </a>
         </div>
-        
-        <hr class="my-4">
-        
-        <div class="delivery-info">
-          <i class="bi bi-truck me-2"></i>
-          <p>We're preparing your order for shipment. You'll receive a confirmation email at <strong><?php echo isset($_SESSION['customer_email']) ? htmlspecialchars($_SESSION['customer_email']) : 'your registered email'; ?></strong> when it's on its way.</p>
+      <?php else: ?>
+        <div class="orders-list">
+          <?php foreach ($orders as $order): ?>
+            <div class="order-card">
+              <div class="row">
+                <div class="col-md-8">
+                  <h4>Order #<?php echo $order['Order_ID']; ?></h4>
+                  <p class="text-muted mb-2">
+                    <i class="bi bi-calendar me-1"></i>
+                    <?php echo date('F j, Y \a\t g:i a', strtotime($order['order_date'])); ?>
+                  </p>
+                  <p><i class="bi bi-box-seam me-1"></i> <?php echo $order['item_count']; ?> item(s)</p>
+                  <p><i class="bi bi-credit-card me-1"></i> <?php echo htmlspecialchars($order['payment_method']); ?></p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                  <div class="mb-3">
+                    <span class="status-badge status-<?php echo strtolower($order['status']); ?>">
+                      <?php echo htmlspecialchars($order['status']); ?>
+                    </span>
+                  </div>
+                  <h4>RM<?php echo number_format($order['Total'], 2); ?></h4>
+                  <a href="order_success.php?order_id=<?php echo $order['Order_ID']; ?>" class="btn btn-outline-secondary btn-sm mt-2">
+                    <i class="bi bi-eye me-1"></i> View Details
+                  </a>
+                </div>
+              </div>
+            </div>
+          <?php endforeach; ?>
         </div>
-      </div>
-      
-      <div class="action-buttons mt-5">
-        <a href="products.php" class="btn btn-primary btn-success-page">
-          <i class="bi bi-arrow-left me-2"></i>Continue Shopping
-        </a>
-        <a href="my_orders.php" class="btn btn-outline-secondary btn-success-page">
-          <i class="bi bi-list-check me-2"></i>View Order Details
-        </a>
-      </div>
+      <?php endif; ?>
     </div>
   </main>
 </div>

@@ -1,3 +1,65 @@
+<?php
+session_start();
+
+// Check if staff is logged in
+if (!isset($_SESSION['staff_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+// Database connection
+$db = new mysqli('localhost', 'root', '', 'petshop');
+if ($db->connect_error) {
+    die("Connection failed: " . $db->connect_error);
+}
+
+// Fetch staff details
+$staff_id = $_SESSION['staff_id'];
+$query = "SELECT Staff_name, position, Staff_Email FROM staff WHERE Staff_ID = ?";
+$stmt = $db->prepare($query);
+$stmt->bind_param("i", $staff_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$staff = $result->fetch_assoc();
+
+if (!$staff) {
+    session_unset();
+    session_destroy();
+    header("Location: login.php");
+    exit();
+}
+
+// Update session
+$_SESSION['staff_name'] = $staff['Staff_name'];
+$_SESSION['position'] = $staff['position'];
+$_SESSION['staff_email'] = $staff['Staff_Email'];
+
+// Fetch data for summary cards
+$summaryData = [];
+$result = $db->query("SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending'");
+$summaryData['pending_orders'] = $result->fetch_assoc()['pending_orders'];
+
+$result = $db->query("SELECT COUNT(*) as low_stock FROM products WHERE stock_quantity < 10");
+$summaryData['low_stock'] = $result->fetch_assoc()['low_stock'];
+
+// Fetch recent orders (limit to 5)
+$recentOrders = [];
+$result = $db->query("SELECT 
+    o.order_id, 
+    c.customer_name, 
+    o.Total, 
+    o.order_date, 
+    o.status
+    FROM orders o
+    JOIN customer c ON o.customer_id = c.customer_id
+    ORDER BY o.order_date DESC
+    LIMIT 5");
+while ($row = $result->fetch_assoc()) {
+    $recentOrders[] = $row;
+}
+
+$db->close();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,12 +68,45 @@
     <title>Staff Dashboard - PetShop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="staff.css">
+    <link rel="stylesheet" href="admin_home.css">
+    <style>
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        canvas {
+            display: block;
+            height: 300px !important;
+            width: 100% !important;
+        }
+        .badge {
+            font-size: 0.85em;
+            padding: 0.35em 0.65em;
+        }
+        .dropdown-toggle::after {
+            display: none;
+        }
+        #sidebar {
+            background-color: #343a40;
+            min-height: 100vh;
+            transition: transform 0.3s ease;
+        }
+        @media (max-width: 992px) {
+            #sidebar {
+                position: fixed;
+                z-index: 1000;
+                transform: translateX(-100%);
+            }
+            #sidebar.show {
+                transform: translateX(0);
+            }
+        }
+    </style>
 </head>
 <body>
 
-<!-- 導航欄 -->
-<nav class="navbar navbar-expand navbar-dark bg-dark px-3">
+<nav class="navbar navbar-dark bg-dark px-3">
     <div class="d-flex align-items-center">
         <button class="btn btn-dark me-3 d-lg-none" id="sidebarToggle">
             <i class="fas fa-bars"></i>
@@ -20,98 +115,102 @@
             <i class="fas fa-paw me-2"></i>PetShop Staff
         </a>
     </div>
-    <div class="navbar-collapse justify-content-end">
-        <ul class="navbar-nav">
-            <li class="nav-item">
-                <span class="nav-link text-light me-2">
-                    <i class="fas fa-user-circle me-1"></i>Welcome, John
-                </span>
-            </li>
-                        <a href="login.php" class="btn btn-danger btn-sm">
-                <i class="fas fa-sign-out-alt me-1"></i> Logout
-            </a>
-        </ul>
+    <div>
+        <span class="text-light me-3">
+            <i class="fas fa-user-circle me-1"></i>
+            Welcome, <?php echo htmlspecialchars($_SESSION['staff_name']); ?>
+        </span>
+        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 
 <div class="container-fluid">
     <div class="row">
-        <!-- 側邊欄 -->
+        <!-- Sidebar -->
         <nav id="sidebar" class="col-lg-2 d-lg-block bg-dark sidebar">
-            <div class="position-sticky pt-3">
-                <div class="text-center mb-4">
-                    <img src="staff_example.png" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
-                    <h5 class="text-white mb-1">John Doe</h5>
-                    <small class="text-muted">Staff Member</small>
+    <div class="position-sticky pt-3">
+        <div class="text-center mb-4">
+            <?php
+            // Path to the staff avatar image
+            $avatar_path = "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
+            
+            // Check if the avatar exists, if so, display it
+            if (file_exists($avatar_path)) {
+                echo '<img src="' . $avatar_path . '" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">';
+            }
+            ?>
+            <h5 class="text-white mb-1"><?php echo htmlspecialchars($_SESSION['staff_name']); ?></h5>
+            <small class="text-muted"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link text-light active" href="staff_homepage.php">
+                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
+                    <i class="fas fa-user-friends me-2"></i>Customer Management
+                </a>
+                <div class="collapse" id="customerMenu">
+                    <ul class="nav flex-column ps-4">
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="staff_customer_list.php">
+                                <i class="fas fa-list me-2"></i>Customer List
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_customer_logs.php">
+                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
+                                    </a>
+                        </li>
+                    </ul>
                 </div>
-                
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link text-light active" href="staff_homepage.php">
-                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
-                            <i class="fas fa-shopping-cart me-2"></i>Order Management
-                        </a>
-                        <div class="collapse show" id="orderMenu">
-                            <ul class="nav flex-column ps-4">
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="manage_orders.php">
-                                        <i class="fas fa-list me-2"></i>Current Orders
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="returns.php">
-                                        <i class="fas fa-undo me-2"></i>Returns
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="customer_service.php">
-                            <i class="fas fa-headset me-2"></i>Customer Service
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="staff_email.php">
-                            <i class="fas fa-envelope me-2"></i>Messages
-                            <span class="badge bg-danger float-end">3</span>
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="staff_tasks.php">
-                            <i class="fas fa-tasks me-2"></i>My Tasks
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
+                    <i class="fas fa-shopping-cart me-2"></i>Order Management
+                </a>
+                <div class="collapse" id="orderMenu">
+                    <ul class="nav flex-column ps-4">
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="staff_orders.php">
+                                <i class="fas fa-list me-2"></i>Current Orders
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="nav-item">
+                        <a class="nav-link text-light" href="staff_reports.php">
+                            <i class="fas fa-chart-line me-2"></i>Reports
                         </a>
                     </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="staff_inventory.php">
-                            <i class="fas fa-boxes me-2"></i>Inventory
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item mt-3">
-                        <a class="nav-link text-light" href="settings.php">
-                            <i class="fas fa-cog me-2"></i>Settings
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+            <li class="nav-item">
+                <a class="nav-link text-light" href="staff_inventory.php">
+                    <i class="fas fa-boxes me-2"></i>Inventory
+                </a>
+            </li>
 
-        <!-- 主內容區 -->
+            <li class="nav-item mt-3">
+                <a class="nav-link text-light" href="settings.php">
+                    <i class="fas fa-cog me-2"></i>Settings
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+        <!-- Main Content -->
         <main class="col-lg-10 ms-sm-auto p-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-tachometer-alt me-2"></i>Staff Dashboard
-                </h1>
+                <h1 class="h2"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
                         <button type="button" class="btn btn-sm btn-outline-secondary">
@@ -121,198 +220,79 @@
                             <i class="fas fa-sync me-1"></i> Refresh
                         </button>
                     </div>
-                    <button type="button" class="btn btn-sm btn-primary">
-                        <i class="fas fa-plus me-1"></i> New Task
-                    </button>
                 </div>
             </div>
 
-            <!-- 統計卡片 -->
+            <!-- Summary Cards -->
             <div class="row mb-4">
                 <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card text-white bg-primary stat-card h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title">ASSIGNED TASKS</h6>
-                                    <h2 class="mb-0">5</h2>
-                                </div>
-                                <i class="fas fa-tasks fa-3x"></i>
-                            </div>
-                        </div>
-                        <div class="card-footer bg-primary bg-opacity-10 d-flex align-items-center justify-content-between">
-                            <a class="small text-white stretched-link" href="tasks.php">View Details</a>
-                            <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card text-white bg-success stat-card h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title">COMPLETED TODAY</h6>
-                                    <h2 class="mb-0">12</h2>
-                                </div>
-                                <i class="fas fa-check-circle fa-3x"></i>
-                            </div>
-                        </div>
-                        <div class="card-footer bg-success bg-opacity-10 d-flex align-items-center justify-content-between">
-                            <a class="small text-white stretched-link" href="tasks.php?filter=completed">View Details</a>
-                            <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card text-white bg-warning stat-card h-100">
+                    <div class="card text-white bg-warning h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="card-title">PENDING ORDERS</h6>
-                                    <h2 class="mb-0">8</h2>
+                                    <h2 class="mb-0"><?php echo $summaryData['pending_orders']; ?></h2>
                                 </div>
                                 <i class="fas fa-clock fa-3x"></i>
                             </div>
-                        </div>
-                        <div class="card-footer bg-warning bg-opacity-10 d-flex align-items-center justify-content-between">
-                            <a class="small text-white stretched-link" href="manage_orders.php">View Details</a>
-                            <div class="small text-white"><i class="fas fa-angle-right"></i></div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card text-white bg-danger stat-card h-100">
+                    <div class="card text-white bg-danger h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">URGENT REQUESTS</h6>
-                                    <h2 class="mb-0">3</h2>
+                                    <h6 class="card-title">LOW STOCK ITEMS</h6>
+                                    <h2 class="mb-0"><?php echo $summaryData['low_stock']; ?></h2>
                                 </div>
                                 <i class="fas fa-exclamation-triangle fa-3x"></i>
                             </div>
-                        </div>
-                        <div class="card-footer bg-danger bg-opacity-10 d-flex align-items-center justify-content-between">
-                            <a class="small text-white stretched-link" href="tasks.php?filter=urgent">View Details</a>
-                            <div class="small text-white"><i class="fas fa-angle-right"></i></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="row">
-                <!-- 近期任務 -->
-                <div class="col-lg-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 font-weight-bold">
-                                <i class="fas fa-tasks me-2"></i>Recent Tasks
-                            </h6>
-                            <a href="tasks.php" class="btn btn-sm btn-link">View All</a>
-                        </div>
-                        <div class="card-body">
-                            <div class="list-group list-group-flush">
-                                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">Process Order #1001</h6>
-                                        <small class="text-muted">Due: Today 5:00 PM</small>
-                                    </div>
-                                    <span class="badge bg-warning text-dark">In Progress</span>
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">Respond to Customer Inquiry</h6>
-                                        <small class="text-muted">Priority: High</small>
-                                    </div>
-                                    <span class="badge bg-danger">Urgent</span>
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">Update Inventory Records</h6>
-                                        <small class="text-muted">Due: Tomorrow</small>
-                                    </div>
-                                    <span class="badge bg-primary">New</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 近期消息 -->
-                <div class="col-lg-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 font-weight-bold">
-                                <i class="fas fa-envelope me-2"></i>Recent Messages
-                            </h6>
-                            <a href="staff_email.php" class="btn btn-sm btn-link">View All</a>
-                        </div>
-                        <div class="card-body">
-                            <div class="list-group list-group-flush">
-                                <a href="#" class="list-group-item list-group-item-action">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1">Order Delivery Question</h6>
-                                        <small>1 hour ago</small>
-                                    </div>
-                                    <p class="mb-1 text-muted">From: customer@example.com</p>
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1">Product Return Request</h6>
-                                        <small>3 hours ago</small>
-                                    </div>
-                                    <p class="mb-1 text-muted">From: another@customer.com</p>
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1">Inventory Update</h6>
-                                        <small>Yesterday</small>
-                                    </div>
-                                    <p class="mb-1 text-muted">From: manager@petshop.com</p>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 近期訂單 -->
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold">
-                        <i class="fas fa-shopping-cart me-2"></i>Recent Orders
-                    </h6>
-                    <div>
-                        <button class="btn btn-sm btn-outline-secondary me-2">
-                            <i class="fas fa-download me-1"></i> Export
-                        </button>
-                        <a href="manage_orders.php" class="btn btn-sm btn-primary">
-                            <i class="fas fa-plus me-1"></i> New Order
-                        </a>
-                    </div>
+            <!-- Recent Orders -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-table me-2"></i>Recent Orders (Last 5)
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-striped table-hover">
-                            <thead class="table-light">
+                            <thead class="table-dark">
                                 <tr>
                                     <th>Order ID</th>
                                     <th>Customer</th>
+                                    <th>Total</th>
                                     <th>Date</th>
-                                    <th>Amount</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
+                                <?php foreach ($recentOrders as $order): ?>
                                 <tr>
-                                    <td>#1001</td>
-                                    <td>John Doe</td>
-                                    <td>2025-03-01</td>
-                                    <td>$120.00</td>
-                                    <td><span class="badge bg-success">Completed</span></td>
+                                    <td>#<?php echo $order['order_id']; ?></td>
+                                    <td><?php echo htmlspecialchars($order['customer_name']); ?></td>
+                                    <td>$<?php echo number_format($order['Total'], 2); ?></td>
+                                    <td><?php echo date('Y-m-d', strtotime($order['order_date'])); ?></td>
+                                    <td>
+                                        <?php 
+                                        $badgeClass = [
+                                            'completed' => 'bg-success',
+                                            'pending' => 'bg-warning text-dark',
+                                            'shipping' => 'bg-info',
+                                            'cancelled' => 'bg-danger'
+                                        ];
+                                        $status = strtolower($order['status']);
+                                        ?>
+                                        <span class="badge <?php echo $badgeClass[$status] ?? 'bg-secondary'; ?>">
+                                            <?php echo ucfirst($order['status']); ?>
+                                        </span>
+                                    </td>
                                     <td>
                                         <button class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-eye"></i>
@@ -322,36 +302,7 @@
                                         </button>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td>#1002</td>
-                                    <td>Jane Smith</td>
-                                    <td>2025-03-02</td>
-                                    <td>$85.50</td>
-                                    <td><span class="badge bg-warning text-dark">Processing</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-success">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#1003</td>
-                                    <td>Robert Johnson</td>
-                                    <td>2025-03-03</td>
-                                    <td>$210.75</td>
-                                    <td><span class="badge bg-info">Shipped</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-info">
-                                            <i class="fas fa-truck"></i>
-                                        </button>
-                                    </td>
-                                </tr>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
@@ -362,55 +313,23 @@
 </div>
 
 <!-- JavaScript -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 側邊欄切換
+    // Sidebar toggle
     document.getElementById('sidebarToggle').addEventListener('click', function() {
         document.getElementById('sidebar').classList.toggle('show');
     });
     
-    // 初始化圖表
-    const salesCtx = document.getElementById('salesChart')?.getContext('2d');
-    if (salesCtx) {
-        new Chart(salesCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                datasets: [{
-                    label: 'Orders Processed',
-                    data: [12, 19, 15, 20, 25, 22],
-                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: { beginAtZero: true }
-                }
-            }
-        });
-    }
-    
-    // 模擬實時更新
-    setInterval(() => {
-        const urgentBadge = document.querySelector('.bg-danger h2');
-        if (urgentBadge) {
-            const current = parseInt(urgentBadge.textContent);
-            if (current > 0 && Math.random() > 0.7) {
-                urgentBadge.textContent = current - 1;
-            } else if (Math.random() > 0.9) {
-                urgentBadge.textContent = current + 1;
-            }
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(e) {
+        if (window.innerWidth <= 992 &&
+            !document.getElementById('sidebar').contains(e.target) &&
+            !document.getElementById('sidebarToggle').contains(e.target) &&
+            document.getElementById('sidebar').classList.contains('show')) {
+            document.getElementById('sidebar').classList.remove('show');
         }
-    }, 5000);
+    });
 });
 </script>
 
