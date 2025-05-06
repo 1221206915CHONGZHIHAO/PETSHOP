@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <!-- AOS Animation Library -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <!-- Your Custom Styles -->
-  <link rel="stylesheet" href="userhomepage.css">
+    <link rel="stylesheet" href="userhomepage.css">
 </head>
 <body>
     <!-- Navigation -->
