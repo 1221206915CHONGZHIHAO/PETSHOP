@@ -11,9 +11,6 @@ if ($conn->connect_error) {
     die("数据库连接失败: " . $conn->connect_error);
 }
 
-// No longer need to process search on homepage
-// Search will be redirected to products.php
-
 // Fetch best sellers (for example, using most recently added products)
 $best_sellers = [];
 $best_sellers_sql = "SELECT * FROM products ORDER BY created_at DESC LIMIT 4";
@@ -57,6 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
   <!-- AOS Animation Library -->
   <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <!-- Toastr CSS for notifications -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
   <!-- Your Custom Styles -->
   <link rel="stylesheet" href="userhomepage.css">
 </head>
@@ -214,17 +213,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
           <?php foreach($best_sellers as $index => $product): ?>
             <div class="col-6 col-md-3 mb-4" data-aos="fade-up" data-aos-delay="<?php echo ($index + 1) * 100; ?>">
               <div class="card product-card">
-                <div class="product-img-container">
-                  <img src="<?php echo htmlspecialchars($product['image_url'] ?? 'product-placeholder.png'); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
+                <div class="product-img-container overflow-hidden">
+                  <a href="product_details.php?id=<?php echo $product['product_id']; ?>">
+                    <img src="<?php echo htmlspecialchars($product['image_url'] ?? 'product-placeholder.png'); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
+                  </a>
                 </div>
                 <div class="card-body">
                   <h5 class="card-title"><?php echo htmlspecialchars($product['product_name']); ?></h5>
                   <div class="price">$<?php echo number_format($product['price'], 2); ?></div>
-                  <a href="#" class="btn btn-primary add-to-cart-btn" 
-                     data-product-id="<?php echo $product['product_id']; ?>" 
-                     data-product-name="<?php echo htmlspecialchars($product['product_name']); ?>">
-                    Add to Cart
-                  </a>
+                  <button class="btn btn-primary add-to-cart-btn" 
+                          data-product-id="<?php echo $product['product_id']; ?>" 
+                          data-product-name="<?php echo htmlspecialchars($product['product_name']); ?>">
+                    <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                  </button>
                 </div>
               </div>
             </div>
@@ -476,40 +477,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
         const productId = this.getAttribute('data-product-id');
         const productName = this.getAttribute('data-product-name');
         
-        // Create a toast notification
-        const toastContainer = document.createElement('div');
-        toastContainer.classList.add('toast-container', 'position-fixed', 'bottom-0', 'end-0', 'p-3');
-        toastContainer.style.zIndex = '5';
+        this.disabled = true;
+        const originalText = this.innerHTML;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
         
-        const toastElement = document.createElement('div');
-        toastElement.classList.add('toast', 'align-items-center', 'text-white', 'bg-primary', 'border-0');
-        toastElement.setAttribute('role', 'alert');
-        toastElement.setAttribute('aria-live', 'assertive');
-        toastElement.setAttribute('aria-atomic', 'true');
-        
-        toastElement.innerHTML = `
-          <div class="d-flex">
-            <div class="toast-body">
-              <i class="bi bi-check-circle me-2"></i> ${productName} added to cart!
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-          </div>
-        `;
-        
-        toastContainer.appendChild(toastElement);
-        document.body.appendChild(toastContainer);
-        
-        // Show the toast
-        const toast = new bootstrap.Toast(toastElement);
-        toast.show();
-        
-        // Send AJAX request to add item to cart
-        // This is where you would normally add AJAX code to update the cart on the server
-        console.log(`Product added to cart: ID - ${productId}, Name - ${productName}`);
-        
-        // For demo purposes, remove the toast container after it's hidden
-        toastElement.addEventListener('hidden.bs.toast', function () {
-          document.body.removeChild(toastContainer);
+        fetch('add_to_cart.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `product_id=${productId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+          this.disabled = false;
+          this.innerHTML = originalText;
+          
+          if (data.success) {
+            const toastContainer = document.createElement('div');
+            toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
+            toastContainer.style.zIndex = '9999';
+            
+            const toastElement = document.createElement('div');
+            toastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
+            toastElement.style.backgroundColor = '#4e9f3d';
+            toastElement.setAttribute('role', 'alert');
+            toastElement.setAttribute('aria-live', 'assertive');
+            toastElement.setAttribute('aria-atomic', 'true');
+            
+            toastElement.innerHTML = `
+              <div class="d-flex">
+                <div class="toast-body">
+                  <i class="bi bi-check-circle me-2"></i> ${productName} added to cart!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+            `;
+            
+            toastContainer.appendChild(toastElement);
+            document.body.appendChild(toastContainer);
+            
+            const toast = new bootstrap.Toast(toastElement, {
+              autohide: true,
+              delay: 3000
+            });
+            toast.show();
+            
+            const cartLink = document.querySelector('.nav-link[href="cart.php"]');
+            let cartBadge = cartLink.querySelector('.badge');
+            
+            if (data.cart_count > 0) {
+              if (!cartBadge) {
+                cartBadge = document.createElement('span');
+                cartBadge.classList.add('position-absolute', 'top-0', 'start-100', 'translate-middle', 'badge', 'rounded-pill', 'bg-primary');
+                cartLink.appendChild(cartBadge);
+              }
+              cartBadge.textContent = data.cart_count;
+            } else if (cartBadge) {
+              cartBadge.remove();
+            }
+            
+            toastElement.addEventListener('hidden.bs.toast', function () {
+              document.body.removeChild(toastContainer);
+            });
+          } else if (data.require_login) {
+            window.location.href = 'login.php';
+          } else {
+            alert(data.message || 'Failed to add item to cart');
+            console.error('Failed to add item to cart:', data.message);
+          }
+        })
+        .catch(error => {
+          this.disabled = false;
+          this.innerHTML = originalText;
+          console.error('Error:', error);
         });
       });
     });
