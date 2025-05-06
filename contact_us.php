@@ -2,6 +2,16 @@
 session_start();
 include 'db_connection.php'; // Assuming this establishes the database connection
 
+// Fetch shop settings from database
+$shopSettings = [];
+$settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
+$settingsQuery->execute();
+$result = $settingsQuery->get_result();
+
+if ($result->num_rows > 0) {
+    $shopSettings = $result->fetch_assoc();
+}
+
 // PHPMailer components
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -147,31 +157,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </ul>
 
                 <!-- Icons on the right -->
-        <ul class="navbar-nav ms-auto nav-icons">
-          <!-- Search Icon with Dropdown - Modified to redirect to products.php -->
-          <li class="nav-item dropdown">
-            <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="bi bi-search"></i>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end search-dropdown" aria-labelledby="searchDropdown">
-              <form class="d-flex search-form" action="products.php" method="GET">
-                <input class="form-control me-2" type="search" name="search" placeholder="Search products..." aria-label="Search" required>
-                <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
-              </form>
-            </ul>
-          </li>
+                <ul class="navbar-nav ms-auto nav-icons">
+                    <!-- Search Icon with Dropdown - Modified to redirect to products.php -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-search"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end search-dropdown" aria-labelledby="searchDropdown">
+                            <form class="d-flex search-form" action="products.php" method="GET">
+                                <input class="form-control me-2" type="search" name="search" placeholder="Search products..." aria-label="Search" required>
+                                <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+                            </form>
+                        </ul>
+                    </li>
 
                     <!-- Cart Icon with item count -->
                     <li class="nav-item">
-            <a class="nav-link position-relative" href="cart.php">
-              <i class="bi bi-cart"></i>
-              <?php if (isset($_SESSION['cart_count']) && $_SESSION['cart_count'] > 0): ?>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
-                  <?php echo htmlspecialchars($_SESSION['cart_count']); ?>
-                </span>
-              <?php endif; ?>
-            </a>
-          </li>
+                        <a class="nav-link position-relative" href="cart.php">
+                            <i class="bi bi-cart"></i>
+                            <?php if (isset($_SESSION['cart_count']) && $_SESSION['cart_count'] > 0): ?>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                                    <?php echo htmlspecialchars($_SESSION['cart_count']); ?>
+                                </span>
+                            <?php endif; ?>
+                        </a>
+                    </li>
 
                     <!-- User Icon with Dynamic Dropdown -->
                     <li class="nav-item dropdown">
@@ -231,13 +241,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="contact-details">
             <div class="info">
                 <h3>ADDRESS</h3>
-                <p>123 Pet Street, Animal City<br>Singapore 123456</p>
+                <p><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></p>
 
                 <h3>CALL US</h3>
-                <p>+65 1234 5678</p>
+                <p><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></p>
 
                 <h3>OPENING HOURS</h3>
-                <p>Mon-Fri: 9am-6pm<br>Sat-Sun: 10am-4pm</p>
+                <p><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></p>
             </div>
             <div class="map">
                 <!-- Embed a Google Map (you can replace the iframe src with your location) -->
@@ -271,25 +281,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <div class="col-sm-6 mb-3">
                             <div class="contact-info">
                                 <i class="bi bi-geo-alt"></i>
-                                <span>123 Pet Street, Animal City<br>Singapore 123456</span>
+                                <span><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></span>
                             </div>
                         </div>
                         <div class="col-sm-6 mb-3">
                             <div class="contact-info">
                                 <i class="bi bi-telephone"></i>
-                                <span>+65 1234 5678</span>
+                                <span><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></span>
                             </div>
                         </div>
                         <div class="col-sm-6 mb-3">
                             <div class="contact-info">
                                 <i class="bi bi-envelope"></i>
-                                <span>info@hachipetshop.com</span>
+                                <span><?php echo !empty($shopSettings['contact_email']) ? htmlspecialchars($shopSettings['contact_email']) : 'Email not available'; ?></span>
                             </div>
                         </div>
                         <div class="col-sm-6 mb-3">
                             <div class="contact-info">
                                 <i class="bi bi-clock"></i>
-                                <span>Mon-Fri: 9am-6pm<br>Sat-Sun: 10am-4pm</span>
+                                <span><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></span>
                             </div>
                         </div>
                     </div>
