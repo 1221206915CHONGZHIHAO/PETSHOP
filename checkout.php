@@ -248,10 +248,12 @@ $conn->close();
     <h1 class="section-title mb-4">Checkout</h1>
     
     <?php if (!empty($error_message)): ?>
-    <div class="alert alert-danger" role="alert">
-      <?php echo htmlspecialchars($error_message); ?>
-    </div>
-    <?php endif; ?>
+  <div class="alert alert-danger" id="server-error">
+    <?php echo htmlspecialchars($error_message); ?>
+  </div>
+<?php endif; ?>
+<div class="alert alert-danger d-none" id="client-error"></div>
+
     
     <form method="post" id="checkout-form">
       <div class="row">
@@ -376,42 +378,75 @@ $conn->close();
 
 <!-- Checkout Script -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Toggle billing address
-    document.getElementById('same_as_shipping').addEventListener('change', function() {
+    document.getElementById('same_as_shipping').addEventListener('change', function () {
         const billingContainer = document.getElementById('billing_address_container');
         billingContainer.style.display = this.checked ? 'none' : 'block';
-        if (!this.checked) {
-            document.getElementById('billing_address').required = true;
-        } else {
-            document.getElementById('billing_address').required = false;
-        }
+        document.getElementById('billing_address').required = !this.checked;
     });
-    
-    // Toggle payment methods
+
+    // Toggle credit card fields
     document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            document.getElementById('credit_card_details').style.display = 
+        radio.addEventListener('change', function () {
+            document.getElementById('credit_card_details').style.display =
                 this.value === 'Credit Card' ? 'block' : 'none';
         });
     });
-    
-    // Format card number
-    document.getElementById('card_number').addEventListener('input', function(e) {
-        this.value = this.value.replace(/\D/g, '')
-            .replace(/(\d{4})(?=\d)/g, '$1 ');
+
+    // Format and limit card number to 16 digits
+    const cardNumberInput = document.getElementById('card_number');
+    cardNumberInput.addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '').substring(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ');
     });
-    
-    // Format expiry date
-    document.getElementById('card_expiry').addEventListener('input', function(e) {
-        this.value = this.value.replace(/\D/g, '')
-            .replace(/(\d{2})(?=\d)/g, '$1/')
-            .substring(0, 5);
+
+    // Format expiry
+    const cardExpiryInput = document.getElementById('card_expiry');
+    cardExpiryInput.addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '').replace(/(\d{2})(?=\d)/g, '$1/').substring(0, 5);
     });
-    
-    // Format CVV
-    document.getElementById('card_cvv').addEventListener('input', function(e) {
+
+    // Format CVV (3 or 4 digits)
+    const cardCvvInput = document.getElementById('card_cvv');
+    cardCvvInput.addEventListener('input', function () {
         this.value = this.value.replace(/\D/g, '').substring(0, 4);
+    });
+
+    // Form submission validation
+    document.getElementById('checkout-form').addEventListener('submit', function (e) {
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+        const cardNumber = cardNumberInput.value.replace(/\s/g, '');
+        const expiry = cardExpiryInput.value;
+        const cvv = cardCvvInput.value;
+
+        if (paymentMethod === 'Credit Card') {
+            let error = '';
+
+            // Validate 16-digit card number
+            if (!/^\d{16}$/.test(cardNumber)) {
+                error = 'Card number must be exactly 16 digits.';
+            }
+
+            // Validate expiry
+            const [expMonth, expYear] = expiry.split('/');
+            const now = new Date();
+            if (!/^\d{2}\/\d{2}$/.test(expiry) ||
+                Number(expMonth) < 1 || Number(expMonth) > 12 ||
+                Number(`20${expYear}`) < now.getFullYear() ||
+                (Number(`20${expYear}`) === now.getFullYear() && Number(expMonth) < now.getMonth() + 1)) {
+                error = 'Card expiry date is invalid or expired.';
+            }
+
+            // Validate CVV
+            if (!/^\d{3,4}$/.test(cvv)) {
+                error = 'CVV must be 3 or 4 digits.';
+            }
+
+            if (error) {
+                e.preventDefault();
+                alert('Payment failed: ' + error);
+            }
+        }
     });
 });
 </script>

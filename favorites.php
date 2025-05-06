@@ -1,12 +1,11 @@
 <?php
 session_start();
 
-if (!isset($_GET['order_id'])) {
-    header('Location: products.php');
+// Redirect if not logged in
+if (!isset($_SESSION['customer_id'])) {
+    header('Location: login.php');
     exit;
 }
-
-$order_id = intval($_GET['order_id']);
 
 // Database connection
 $servername = "localhost";
@@ -20,27 +19,32 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Get order details - updated to match your database schema
+// Get favorite products for the current customer using wishlist table
 $stmt = $conn->prepare("
-    SELECT o.Order_ID, o.order_date, o.Total, o.PaymentMethod as payment_method, 
-           o.status, COUNT(oi.order_item_id) as item_count 
-    FROM Orders o
-    JOIN Order_Items oi ON o.Order_ID = oi.order_id
-    WHERE o.Order_ID = ? AND o.Customer_ID = ?
-    GROUP BY o.Order_ID
+    SELECT p.product_id, p.product_name, p.price, p.image_url, p.stock_quantity
+    FROM wishlist w
+    JOIN products p ON w.product_id = p.product_id
+    WHERE w.Customer_ID = ?
+    ORDER BY w.added_at DESC
 ");
-$stmt->bind_param("ii", $order_id, $_SESSION['customer_id']);
+$stmt->bind_param("i", $_SESSION['customer_id']);
 $stmt->execute();
 $result = $stmt->get_result();
-$order = $result->fetch_assoc();
+$favorites = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-$conn->close();
-
-if (!$order) {
-    header('Location: products.php');
+// Handle remove from favorites
+if (isset($_GET['remove'])) {
+    $product_id = intval($_GET['remove']);
+    $stmt = $conn->prepare("DELETE FROM wishlist WHERE Customer_ID = ? AND product_id = ?");
+    $stmt->bind_param("ii", $_SESSION['customer_id'], $product_id);
+    $stmt->execute();
+    $stmt->close();
+    header("Location: favorites.php");
     exit;
 }
+
+$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -48,7 +52,7 @@ if (!$order) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hachi Pet Shop - Order Confirmation</title>
+  <title>Hachi Pet Shop - My Favorites</title>
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- Bootstrap CSS -->
@@ -58,6 +62,82 @@ if (!$order) {
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/order_success.css">
   <link rel="stylesheet" href="userhomepage.css">
+  <style>
+    /* Additional styles for favorites */
+    .favorites-container {
+      background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      padding: 3rem;
+      margin: 2rem auto;
+      transition: all 0.3s ease;
+    }
+    
+    .favorites-container:hover {
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+    
+    .product-card {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      transition: all 0.3s ease;
+      border-left: 4px solid #6c757d;
+    }
+    
+    .product-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .product-img {
+      height: 150px;
+      object-fit: contain;
+      margin-bottom: 1rem;
+    }
+    
+    .no-favorites {
+      text-align: center;
+      padding: 4rem;
+    }
+    
+    .no-favorites-icon {
+      font-size: 5rem;
+      color: #6c757d;
+      margin-bottom: 1.5rem;
+    }
+    
+    .stock-status {
+      font-weight: 600;
+    }
+    
+    .in-stock {
+      color: #28a745;
+    }
+    
+    .out-of-stock {
+      color: #dc3545;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    @media (max-width: 768px) {
+      .favorites-container {
+        padding: 2rem 1rem;
+        margin: 1rem;
+      }
+      
+      .action-buttons {
+        flex-direction: column;
+      }
+    }
+  </style>
 </head>
 <body>
 <!-- Navigation -->
@@ -119,43 +199,44 @@ if (!$order) {
 <!-- Page Content -->
 <div class="page-content">
   <main class="container py-5">
-    <div class="success-container text-center">
-      <i class="bi bi-check-circle-fill success-icon"></i>
-      <h1 class="mb-3">Thank You for Your Order!</h1>
-      <p class="lead mb-4">Your order #<?php echo $order['Order_ID']; ?> has been confirmed.</p>
+    <div class="favorites-container">
+      <h1 class="mb-4 text-center"><i class="bi bi-heart-fill me-2" style="color: #dc3545;"></i> My Favorites</h1>
       
-      <div class="order-details">
-        <h3><i class="bi bi-receipt me-2"></i>Order Summary</h3>
-        
-        <div class="row text-start">
-          <div class="col-md-6">
-            <p><strong>Order Number:</strong> #<?php echo $order['Order_ID']; ?></p>
-            <p><strong>Date Placed:</strong> <?php echo date('F j, Y \a\t g:i a', strtotime($order['order_date'])); ?></p>
-            <p><strong>Items:</strong> <?php echo $order['item_count']; ?></p>
-            <p><strong>Status:</strong> <?php echo htmlspecialchars($order['status']); ?></p>
-          </div>
-          <div class="col-md-6">
-            <p><strong>Total Amount:</strong> RM<?php echo number_format($order['Total'], 2); ?></p>
-            <p><strong>Payment Method:</strong> <?php echo htmlspecialchars($order['payment_method']); ?></p>
-          </div>
+      <?php if (empty($favorites)): ?>
+        <div class="no-favorites">
+          <i class="bi bi-heart no-favorites-icon"></i>
+          <h3>Your Favorites List is Empty</h3>
+          <p class="lead">You haven't added any products to your favorites yet.</p>
+          <a href="products.php" class="btn btn-primary btn-success-page mt-3">
+            <i class="bi bi-search me-2"></i>Browse Products
+          </a>
         </div>
-        
-        <hr class="my-4">
-        
-        <div class="delivery-info">
-          <i class="bi bi-truck me-2"></i>
-          <p>We're preparing your order for shipment. You'll receive a confirmation email at <strong><?php echo isset($_SESSION['customer_email']) ? htmlspecialchars($_SESSION['customer_email']) : 'your registered email'; ?></strong> when it's on its way.</p>
+      <?php else: ?>
+        <div class="row">
+          <?php foreach ($favorites as $product): ?>
+            <div class="col-md-6 col-lg-4 mb-4">
+              <div class="product-card h-100">
+                <div class="text-center">
+                  <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>" class="product-img img-fluid">
+                </div>
+                <h5><?php echo htmlspecialchars($product['product_name']); ?></h5>
+                <p class="stock-status <?php echo ($product['stock_quantity'] > 0) ? 'in-stock' : 'out-of-stock'; ?>">
+                  <?php echo ($product['stock_quantity'] > 0) ? 'In Stock' : 'Out of Stock'; ?>
+                </p>
+                <h5 class="mb-3">RM<?php echo number_format($product['price'], 2); ?></h5>
+                <div class="action-buttons">
+                  <a href="products.php?product_id=<?php echo $product['product_id']; ?>" class="btn btn-outline-primary btn-sm flex-grow-1">
+                    <i class="bi bi-eye me-1"></i> View
+                  </a>
+                  <a href="favorites.php?remove=<?php echo $product['product_id']; ?>" class="btn btn-outline-danger btn-sm flex-grow-1">
+                    <i class="bi bi-heartbreak me-1"></i> Remove
+                  </a>
+                </div>
+              </div>
+            </div>
+          <?php endforeach; ?>
         </div>
-      </div>
-      
-      <div class="action-buttons mt-5">
-        <a href="products.php" class="btn btn-primary btn-success-page">
-          <i class="bi bi-arrow-left me-2"></i>Continue Shopping
-        </a>
-        <a href="my_orders.php" class="btn btn-outline-secondary btn-success-page">
-          <i class="bi bi-list-check me-2"></i>View Order Details
-        </a>
-      </div>
+      <?php endif; ?>
     </div>
   </main>
 </div>
