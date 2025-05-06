@@ -47,7 +47,7 @@ h1, h2, h3, h4, h5, h6 {
   padding: 0.5rem 1rem;
   margin: 0 0.2rem;
   transition: all 0.3s ease;
-  position: relativa;
+  position: relative;
 }
 
 .custom-nav .nav-link:hover,
@@ -158,6 +158,119 @@ h1, h2, h3, h4, h5, h6 {
   background-color: var(--primary);
   border-color: var(--primary);
   transform: translateY(-2px);
+}
+
+/* Contact Section */
+.contact-container {
+  display: flex;
+  max-width: 1000px;
+  margin: 50px auto;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.contact-form {
+  background-color: #1a1a1a;
+  color: white;
+  padding: 40px;
+  width: 50%;
+}
+
+.contact-form h1 {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.underline {
+  width: 50px;
+  height: 3px;
+  background-color: #ff3333;
+  margin-bottom: 20px;
+}
+
+.contact-form form {
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-form input,
+.contact-form textarea {
+  background-color: #333;
+  border: none;
+  padding: 15px;
+  margin-bottom: 15px;
+  color: white;
+  font-size: 14px;
+}
+
+.contact-form input::placeholder,
+.contact-form textarea::placeholder {
+  color: #999;
+  text-transform: uppercase;
+}
+
+.contact-form textarea {
+  height: 100px;
+  resize: none;
+}
+
+.contact-form button {
+  background-color: #ff3333;
+  color: white;
+  border: none;
+  padding: 15px;
+  font-size: 16px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.contact-form button:hover {
+  background-color: #e62e2e;
+}
+
+.contact-details {
+  background-color: #e6e6e6;
+  padding: 40px;
+  width: 50%;
+}
+
+.contact-details .info h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.contact-details .info p {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.contact-details .map {
+  margin-top: 20px;
+}
+
+.contact-details .map iframe {
+  width: 100%;
+  border-radius: 5px;
+}
+
+/* Alert message styling */
+.alert {
+  border-radius: 0;
+  margin-bottom: 20px;
+}
+
+.alert-success {
+  background-color: #4e9f3d;
+  border-color: #38761d;
+  color: white;
+}
+
+.alert-danger {
+  background-color: #ff3333;
+  border-color: #e62e2e;
+  color: white;
 }
 
 /* Section Titles */
@@ -380,7 +493,7 @@ aside.col-lg-3 {
 
 /* Footer Enhancement */
 footer {
-  background: linear-gradient(to bottom, #1f2225, #1a1d20);
+  background: linear-gradient(to bottom, rgb(134, 138, 135), rgba(46, 21, 1, 0.69));
   position: relative;
   overflow: hidden;
   color: white;
@@ -421,6 +534,12 @@ footer .contact-info span {
   line-height: 1.5;
 }
 
+.footer-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 40px;
+  padding-top: 20px;
+}
+
 /* Back to Top Button */
 .back-to-top {
   width: 45px;
@@ -453,43 +572,6 @@ footer .contact-info span {
 .back-to-top:hover {
   transform: translateY(-5px);
   box-shadow: 0 6px 25px rgba(0, 0, 0, 0.25);
-}
-
-/* Responsive tweaks */
-@media (max-width: 992px) {
-  .hero-content h1 {
-    font-size: 2.8rem;
-  }
-  section {
-    padding: 70px 0;
-  }
-}
-
-@media (max-width: 768px) {
-  .hero-content h1 {
-    font-size: 2.5rem;
-  }
-  .hero-section {
-    height: 70vh;
-  }
-  .section-title {
-    font-size: 2rem;
-  }
-  .about-content {
-    margin-top: 2rem;
-  }
-}
-
-@media (max-width: 576px) {
-  .hero-content h1 {
-    font-size: 2rem;
-  }
-  .hero-content p {
-    font-size: 1rem;
-  }
-  section {
-    padding: 50px 0;
-  }
 }
 
 /* Toast notifications styling */
@@ -529,7 +611,7 @@ footer .contact-info span {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
 }
 
-/* Enhance dropdown menu styling */
+/* Dropdown Menu Styling */
 .dropdown-menu {
   border: none;
   border-radius: 10px;
@@ -578,4 +660,47 @@ footer .contact-info span {
 
 .search-form .btn {
   border-radius: 0 20px 20px 0;
+}
+
+/* Responsive tweaks */
+@media (max-width: 992px) {
+  .hero-content h1 {
+      font-size: 2.8rem;
+  }
+  section {
+      padding: 70px 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-content h1 {
+      font-size: 2.5rem;
+  }
+  .hero-section {
+      height: 70vh;
+  }
+  .section-title {
+      font-size: 2rem;
+  }
+  .about-content {
+      margin-top: 2rem;
+  }
+  .contact-container {
+      flex-direction: column;
+  }
+  .contact-form, .contact-details {
+      width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .hero-content h1 {
+      font-size: 2rem;
+  }
+  .hero-content p {
+      font-size: 1rem;
+  }
+  section {
+      padding: 50px 0;
+  }
 }

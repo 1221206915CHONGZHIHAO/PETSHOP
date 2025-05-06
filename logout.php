@@ -26,12 +26,6 @@ if (isset($_SESSION['customer_id']) && isset($_SESSION['customer_name']) && isse
     // Record logout activity
     $conn->query("INSERT INTO customer_login_logs (username, email, status) 
                 VALUES ('{$_SESSION['customer_name']}', '{$_SESSION['email']}', 'logout')");
-    
-    // Delete all records from the cart table for this customer
-    $stmt = $conn->prepare("DELETE FROM cart WHERE Customer_ID = ?");
-    $stmt->bind_param("i", $customer_id);
-    $stmt->execute();
-    $stmt->close();
 }
 
 // Unset all session variables
