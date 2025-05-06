@@ -2,6 +2,15 @@
 session_start();
 require_once 'db_connection.php'; // Use the existing db_connection.php for consistency
 
+$shopSettings = [];
+$settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
+$settingsQuery->execute();
+$result = $settingsQuery->get_result();
+
+if ($result->num_rows > 0) {
+    $shopSettings = $result->fetch_assoc();
+}
+
 // Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset($_POST['password'])) {
     $username = $_POST['username'];
@@ -195,25 +204,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
   </section>
 
   <!-- Team Section -->
-  <section class="bg-light-custom py-5">
-    <div class="container">
-      <div class="text-center mb-5" data-aos="fade-up">
-        <h2 class="section-title">Meet Our Team</h2>
-      </div>
-      <div class="row">
-        <div class="col-md-3" data-aos="fade-up" data-aos-delay="100">
-          <div class="card border-0 shadow-sm">
-            <img src="teammember1.jpg" class="card-img-top" alt="CTO">
-            <div class="card-body text-center">
-              <h5>David Hi Zhe Ya</h5>
-              <p class="text-muted">CTO</p>
-            </div>
+<section class="bg-light-custom py-5">
+  <div class="container">
+    <div class="text-center mb-5" data-aos="fade-up">
+      <h2 class="section-title">Meet Our Team</h2>
+    </div>
+    <div class="row justify-content-center">
+      <div class="col-md-4 col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="100">
+        <div class="card border-0 shadow-sm">
+          <img src="teammember2.jpg" class="card-img-top" alt="Founder">
+          <div class="card-body text-center">
+            <h5>Chong Zhi Hao</h5>
+            <p class="text-muted">FOUNDER</p>
           </div>
         </div>
-        <!-- Add more team members as needed -->
+      </div>
+      <div class="col-md-4 col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="200">
+        <div class="card border-0 shadow-sm">
+          <img src="teammember1.jpg" class="card-img-top" alt="CTO">
+          <div class="card-body text-center">
+            <h5>David Hi Zhe Ya</h5>
+            <p class="text-muted">CTO</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="300">
+        <div class="card border-0 shadow-sm">
+          <img src="teammember3.jpg" class="card-img-top" alt="Team Member">
+          <div class="card-body text-center">
+            <h5>Ahmad Afif Daniel bin Mohd Nazron</h5>
+            <p class="text-muted">DEVELOPER</p>
+          </div>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
   <!-- Footer -->
   <footer style="background: linear-gradient(to bottom, rgb(134, 138, 135), rgba(46, 21, 1, 0.69));">
@@ -235,35 +261,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
         
         <!-- Contact Info -->
         <div class="col-md-7">
-          <h4 class="footer-title">Contact Us</h4>
-          <div class="row">
-            <div class="col-sm-6 mb-3">
-              <div class="contact-info">
-                <i class="bi bi-geo-alt"></i>
-                <span>123 Pet Street, Animal City<br>Singapore 123456</span>
-              </div>
+                    <h4 class="footer-title">Contact Us</h4>
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-geo-alt"></i>
+                                <span><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-telephone"></i>
+                                <span><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-envelope"></i>
+                                <span><?php echo !empty($shopSettings['contact_email']) ? htmlspecialchars($shopSettings['contact_email']) : 'Email not available'; ?></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-clock"></i>
+                                <span><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="col-sm-6 mb-3">
-              <div class="contact-info">
-                <i class="bi bi-telephone"></i>
-                <span>+65 1234 5678</span>
-              </div>
-            </div>
-            <div class="col-sm-6 mb-3">
-              <div class="contact-info">
-                <i class="bi bi-envelope"></i>
-                <span>info@hachipetshop.com</span>
-              </div>
-            </div>
-            <div class="col-sm-6 mb-3">
-              <div class="contact-info">
-                <i class="bi bi-clock"></i>
-                <span>Mon-Fri: 9am-6pm<br>Sat-Sun: 10am-4pm</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
       
       <!-- Footer Bottom -->
       <div class="footer-bottom" style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 40px; padding-top: 20px;">

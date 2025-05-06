@@ -6,6 +6,15 @@ $cart_items = [];
 $error_message = '';
 $success_message = '';
 
+$shopSettings = [];
+$settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
+$settingsQuery->execute();
+$result = $settingsQuery->get_result();
+
+if ($result->num_rows > 0) {
+    $shopSettings = $result->fetch_assoc();
+}
+
 // Process cart actions if submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // Connect to database
@@ -553,35 +562,35 @@ $conn->close();
       
       <!-- Contact Info -->
       <div class="col-md-7">
-        <h4 class="footer-title">Contact Us</h4>
-        <div class="row">
-          <div class="col-sm-6 mb-3">
-            <div class="contact-info">
-              <i class="bi bi-geo-alt"></i>
-              <span>123 Pet Street, Animal City<br>Singapore 123456</span>
+                    <h4 class="footer-title">Contact Us</h4>
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-geo-alt"></i>
+                                <span><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-telephone"></i>
+                                <span><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-envelope"></i>
+                                <span><?php echo !empty($shopSettings['contact_email']) ? htmlspecialchars($shopSettings['contact_email']) : 'Email not available'; ?></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-clock"></i>
+                                <span><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div class="col-sm-6 mb-3">
-            <div class="contact-info">
-              <i class="bi bi-telephone"></i>
-              <span>+65 1234 5678</span>
-            </div>
-          </div>
-          <div class="col-sm-6 mb-3">
-            <div class="contact-info">
-              <i class="bi bi-envelope"></i>
-              <span>info@hachipetshop.com</span>
-            </div>
-          </div>
-          <div class="col-sm-6 mb-3">
-            <div class="contact-info">
-              <i class="bi bi-clock"></i>
-              <span>Mon-Fri: 9am-6pm<br>Sat-Sun: 10am-4pm</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
     
     <!-- Footer Bottom -->
     <div class="footer-bottom" style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 40px; padding-top: 20px;">
