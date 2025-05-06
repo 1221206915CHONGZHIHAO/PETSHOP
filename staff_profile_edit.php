@@ -152,33 +152,8 @@ $db->close();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="admin_home.css">
     <style>
-        .dashboard-container {
-            display: flex;
-            padding: 20px;
-            min-height: calc(100vh - 76px - 91px);
-        }
-        .sidebar {
-            width: 250px;
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            margin-right: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        .sidebar-nav { list-style: none; padding: 0; }
-        .sidebar-nav li { margin-bottom: 10px; }
-        .sidebar-nav a {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            color: #333;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-        }
-        .sidebar-nav a:hover, .sidebar-nav a.active { background-color: #e9ecef; }
-        .sidebar-nav a i { margin-right: 10px; width: 20px; text-align: center; }
         .main-content { flex: 1; }
         .info-card {
             background-color: #fff;
