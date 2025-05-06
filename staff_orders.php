@@ -3,7 +3,7 @@ session_start();
 
 // Check if staff is logged in
 if (!isset($_SESSION['staff_id'])) {
-    header("Location: login.php?redirect=customer_list.php");
+    header("Location: login.php?redirect=staff_orders.php");
     exit;
 }
 
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     }
     
     $stmt->close();
-    header("Location: orders.php");
+    header("Location: staff_orders.php");
     exit;
 }
 
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_order'])) {
         $_SESSION['error_message'] = "Error deleting order: " . $e->getMessage();
     }
     
-    header("Location: orders.php");
+    header("Location: staff_orders.php");
     exit;
 }
 
@@ -79,16 +79,23 @@ $order_items = [];
 if ($result->num_rows > 0) {
     while($order = $result->fetch_assoc()) {
         $order_id = $order['Order_ID'];
-        $item_sql = "SELECT p.Product_name, oi.Quantity 
+        $item_sql = "SELECT p.Product_name, oi.Quantity, oi.unit_price 
                      FROM Order_Items oi
                      JOIN Products p ON oi.Product_ID = p.Product_id
                      WHERE oi.Order_ID = $order_id";
         $item_result = $conn->query($item_sql);
         $items = [];
+        $full_items = [];
         while($item = $item_result->fetch_assoc()) {
             $items[] = $item['Product_name'] . " (" . $item['Quantity'] . ")";
+            $full_items[] = [
+                'name' => $item['Product_name'],
+                'quantity' => $item['Quantity'],
+                'price' => $item['unit_price']
+            ];
         }
         $order['products'] = implode(", ", $items);
+        $order['full_items'] = $full_items;
         $order_items[] = $order;
     }
 }
@@ -101,7 +108,7 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Management</title>
+    <title>Order Management - Staff</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin_home.css">
@@ -112,10 +119,15 @@ $conn->close();
         }
         .delete-modal .modal-header {
             background-color: #dc3545;
+            color: white;
         }
         .status-modal .modal-header {
             background-color: #ffc107;
             color: #000;
+        }
+        .details-modal .modal-header {
+            background-color: #17a2b8;
+            color: white;
         }
         .order-details {
             padding: 15px;
@@ -125,11 +137,23 @@ $conn->close();
         }
         .order-details strong {
             display: inline-block;
-            width: 120px;
+            width: 150px;
         }
         .badge {
             font-size: 0.85em;
             padding: 0.35em 0.65em;
+        }
+        .product-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .product-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .table-responsive {
+            max-height: 70vh;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -158,84 +182,88 @@ $conn->close();
         <!-- Sidebar -->
         <nav id="sidebar" class="col-lg-2 d-lg-block bg-dark sidebar">
     <div class="position-sticky pt-3">
-        <div class="text-center mb-4">
+        <div class="d-flex flex-column align-items-center mb-4">
             <?php
-            // Path to the staff avatar image
             $avatar_path = "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
-            
-            // Check if the avatar exists, if so, display it
-            if (file_exists($avatar_path)) {
-                echo '<img src="' . $avatar_path . '" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">';
-            }
-            ?>
-            <h5 class="text-white mb-1"><?php echo htmlspecialchars($_SESSION['staff_name']); ?></h5>
-            <small class="text-muted"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
+            if (file_exists($avatar_path)): ?>
+                <img src="<?php echo $avatar_path; ?>" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
+            <?php else: ?>
+                <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                    <span class="text-white" style="font-size: 24px;">
+                        <?php 
+                        $name = $_SESSION['staff_name'];
+                        echo strtoupper(substr($name, 0, 1)); 
+                        ?>
+                    </span>
+                </div>
+            <?php endif; ?>
+            <h5 class="text-white mb-1 text-center"><?php echo htmlspecialchars($_SESSION['staff_name']); ?></h5>
+            <small class="text-muted text-center"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
         </div>
 
-        <!-- Sidebar Menu -->
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link text-light" href="staff_homepage.php">
-                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                </a>
-            </li>
+                <!-- Sidebar Menu -->
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="staff_homepage.php">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                    </li>
 
-            <li class="nav-item">
-                <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
-                    <i class="fas fa-user-friends me-2"></i>Customer Management
-                </a>
-                <div class="collapse" id="customerMenu">
-                    <ul class="nav flex-column ps-4">
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="staff_customer_list.php">
-                                <i class="fas fa-list me-2"></i>Customer List
-                            </a>
-                        </li>
-                        <li class="nav-item">
+                    <li class="nav-item">
+                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
+                            <i class="fas fa-user-friends me-2"></i>Customer Management
+                        </a>
+                        <div class="collapse" id="customerMenu">
+                            <ul class="nav flex-column ps-4">
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_customer_list.php">
+                                        <i class="fas fa-list me-2"></i>Customer List
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a class="nav-link text-light" href="staff_customer_logs.php">
                                         <i class="fas fa-history me-2"></i>Login/Logout Logs
                                     </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
 
-            <li class="nav-item">
-                <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
-                    <i class="fas fa-shopping-cart me-2"></i>Order Management
-                </a>
-                <div class="collapse show" id="orderMenu">
-                    <ul class="nav flex-column ps-4">
-                        <li class="nav-item">
-                            <a class="nav-link text-light active" href="staff_orders.php">
-                                <i class="fas fa-list me-2"></i>Current Orders
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
+                            <i class="fas fa-shopping-cart me-2"></i>Order Management
+                        </a>
+                        <div class="collapse show" id="orderMenu">
+                            <ul class="nav flex-column ps-4">
+                                <li class="nav-item">
+                                    <a class="nav-link text-light active" href="staff_orders.php">
+                                        <i class="fas fa-list me-2"></i>Current Orders
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
 
-            <li class="nav-item">
+                    <li class="nav-item">
                         <a class="nav-link text-light" href="staff_reports.php">
                             <i class="fas fa-chart-line me-2"></i>Reports
                         </a>
                     </li>
 
-            <li class="nav-item">
-                <a class="nav-link text-light" href="staff_inventory.php">
-                    <i class="fas fa-boxes me-2"></i>Inventory
-                </a>
-            </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="staff_inventory.php">
+                            <i class="fas fa-boxes me-2"></i>Inventory
+                        </a>
+                    </li>
 
-            <li class="nav-item mt-3">
-                <a class="nav-link text-light" href="settings.php">
-                    <i class="fas fa-cog me-2"></i>Settings
-                </a>
-            </li>
-        </ul>
-    </div>
-</nav>
-
+                    <li class="nav-item mt-3">
+                        <a class="nav-link text-light" href="settings.php">
+                            <i class="fas fa-cog me-2"></i>Settings
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
 
         <main class="col-md-10 ms-sm-auto px-md-4">
             <?php if (isset($_SESSION['success_message'])): ?>
@@ -256,11 +284,52 @@ $conn->close();
 
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2"><i class="fas fa-shopping-cart me-2"></i>Order Management</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
+                            <i class="fas fa-sync-alt me-1"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-filter me-2"></i>Filters
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label">Status</label>
+                            <select class="form-select" id="statusFilter" name="status">
+                                <option value="">All Statuses</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Processing">Processing</option>
+                                <option value="Shipped">Shipped</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dateFrom" class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="dateFrom" name="date_from">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dateTo" class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="dateTo" name="date_to">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-1"></i> Apply Filters
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <div class="card">
                 <div class="card-header">
-                    <i class="fas fa-table me-2"></i>Manage Orders
+                    <i class="fas fa-table me-2"></i>Current Orders
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -282,14 +351,24 @@ $conn->close();
                                         <tr>
                                             <td>#<?php echo htmlspecialchars($order['Order_ID']); ?></td>
                                             <td><?php echo htmlspecialchars($order['Customer_name']); ?></td>
-                                            <td><?php echo htmlspecialchars($order['products']); ?></td>
+                                            <td>
+                                                <?php 
+                                                $products = explode(", ", $order['products']);
+                                                if (count($products) > 2) {
+                                                    echo htmlspecialchars($products[0] . ', ' . $products[1] . '...');
+                                                } else {
+                                                    echo htmlspecialchars($order['products']);
+                                                }
+                                                ?>
+                                            </td>
                                             <td>$<?php echo number_format($order['Total'], 2); ?></td>
-                                            <td><?php echo htmlspecialchars($order['Order_Date']); ?></td>
+                                            <td><?php echo date('M j, Y', strtotime($order['Order_Date'])); ?></td>
                                             <td>
                                                 <span class="badge bg-<?php 
                                                     echo $order['Status'] === 'Completed' ? 'success' : 
                                                          ($order['Status'] === 'Processing' ? 'warning' : 
-                                                         ($order['Status'] === 'Shipped' ? 'info' : 'danger')); 
+                                                         ($order['Status'] === 'Shipped' ? 'info' : 
+                                                         ($order['Status'] === 'Pending' ? 'secondary' : 'danger'))); 
                                                 ?>">
                                                     <?php echo htmlspecialchars($order['Status']); ?>
                                                 </span>
@@ -314,7 +393,7 @@ $conn->close();
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="7" class="text-center">No orders found</td>
+                                        <td colspan="7" class="text-center py-4">No orders found</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
@@ -330,7 +409,7 @@ $conn->close();
 <div class="modal fade status-modal" id="updateStatusModal" tabindex="-1" aria-labelledby="updateStatusModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="orders.php">
+            <form method="POST" action="staff_orders.php">
                 <div class="modal-header">
                     <h5 class="modal-title" id="updateStatusModalLabel"><i class="fas fa-sync-alt me-2"></i>Update Order Status</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -362,7 +441,7 @@ $conn->close();
 <div class="modal fade delete-modal" id="deleteOrderModal" tabindex="-1" aria-labelledby="deleteOrderModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="orders.php">
+            <form method="POST" action="staff_orders.php">
                 <input type="hidden" name="delete_order" value="1">
                 <input type="hidden" name="order_id" id="deleteOrderId">
                 <div class="modal-header">
@@ -387,6 +466,36 @@ $conn->close();
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Order Details Modal Handler
+    const detailsModal = document.getElementById('orderDetailsModal');
+    detailsModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const orderDetails = JSON.parse(button.getAttribute('data-order-details'));
+        
+        // Populate the modal with order details
+        document.getElementById('detailsOrderId').textContent = orderDetails.Order_ID;
+        document.getElementById('detailsCustomer').textContent = orderDetails.Customer_name;
+        document.getElementById('detailsOrderDate').textContent = new Date(orderDetails.Order_Date).toLocaleString();
+        document.getElementById('detailsStatus').innerHTML = `<span class="badge bg-${
+            orderDetails.Status === 'Completed' ? 'success' : 
+            orderDetails.Status === 'Processing' ? 'warning' : 
+            orderDetails.Status === 'Shipped' ? 'info' : 
+            orderDetails.Status === 'Pending' ? 'secondary' : 'danger'
+        }">${orderDetails.Status}</span>`;
+        document.getElementById('detailsAddress').textContent = orderDetails.Address;
+        document.getElementById('detailsPayment').textContent = orderDetails.PaymentMethod;
+        document.getElementById('detailsTotal').textContent = orderDetails.Total.toFixed(2);
+        
+        // Populate order items
+        const itemsList = document.getElementById('orderItemsList');
+        itemsList.innerHTML = '';
+        orderDetails.full_items.forEach(item => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${item.name}</strong> - ${item.quantity} x $${item.price.toFixed(2)} = $${(item.quantity * item.price).toFixed(2)}`;
+            itemsList.appendChild(li);
+        });
+    });
+
     // Update Status Modal Handler
     const updateStatusModal = document.getElementById('updateStatusModal');
     updateStatusModal.addEventListener('show.bs.modal', function(event) {
@@ -395,9 +504,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const currentStatus = button.getAttribute('data-current-status');
         
         document.getElementById('updateOrderId').value = orderId;
-        
-        const statusSelect = document.getElementById('statusSelect');
-        statusSelect.value = currentStatus;
+        document.getElementById('statusSelect').value = currentStatus;
     });
 
     // Delete Order Modal Handler
@@ -409,6 +516,18 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('displayOrderId').textContent = orderId;
         document.getElementById('deleteCustomer').textContent = button.getAttribute('data-customer');
     });
+
+    // Apply filter values from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('status')) {
+        document.getElementById('statusFilter').value = urlParams.get('status');
+    }
+    if (urlParams.has('date_from')) {
+        document.getElementById('dateFrom').value = urlParams.get('date_from');
+    }
+    if (urlParams.has('date_to')) {
+        document.getElementById('dateTo').value = urlParams.get('date_to');
+    }
 });
 </script>
 </body>
