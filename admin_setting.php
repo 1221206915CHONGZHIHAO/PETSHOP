@@ -8,44 +8,44 @@ if (!isset($_SESSION['admin_logged_in'])) {
     exit;
 }
 
-function get_admin_settings($conn) {
+function get_shop_settings($conn) {
     $sql = "SELECT * FROM shop_settings WHERE id = 1";
     $result = mysqli_query($conn, $sql);
     return mysqli_fetch_assoc($result) ?? [];
 }
 
-function update_admin_settings($conn, $contact_email, $phone_number, $address) {
-    $sql = "UPDATE shop_settings SET contact_email=?, phone_number=?, address=? WHERE id=1";
+function update_shop_settings($conn, $contact_email, $phone_number, $address, $opening_hours) {
+    $sql = "UPDATE shop_settings SET contact_email=?, phone_number=?, address=?, opening_hours=? WHERE id=1";
     $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "sss", $contact_email, $phone_number, $address);
+    mysqli_stmt_bind_param($stmt, "ssss", $contact_email, $phone_number, $address, $opening_hours);
     return mysqli_stmt_execute($stmt);
 }
 
-$success_message = "";
-$error_message = "";
+$settings = array_merge([
+    'contact_email' => '',
+    'phone_number' => '',
+    'address' => '',
+    'opening_hours' => ''
+], get_shop_settings($conn));
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $contact_email = $_POST["contact_email"] ?? "";
     $phone_number = $_POST["phone_number"] ?? "";
     $address = $_POST["address"] ?? "";
+    $opening_hours = $_POST["opening_hours"] ?? "";
 
-    if (empty($contact_email) || empty($phone_number) || empty($address)) {
+    if (empty($contact_email) || empty($phone_number) || empty($address) || empty($opening_hours)) {
         $error_message = "All fields are required.";
     } else {
-        if (update_admin_settings($conn, $contact_email, $phone_number, $address)) {
+        if (update_shop_settings($conn, $contact_email, $phone_number, $address, $opening_hours)) {
             $success_message = "Settings updated successfully.";
+            // Refresh settings after update
+            $settings = get_shop_settings($conn);
         } else {
             $error_message = "Failed to update settings: " . mysqli_error($conn);
         }
     }
 }
-
-$settings = get_admin_settings($conn);
-$settings = array_merge([
-    'contact_email' => '',
-    'phone_number' => '',
-    'address' => ''
-], $settings);
 ?>
 
 <!DOCTYPE html>
@@ -175,37 +175,23 @@ $settings = array_merge([
                 <h1 class="h2"><i class="fas fa-cog me-2"></i>Admin Settings</h1>
             </div>
 
-            <?php if ($success_message): ?>
-                <div class="alert alert-success alert-dismissible fade show">
-                    <?php echo $success_message; ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
-            
-            <?php if ($error_message): ?>
-                <div class="alert alert-danger alert-dismissible fade show">
-                    <?php echo $error_message; ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
-
             <div class="card mb-4">
                 <div class="card-header">
                     <i class="fas fa-store me-2"></i> Shop Settings
                 </div>
-                <div class="card-body">
+            <div class="card-body">
                     <form method="post">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Contact Email</label>
                                     <input type="email" name="contact_email" class="form-control" 
-                                           value="<?php echo htmlspecialchars($settings['contact_email']); ?>" required>
+                                        value="<?php echo htmlspecialchars($settings['contact_email']); ?>" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Phone Number</label>
                                     <input type="text" name="phone_number" class="form-control" 
-                                           value="<?php echo htmlspecialchars($settings['phone_number']); ?>" required>
+                                        value="<?php echo htmlspecialchars($settings['phone_number']); ?>" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -214,11 +200,12 @@ $settings = array_merge([
                                     <textarea name="address" class="form-control" rows="3" required><?php 
                                         echo htmlspecialchars($settings['address']); ?></textarea>
                                 </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Opening Hours</label>
-                                <input type="text" name="opening_hours" class="form-control"
-                                    value="<?php echo htmlspecialchars($settings['opening_hours']); ?>" required>
+                                <div class="mb-3">
+                                    <label class="form-label">Opening Hours</label>
+                                    <input type="text" name="opening_hours" class="form-control"
+                                        value="<?php echo htmlspecialchars($settings['opening_hours']); ?>" required>
+                                    <small class="text-muted">Example: "Monday-Friday: 9AM-6PM, Saturday: 10AM-4PM, Sunday: Closed"</small>
+                                </div>
                             </div>
                         </div>
                         
