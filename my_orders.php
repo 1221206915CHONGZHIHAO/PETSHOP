@@ -123,13 +123,15 @@ $conn->close();
           <li class="nav-item"><a class="nav-link" href="contact_us.php">Contact Us</a></li>
         </ul>
 
-        <ul class="navbar-nav ms-auto nav-icons">
+                <ul class="navbar-nav ms-auto nav-icons">
           <li class="nav-item">
             <a class="nav-link" href="cart.php">
               <i class="bi bi-cart"></i>
-              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
-                <?php echo isset($_SESSION['cart_count']) ? $_SESSION['cart_count'] : 0; ?>
-              </span>
+              <?php if(isset($_SESSION['cart_count']) && $_SESSION['cart_count'] > 0): ?>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                  <?php echo $_SESSION['cart_count']; ?>
+                </span>
+              <?php endif; ?>
             </a>
           </li>
           
