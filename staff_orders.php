@@ -76,12 +76,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_order'])) {
     exit;
 }
 
-// Fetch orders with customer information
+// Build the base SQL query
 $sql = "SELECT o.Order_ID, c.Customer_name, o.Total, o.Address, o.PaymentMethod, o.Order_Date, o.Status 
         FROM `orders` o
-        JOIN Customer c ON o.Customer_ID = c.Customer_id
-        ORDER BY o.Order_Date DESC";
-$result = $conn->query($sql);
+        JOIN Customer c ON o.Customer_ID = c.Customer_id";
+
+// Add filters if they exist
+$where_clauses = [];
+$params = [];
+$types = '';
+
+if (!empty($_GET['status'])) {
+    $where_clauses[] = "o.Status = ?";
+    $params[] = $_GET['status'];
+    $types .= 's';
+}
+
+if (!empty($_GET['date_from'])) {
+    $where_clauses[] = "o.Order_Date >= ?";
+    $params[] = $_GET['date_from'];
+    $types .= 's';
+}
+
+if (!empty($_GET['date_to'])) {
+    $where_clauses[] = "o.Order_Date <= ?";
+    $params[] = $_GET['date_to'] . ' 23:59:59';
+    $types .= 's';
+}
+
+if (!empty($where_clauses)) {
+    $sql .= " WHERE " . implode(" AND ", $where_clauses);
+}
+
+$sql .= " ORDER BY o.Order_Date DESC";
+
+// Prepare and execute the query with filters
+$stmt = $conn->prepare($sql);
+
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+}
+
+$stmt->execute();
+$result = $stmt->get_result();
 
 // Fetch order items (products) for each order
 $order_items = [];
@@ -314,25 +351,30 @@ echo strtoupper(substr($username, 0, 1));
                             <label for="statusFilter" class="form-label">Status</label>
                             <select class="form-select" id="statusFilter" name="status">
                                 <option value="">All Statuses</option>
-                                <option value="Pending">Pending</option>
-                                <option value="Processing">Processing</option>
-                                <option value="Shipped">Shipped</option>
-                                <option value="Completed">Completed</option>
-                                <option value="Cancelled">Cancelled</option>
+                                <option value="Pending" <?php echo (isset($_GET['status']) && $_GET['status'] === 'Pending') ? 'selected' : ''; ?>>Pending</option>
+                                <option value="Processing" <?php echo (isset($_GET['status']) && $_GET['status'] === 'Processing') ? 'selected' : ''; ?>>Processing</option>
+                                <option value="Shipped" <?php echo (isset($_GET['status']) && $_GET['status'] === 'Shipped') ? 'selected' : ''; ?>>Shipped</option>
+                                <option value="Completed" <?php echo (isset($_GET['status']) && $_GET['status'] === 'Completed') ? 'selected' : ''; ?>>Completed</option>
+                                <option value="Cancelled" <?php echo (isset($_GET['status']) && $_GET['status'] === 'Cancelled') ? 'selected' : ''; ?>>Cancelled</option>
                             </select>
                         </div>
                         <div class="col-md-3">
                             <label for="dateFrom" class="form-label">From Date</label>
-                            <input type="date" class="form-control" id="dateFrom" name="date_from">
+                            <input type="date" class="form-control" id="dateFrom" name="date_from" value="<?php echo $_GET['date_from'] ?? ''; ?>">
                         </div>
                         <div class="col-md-3">
                             <label for="dateTo" class="form-label">To Date</label>
-                            <input type="date" class="form-control" id="dateTo" name="date_to">
+                            <input type="date" class="form-control" id="dateTo" name="date_to" value="<?php echo $_GET['date_to'] ?? ''; ?>">
                         </div>
                         <div class="col-md-3 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-filter me-1"></i> Apply Filters
                             </button>
+                            <?php if (!empty($_GET)): ?>
+                                <a href="staff_orders.php" class="btn btn-outline-secondary ms-2">
+                                    <i class="fas fa-times me-1"></i> Clear
+                                </a>
+                            <?php endif; ?>
                         </div>
                     </form>
                 </div>
@@ -385,6 +427,12 @@ echo strtoupper(substr($username, 0, 1));
                                                 </span>
                                             </td>
                                             <td>
+                                                <button class="btn btn-sm btn-info view-details-btn" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#orderDetailsModal"
+                                                        data-order-details='<?php echo json_encode($order); ?>'>
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
                                                 <button class="btn btn-sm btn-warning update-status-btn" 
                                                         data-bs-toggle="modal" 
                                                         data-bs-target="#updateStatusModal"
@@ -413,6 +461,37 @@ echo strtoupper(substr($username, 0, 1));
                 </div>
             </div>
         </main>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade details-modal" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="orderDetailsModalLabel"><i class="fas fa-info-circle me-2"></i>Order Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="order-details">
+                    <p><strong>Order ID:</strong> <span id="detailsOrderId"></span></p>
+                    <p><strong>Customer Name:</strong> <span id="detailsCustomer"></span></p>
+                    <p><strong>Order Date:</strong> <span id="detailsOrderDate"></span></p>
+                    <p><strong>Status:</strong> <span id="detailsStatus"></span></p>
+                    <p><strong>Delivery Address:</strong> <span id="detailsAddress"></span></p>
+                    <p><strong>Payment Method:</strong> <span id="detailsPayment"></span></p>
+                    <p><strong>Total Amount:</strong> $<span id="detailsTotal"></span></p>
+                    
+                    <h6 class="mt-4 mb-3"><strong>Order Items:</strong></h6>
+                    <ul class="product-list" id="orderItemsList">
+                        <!-- Items will be populated by JavaScript -->
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -479,54 +558,60 @@ echo strtoupper(substr($username, 0, 1));
 document.addEventListener('DOMContentLoaded', function() {
     // Order Details Modal Handler
     const detailsModal = document.getElementById('orderDetailsModal');
-    detailsModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const orderDetails = JSON.parse(button.getAttribute('data-order-details'));
-        
-        // Populate the modal with order details
-        document.getElementById('detailsOrderId').textContent = orderDetails.Order_ID;
-        document.getElementById('detailsCustomer').textContent = orderDetails.Customer_name;
-        document.getElementById('detailsOrderDate').textContent = new Date(orderDetails.Order_Date).toLocaleString();
-        document.getElementById('detailsStatus').innerHTML = `<span class="badge bg-${
-            orderDetails.Status === 'Completed' ? 'success' : 
-            orderDetails.Status === 'Processing' ? 'warning' : 
-            orderDetails.Status === 'Shipped' ? 'info' : 
-            orderDetails.Status === 'Pending' ? 'secondary' : 'danger'
-        }">${orderDetails.Status}</span>`;
-        document.getElementById('detailsAddress').textContent = orderDetails.Address;
-        document.getElementById('detailsPayment').textContent = orderDetails.PaymentMethod;
-        document.getElementById('detailsTotal').textContent = orderDetails.Total.toFixed(2);
-        
-        // Populate order items
-        const itemsList = document.getElementById('orderItemsList');
-        itemsList.innerHTML = '';
-        orderDetails.full_items.forEach(item => {
-            const li = document.createElement('li');
-            li.innerHTML = `<strong>${item.name}</strong> - ${item.quantity} x $${item.price.toFixed(2)} = $${(item.quantity * item.price).toFixed(2)}`;
-            itemsList.appendChild(li);
+    if (detailsModal) {
+        detailsModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const orderDetails = JSON.parse(button.getAttribute('data-order-details'));
+            
+            // Populate the modal with order details
+            document.getElementById('detailsOrderId').textContent = orderDetails.Order_ID;
+            document.getElementById('detailsCustomer').textContent = orderDetails.Customer_name;
+            document.getElementById('detailsOrderDate').textContent = new Date(orderDetails.Order_Date).toLocaleString();
+            document.getElementById('detailsStatus').innerHTML = `<span class="badge bg-${
+                orderDetails.Status === 'Completed' ? 'success' : 
+                orderDetails.Status === 'Processing' ? 'warning' : 
+                orderDetails.Status === 'Shipped' ? 'info' : 
+                orderDetails.Status === 'Pending' ? 'secondary' : 'danger'
+            }">${orderDetails.Status}</span>`;
+            document.getElementById('detailsAddress').textContent = orderDetails.Address;
+            document.getElementById('detailsPayment').textContent = orderDetails.PaymentMethod;
+            document.getElementById('detailsTotal').textContent = orderDetails.Total.toFixed(2);
+            
+            // Populate order items
+            const itemsList = document.getElementById('orderItemsList');
+            itemsList.innerHTML = '';
+            orderDetails.full_items.forEach(item => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${item.name}</strong> - ${item.quantity} x $${item.price.toFixed(2)} = $${(item.quantity * item.price).toFixed(2)}`;
+                itemsList.appendChild(li);
+            });
         });
-    });
+    }
 
     // Update Status Modal Handler
     const updateStatusModal = document.getElementById('updateStatusModal');
-    updateStatusModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const orderId = button.getAttribute('data-order-id');
-        const currentStatus = button.getAttribute('data-current-status');
-        
-        document.getElementById('updateOrderId').value = orderId;
-        document.getElementById('statusSelect').value = currentStatus;
-    });
+    if (updateStatusModal) {
+        updateStatusModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const orderId = button.getAttribute('data-order-id');
+            const currentStatus = button.getAttribute('data-current-status');
+            
+            document.getElementById('updateOrderId').value = orderId;
+            document.getElementById('statusSelect').value = currentStatus;
+        });
+    }
 
     // Delete Order Modal Handler
     const deleteOrderModal = document.getElementById('deleteOrderModal');
-    deleteOrderModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const orderId = button.getAttribute('data-order-id');
-        document.getElementById('deleteOrderId').value = orderId;
-        document.getElementById('displayOrderId').textContent = orderId;
-        document.getElementById('deleteCustomer').textContent = button.getAttribute('data-customer');
-    });
+    if (deleteOrderModal) {
+        deleteOrderModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const orderId = button.getAttribute('data-order-id');
+            document.getElementById('deleteOrderId').value = orderId;
+            document.getElementById('displayOrderId').textContent = '#' + orderId;
+            document.getElementById('deleteCustomer').textContent = button.getAttribute('data-customer');
+        });
+    }
 
     // Apply filter values from URL parameters
     const urlParams = new URLSearchParams(window.location.search);

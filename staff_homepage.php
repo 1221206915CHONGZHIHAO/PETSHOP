@@ -43,19 +43,37 @@ $summaryData['pending_orders'] = $result->fetch_assoc()['pending_orders'];
 $result = $db->query("SELECT COUNT(*) as low_stock FROM products WHERE stock_quantity < 10");
 $summaryData['low_stock'] = $result->fetch_assoc()['low_stock'];
 
-// Fetch recent orders (limit to 5)
+// Fetch recent orders (limit to 5) with order items
 $recentOrders = [];
 $result = $db->query("SELECT 
     o.order_id, 
     c.customer_name, 
     o.Total, 
     o.order_date, 
-    o.status
+    o.status,
+    o.address,
+    o.paymentMethod
     FROM orders o
     JOIN customer c ON o.customer_id = c.customer_id
     ORDER BY o.order_date DESC
     LIMIT 5");
 while ($row = $result->fetch_assoc()) {
+    // Fetch order items for each order
+    $order_id = $row['order_id'];
+    $item_query = "SELECT p.product_name, oi.quantity, oi.unit_price 
+                  FROM order_items oi
+                  JOIN products p ON oi.product_id = p.product_id
+                  WHERE oi.order_id = $order_id";
+    $item_result = $db->query($item_query);
+    $items = [];
+    while($item = $item_result->fetch_assoc()) {
+        $items[] = [
+            'name' => $item['product_name'],
+            'quantity' => $item['quantity'],
+            'price' => $item['unit_price']
+        ];
+    }
+    $row['items'] = $items;
     $recentOrders[] = $row;
 }
 
@@ -102,6 +120,14 @@ $db->close();
             #sidebar.show {
                 transform: translateX(0);
             }
+        }
+        .product-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .product-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
         }
     </style>
 </head>
@@ -220,11 +246,8 @@ $db->close();
                 <h1 class="h2"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-calendar me-1"></i> Today
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-sync me-1"></i> Refresh
+                        <button class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
+                            <i class="fas fa-sync-alt me-1"></i> Refresh
                         </button>
                     </div>
                 </div>
@@ -301,11 +324,11 @@ $db->close();
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-outline-primary">
+                                        <button class="btn btn-sm btn-info view-details-btn" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#orderDetailsModal"
+                                                data-order-details='<?php echo json_encode($order); ?>'>
                                             <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-secondary">
-                                            <i class="fas fa-print"></i>
                                         </button>
                                     </td>
                                 </tr>
@@ -316,6 +339,37 @@ $db->close();
                 </div>
             </div>
         </main>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="orderDetailsModalLabel"><i class="fas fa-info-circle me-2"></i>Order Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="order-details">
+                    <p><strong>Order ID:</strong> <span id="detailsOrderId"></span></p>
+                    <p><strong>Customer Name:</strong> <span id="detailsCustomer"></span></p>
+                    <p><strong>Order Date:</strong> <span id="detailsOrderDate"></span></p>
+                    <p><strong>Status:</strong> <span id="detailsStatus"></span></p>
+                    <p><strong>Delivery Address:</strong> <span id="detailsAddress"></span></p>
+                    <p><strong>Payment Method:</strong> <span id="detailsPayment"></span></p>
+                    <p><strong>Total Amount:</strong> $<span id="detailsTotal"></span></p>
+                    
+                    <h6 class="mt-4 mb-3"><strong>Order Items:</strong></h6>
+                    <ul class="product-list" id="orderItemsList">
+                        <!-- Items will be populated by JavaScript -->
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -337,6 +391,38 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('sidebar').classList.remove('show');
         }
     });
+
+    // Order Details Modal Handler
+    const detailsModal = document.getElementById('orderDetailsModal');
+    if (detailsModal) {
+        detailsModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const orderDetails = JSON.parse(button.getAttribute('data-order-details'));
+            
+            // Populate the modal with order details
+            document.getElementById('detailsOrderId').textContent = orderDetails.order_id;
+            document.getElementById('detailsCustomer').textContent = orderDetails.customer_name;
+            document.getElementById('detailsOrderDate').textContent = new Date(orderDetails.order_date).toLocaleString();
+            document.getElementById('detailsStatus').innerHTML = `<span class="badge bg-${
+                orderDetails.status.toLowerCase() === 'completed' ? 'success' : 
+                orderDetails.status.toLowerCase() === 'pending' ? 'warning' : 
+                orderDetails.status.toLowerCase() === 'shipping' ? 'info' : 
+                orderDetails.status.toLowerCase() === 'cancelled' ? 'danger' : 'secondary'
+            }">${orderDetails.status}</span>`;
+            document.getElementById('detailsAddress').textContent = orderDetails.address;
+            document.getElementById('detailsPayment').textContent = orderDetails.paymentMethod;
+            document.getElementById('detailsTotal').textContent = orderDetails.Total.toFixed(2);
+            
+            // Populate order items
+            const itemsList = document.getElementById('orderItemsList');
+            itemsList.innerHTML = '';
+            orderDetails.items.forEach(item => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${item.name}</strong> - ${item.quantity} x $${item.price.toFixed(2)} = $${(item.quantity * item.price).toFixed(2)}`;
+                itemsList.appendChild(li);
+            });
+        });
+    }
 });
 </script>
 
