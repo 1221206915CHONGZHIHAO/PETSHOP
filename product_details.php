@@ -567,31 +567,13 @@ $original_price = $product['price'] * 1.2;
       <div class="col-12">
         <ul class="nav nav-tabs" id="productTabs" role="tablist">
           <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">Overview</button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="nutritional-tab" data-bs-toggle="tab" data-bs-target="#nutritional" type="button" role="tab" aria-controls="nutritional" aria-selected="false">Nutritional Info</button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="feeding-tab" data-bs-toggle="tab" data-bs-target="#feeding" type="button" role="tab" aria-controls="feeding" aria-selected="false">Feeding Guidelines</button>
+            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">Description</button>
           </li>
         </ul>
         <div class="tab-content" id="productTabsContent">
           <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
-            <h5>Product Overview</h5>
+            <h5>Product Description</h5>
             <p><?php echo htmlspecialchars($product['description']) ?: "No description available."; ?></p>
-          </div>
-          <div class="tab-pane fade" id="nutritional" role="tabpanel" aria-labelledby="nutritional-tab">
-            <h5>Nutritional Information</h5>
-            <p>Salmon complete food for dogs of all life stages.</p>
-            <ul>
-              <li><strong>Nourish Hair Follicle:</strong> Vitamin A is the main nutritional ingredient for fur, acting on sebum and delivering nutrition to hair shaft. A rich content of quality protein supports the hair follicles.</li>
-              <li><strong>Nourish Hair Shaft:</strong> Salmon contains ω-3 polyunsaturated fatty acids, recognizing nutrition for hair shaft to help shiny fur.</li>
-            </ul>
-          </div>
-          <div class="tab-pane fade" id="feeding" role="tabpanel" aria-labelledby="feeding-tab">
-            <h5>Feeding Guidelines</h5>
-            <p>Feed according to your dog's weight and activity level. Always provide fresh water. Consult with a veterinarian for specific feeding recommendations.</p>
           </div>
         </div>
       </div>
