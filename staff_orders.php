@@ -578,13 +578,14 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('detailsTotal').textContent = orderDetails.Total.toFixed(2);
             
             // Populate order items
-            const itemsList = document.getElementById('orderItemsList');
-            itemsList.innerHTML = '';
-            orderDetails.full_items.forEach(item => {
-                const li = document.createElement('li');
-                li.innerHTML = `<strong>${item.name}</strong> - ${item.quantity} x $${item.price.toFixed(2)} = $${(item.quantity * item.price).toFixed(2)}`;
-                itemsList.appendChild(li);
-            });
+            // Populate order items
+const itemsList = document.getElementById('orderItemsList');
+itemsList.innerHTML = '';
+orderDetails.full_items.forEach(item => {
+    const li = document.createElement('li');
+    li.innerHTML = <strong>${item.name}</strong> - ${item.quantity} x $${item.price.toFixed(2)} = $${(item.quantity * item.price).toFixed(2)};
+    itemsList.appendChild(li);
+});
         });
     }
 
