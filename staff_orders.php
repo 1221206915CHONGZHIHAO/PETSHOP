@@ -431,7 +431,7 @@ echo strtoupper(substr($username, 0, 1));
                                                 <button class="btn btn-sm btn-info view-details-btn" 
                                                         data-bs-toggle="modal" 
                                                         data-bs-target="#orderDetailsModal"
-                                                        data-order-details='<?php echo json_encode($order); ?>'>
+                                                        data-order-details='<?php echo htmlspecialchars(json_encode($order), ENT_QUOTES, 'UTF-8'); ?>'>
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 <button class="btn btn-sm btn-warning update-status-btn" 
@@ -469,9 +469,9 @@ echo strtoupper(substr($username, 0, 1));
 <div class="modal fade details-modal" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="orderDetailsModalLabel"><i class="fas fa-info-circle me-2"></i>Order Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="order-details">
@@ -564,10 +564,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const button = event.relatedTarget;
             const orderDetails = JSON.parse(button.getAttribute('data-order-details'));
             
-            // Debug: Log the order details to console
-            console.log('Order Details:', orderDetails);
-            console.log('Full Items:', orderDetails.full_items);
-            
             // Populate the modal with order details
             document.getElementById('detailsOrderId').textContent = orderDetails.Order_ID;
             document.getElementById('detailsCustomer').textContent = orderDetails.Customer_name;
@@ -585,23 +581,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Populate order items
             const itemsList = document.getElementById('orderItemsList');
             itemsList.innerHTML = '';
-            
-            // Check if full_items exists and is an array
-            if (orderDetails.full_items && Array.isArray(orderDetails.full_items)) {
-                orderDetails.full_items.forEach(item => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `<strong>${item.name}</strong> - ${item.quantity} x $${parseFloat(item.price).toFixed(2)} = $${(item.quantity * item.price).toFixed(2)}`;
-                    itemsList.appendChild(li);
-                });
-            } else {
-                // Fallback if full_items is not available
-                const productsList = orderDetails.products.split(", ");
-                productsList.forEach(product => {
-                    const li = document.createElement('li');
-                    li.textContent = product;
-                    itemsList.appendChild(li);
-                });
-            }
+            orderDetails.full_items.forEach(item => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${item.name}</strong> - ${item.quantity} x $${item.price.toFixed(2)} = $${(item.quantity * item.price).toFixed(2)}`;
+                itemsList.appendChild(li);
+            });
         });
     }
 
