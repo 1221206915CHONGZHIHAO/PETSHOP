@@ -320,12 +320,7 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
                             <label class="form-label">Category*</label>
                             <select name="category" class="form-select" required>
                                 <option value="">Select Category</option>
-                                <optgroup label="Dogs">
-                                    <option value="Dogs">Dogs (General)</option>
-                                    <option value="Dog > Dry Food">Dog Dry Food</option>
-                                    <option value="Dog > Treats">Dog Treats</option>
-                                    <option value="Dog > Wet Food">Dog Wet Food</option>
-                                </optgroup>
+                                <option value="Dogs">Dogs</option>
                                 <option value="Cats">Cats</option>
                                 <option value="Birds">Birds</option>
                                 <option value="Fish">Fish</option>
