@@ -13,6 +13,10 @@ if ($db->connect_error) {
     die("Connection failed: " . $db->connect_error);
 }
 
+// Initialize variables
+$errors = [];
+$success = false;
+
 // Fetch staff details
 $staff_id = $_SESSION['staff_id'];
 $query = "SELECT Staff_name, position, Staff_Email, Staff_password FROM staff WHERE Staff_ID = ?";
@@ -29,9 +33,46 @@ if (!$staff) {
     exit();
 }
 
-// Password masking
-$actual_password = $staff['Staff_password'];
-$masked_password = str_repeat('*', strlen($actual_password));
+// Handle password change form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
+    $current_password = trim($_POST['current_password'] ?? '');
+    $new_password = trim($_POST['new_password'] ?? '');
+    $confirm_password = trim($_POST['confirm_password'] ?? '');
+
+    // Validate current password (plain text comparison)
+    if (empty($current_password)) {
+        $errors['current_password'] = "Current password is required";
+    } elseif ($current_password !== $staff['Staff_password']) {
+        $errors['current_password'] = "Current password is incorrect";
+    }
+
+    // Validate new password
+    if (empty($new_password)) {
+        $errors['new_password'] = "New password is required";
+    } elseif (strlen($new_password) < 8) {
+        $errors['new_password'] = "Password must be at least 8 characters long";
+    }
+
+    // Confirm new password
+    if ($new_password !== $confirm_password) {
+        $errors['confirm_password'] = "Passwords do not match";
+    }
+
+    // Update password if no errors
+    if (empty($errors)) {
+        $update_query = "UPDATE staff SET Staff_password = ? WHERE Staff_ID = ?";
+        $stmt = $db->prepare($update_query);
+        $stmt->bind_param("si", $new_password, $staff_id);
+        
+        if ($stmt->execute()) {
+            $success = true;
+            // Update the staff array with new password
+            $staff['Staff_password'] = $new_password;
+        } else {
+            $errors['database'] = "Failed to update password: " . $db->error;
+        }
+    }
+}
 
 $db->close();
 ?>
@@ -208,6 +249,18 @@ $db->close();
                 <h1 class="h2"><i class="fas fa-cog me-2"></i>Staff Settings</h1>
             </div>
 
+            <?php if ($success): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i> Password changed successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php elseif (!empty($errors['database'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i> <?php echo htmlspecialchars($errors['database']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
             <div class="row">
                 <div class="col-12">
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -243,7 +296,7 @@ $db->close();
                                 <div class="row">
                                     <div class="col-md-3 fw-bold">Password:</div>
                                     <div class="col-md-9 password-container">
-                                        <span id="passwordDisplay"><?php echo $masked_password; ?></span>
+                                        <span id="passwordDisplay"><?php echo str_repeat('*', strlen($staff['Staff_password'])); ?></span>
                                         <button class="password-toggle" onclick="togglePassword()">
                                             <i class="bi bi-eye" id="passwordToggleIcon"></i>
                                         </button>
@@ -263,7 +316,7 @@ $db->close();
                 </div>
             </div>
 
-            <!-- Additional Settings Sections -->
+            <!-- Password Change Section -->
             <div class="row mt-4">
                 <div class="col-md-6">
                     <div class="card mb-4">
@@ -271,19 +324,51 @@ $db->close();
                             <i class="fas fa-lock me-2"></i>Change Password
                         </div>
                         <div class="card-body">
-                            <form id="changePasswordForm">
+                            <form method="POST">
+                                <input type="hidden" name="change_password" value="1">
+                                
                                 <div class="mb-3">
                                     <label for="currentPassword" class="form-label">Current Password</label>
-                                    <input type="password" class="form-control" id="currentPassword" required>
+                                    <div class="password-container">
+                                        <input type="password" class="form-control <?php echo isset($errors['current_password']) ? 'is-invalid' : ''; ?>" 
+                                               id="currentPassword" name="current_password" required>
+                                        <button type="button" class="password-toggle" onclick="togglePassword('currentPassword', this)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    <?php if (isset($errors['current_password'])): ?>
+                                        <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['current_password']); ?></div>
+                                    <?php endif; ?>
                                 </div>
+
                                 <div class="mb-3">
                                     <label for="newPassword" class="form-label">New Password</label>
-                                    <input type="password" class="form-control" id="newPassword" required>
+                                    <div class="password-container">
+                                        <input type="password" class="form-control <?php echo isset($errors['new_password']) ? 'is-invalid' : ''; ?>" 
+                                               id="newPassword" name="new_password" required>
+                                        <button type="button" class="password-toggle" onclick="togglePassword('newPassword', this)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    <?php if (isset($errors['new_password'])): ?>
+                                        <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['new_password']); ?></div>
+                                    <?php endif; ?>
                                 </div>
+
                                 <div class="mb-3">
                                     <label for="confirmPassword" class="form-label">Confirm New Password</label>
-                                    <input type="password" class="form-control" id="confirmPassword" required>
+                                    <div class="password-container">
+                                        <input type="password" class="form-control <?php echo isset($errors['confirm_password']) ? 'is-invalid' : ''; ?>" 
+                                               id="confirmPassword" name="confirm_password" required>
+                                        <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword', this)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    <?php if (isset($errors['confirm_password'])): ?>
+                                        <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['confirm_password']); ?></div>
+                                    <?php endif; ?>
                                 </div>
+
                                 <button type="submit" class="btn btn-primary">Update Password</button>
                             </form>
                         </div>
@@ -314,7 +399,7 @@ $db->close();
 <!-- JavaScript -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function()) {
+document.addEventListener('DOMContentLoaded', function() {
     // Sidebar toggle
     document.getElementById('sidebarToggle').addEventListener('click', function() {
         document.getElementById('sidebar').classList.toggle('show');
@@ -330,66 +415,41 @@ document.addEventListener('DOMContentLoaded', function()) {
         }
     });
 
-// Replace the existing form submission handler with this:
-    document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    formData.append('action', 'change_password');
-    
-    fetch('process_settings.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Password changed successfully!');
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        alert('Error: ' + error);
+    // Profile picture form submission
+    document.getElementById('profilePictureForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        // Add profile picture upload logic here
+        alert('Profile picture upload functionality will be implemented here');
     });
 });
 
-// Replace the existing form submission handler with this:
-    document.getElementById('profilePictureForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    formData.append('action', 'upload_avatar');
-    
-    fetch('process_settings.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Profile picture updated successfully!');
-            // Refresh the page to show new image
-            location.reload();
+function togglePassword(inputId, button) {
+    if (inputId && button) {
+        // For password input fields
+        const input = document.getElementById(inputId);
+        const icon = button.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
         } else {
-            alert('Error: ' + data.message);
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
         }
-    })
-    .catch(error => {
-        alert('Error: ' + error);
-    });
-});
-function togglePassword() {
-    const passwordDisplay = document.getElementById('passwordDisplay');
-    const passwordToggleIcon = document.getElementById('passwordToggleIcon');
-    if (passwordDisplay.textContent === '<?php echo $masked_password; ?>') {
-        passwordDisplay.textContent = '<?php echo addslashes($actual_password); ?>';
-        passwordToggleIcon.classList.remove('bi-eye');
-        passwordToggleIcon.classList.add('bi-eye-slash');
     } else {
-        passwordDisplay.textContent = '<?php echo $masked_password; ?>';
-        passwordToggleIcon.classList.remove('bi-eye-slash');
-        passwordToggleIcon.classList.add('bi-eye');
+        // For password display
+        const passwordDisplay = document.getElementById('passwordDisplay');
+        const passwordToggleIcon = document.getElementById('passwordToggleIcon');
+        if (passwordDisplay.textContent.includes('*')) {
+            passwordDisplay.textContent = '<?php echo addslashes($staff['Staff_password']); ?>';
+            passwordToggleIcon.classList.remove('bi-eye');
+            passwordToggleIcon.classList.add('bi-eye-slash');
+        } else {
+            passwordDisplay.textContent = '<?php echo str_repeat("*", strlen($staff['Staff_password'])); ?>';
+            passwordToggleIcon.classList.remove('bi-eye-slash');
+            passwordToggleIcon.classList.add('bi-eye');
+        }
     }
 }
 </script>
