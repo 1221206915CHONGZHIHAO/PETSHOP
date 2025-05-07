@@ -299,7 +299,6 @@ $db->close();
                                     <th>Total</th>
                                     <th>Date</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -324,12 +323,6 @@ $db->close();
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-info view-details-btn" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#orderDetailsModal"
-                                                data-order-details='<?php echo json_encode($order); ?>'>
-                                            <i class="fas fa-eye"></i>
-                                        </button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
