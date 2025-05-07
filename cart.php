@@ -6,20 +6,32 @@ $cart_items = [];
 $error_message = '';
 $success_message = '';
 
+// Initialize shop settings array
+$shopSettings = [];
+
+// Connect to database - Move the connection here, at the beginning
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "petshop";
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Now fetch the shop settings
+$settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
+$settingsQuery->execute();
+$result = $settingsQuery->get_result();
+
+if ($result->num_rows > 0) {
+    $shopSettings = $result->fetch_assoc();
+}
+
 // Process cart actions if submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    // Connect to database
-    $servername = "localhost";
-    $username = "root";
-    $password = "";
-    $dbname = "petshop";
-    
-    $conn = new mysqli($servername, $username, $password, $dbname);
-    
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
-    
     $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
     $action = $_POST['action'];
     
@@ -136,19 +148,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     exit;
 }
 
-// Load cart items for display
-// Connect to database
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "petshop";
-
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
 try {
     // Check URL parameters for messages
     if (isset($_GET['error'])) {
@@ -249,6 +248,7 @@ foreach ($cart_items as $item) {
 // Count items in cart
 $cart_count = count($cart_items);
 
+// Close the connection
 $conn->close();
 ?>
 
