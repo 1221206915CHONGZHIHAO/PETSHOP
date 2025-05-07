@@ -1,5 +1,6 @@
 <?php
 session_start();
+error_reporting(E_ALL); // Add error reporting to see any issues
 require_once 'db_connection.php';
 
 // Check if user is logged in
@@ -39,23 +40,64 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $name = $_POST['name'];
         $email = $_POST['email'];
         
-        $stmt = $conn->prepare("UPDATE customer SET Customer_name = ?, Customer_email = ? WHERE Customer_ID = ?");
-        $stmt->bind_param("ssi", $name, $email, $customer_id);
+        // For debugging - comment out or remove in production
+        // echo "<pre>POST data: "; print_r($_POST); echo "</pre>";
         
-        if ($stmt->execute()) {
-            $success_message = "Profile updated successfully!";
+        // Handle profile image upload
+        $profile_image = $customer['profile_image']; // Keep existing image by default
+        
+        if (isset($_FILES['profile_image']) && $_FILES['profile_image']['size'] > 0) {
+            $upload_dir = 'uploads/profile_images/';
             
-            // Update session data
-            $_SESSION['customer_name'] = $name;
+            // Create directory if it doesn't exist
+            if (!file_exists($upload_dir)) {
+                mkdir($upload_dir, 0777, true);
+            }
             
-            // Refresh customer data
-            $stmt = $conn->prepare("SELECT * FROM customer WHERE Customer_ID = ?");
-            $stmt->bind_param("i", $customer_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $customer = $result->fetch_assoc();
-        } else {
-            $error_message = "Failed to update profile: " . $conn->error;
+            $file_extension = pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION);
+            $new_filename = 'profile_' . $customer_id . '_' . time() . '.' . $file_extension;
+            $upload_file = $upload_dir . $new_filename;
+            
+            // Check file type
+            $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+            if (!in_array($_FILES['profile_image']['type'], $allowed_types)) {
+                $error_message = "Only JPEG, PNG and GIF images are allowed.";
+            } 
+            // Check file size (max 2MB)
+            else if ($_FILES['profile_image']['size'] > 2 * 1024 * 1024) {
+                $error_message = "Image size should not exceed 2MB.";
+            }
+            // Try to upload the file
+            else if (move_uploaded_file($_FILES['profile_image']['tmp_name'], $upload_file)) {
+                // Delete old image if exists
+                if (!empty($customer['profile_image']) && file_exists($upload_dir . $customer['profile_image'])) {
+                    unlink($upload_dir . $customer['profile_image']);
+                }
+                $profile_image = $new_filename;
+            } else {
+                $error_message = "Failed to upload image. Please try again.";
+            }
+        }
+        
+        if (!isset($error_message)) {
+            $stmt = $conn->prepare("UPDATE customer SET Customer_name = ?, Customer_email = ?, profile_image = ? WHERE Customer_ID = ?");
+            $stmt->bind_param("sssi", $name, $email, $profile_image, $customer_id);
+            
+            if ($stmt->execute()) {
+                $success_message = "Profile updated successfully!";
+                
+                // Update session data
+                $_SESSION['customer_name'] = $name;
+                
+                // Refresh customer data
+                $stmt = $conn->prepare("SELECT * FROM customer WHERE Customer_ID = ?");
+                $stmt->bind_param("i", $customer_id);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $customer = $result->fetch_assoc();
+            } else {
+                $error_message = "Failed to update profile: " . $conn->error;
+            }
         }
     }
     
@@ -651,6 +693,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
     <i class="bi bi-arrow-up"></i>
   </a>
 
+<!-- Edit Profile Modal - Modified to use standard form submission -->
 <div id="edit-profile-modal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -679,6 +722,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
   </div>
 </div>
 
+<!-- Change Password Modal -->
 <div id="change-password-modal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -706,6 +750,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
   </div>
 </div>
 
+<!-- Address Modal -->
 <div id="address-modal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -800,52 +845,6 @@ $masked_password = str_repeat('*', strlen($actual_password));
       }
     });
     
-    // Add to Cart Functionality
-    const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
-    addToCartButtons.forEach(button => {
-      button.addEventListener('click', function(e) {
-        e.preventDefault();
-        const productId = this.getAttribute('data-product-id');
-        const productName = this.getAttribute('data-product-name');
-        
-        // Create a toast notification
-        const toastContainer = document.createElement('div');
-        toastContainer.classList.add('toast-container', 'position-fixed', 'bottom-0', 'end-0', 'p-3');
-        toastContainer.style.zIndex = '5';
-        
-        const toastElement = document.createElement('div');
-        toastElement.classList.add('toast', 'align-items-center', 'text-white', 'bg-primary', 'border-0');
-        toastElement.setAttribute('role', 'alert');
-        toastElement.setAttribute('aria-live', 'assertive');
-        toastElement.setAttribute('aria-atomic', 'true');
-        
-        toastElement.innerHTML = `
-          <div class="d-flex">
-            <div class="toast-body">
-              <i class="bi bi-check-circle me-2"></i> ${productName} added to cart!
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-          </div>
-        `;
-        
-        toastContainer.appendChild(toastElement);
-        document.body.appendChild(toastContainer);
-        
-        // Show the toast
-        const toast = new bootstrap.Toast(toastElement);
-        toast.show();
-        
-        // Send AJAX request to add item to cart
-        // This is where you would normally add AJAX code to update the cart on the server
-        console.log(`Product added to cart: ID - ${productId}, Name - ${productName}`);
-        
-        // For demo purposes, remove the toast container after it's hidden
-        toastElement.addEventListener('hidden.bs.toast', function () {
-          document.body.removeChild(toastContainer);
-        });
-      });
-    });
-    
 document.addEventListener('DOMContentLoaded', function() {
   const modals = document.querySelectorAll('.modal');
   const closeButtons = document.querySelectorAll('.close-button, .close-modal-btn');
@@ -859,14 +858,17 @@ document.addEventListener('DOMContentLoaded', function() {
   const profileImageInput = document.getElementById('profile_image');
   const imagePreview = document.getElementById('image-preview');
 
+  // Open edit profile modal
   editProfileBtn.addEventListener('click', function() {
     editProfileModal.style.display = 'block';
   });
   
+  // Open change password modal
   changePasswordBtn.addEventListener('click', function() {
     changePasswordModal.style.display = 'block';
   });
   
+  // Open add address modal
   addAddressBtn.addEventListener('click', function() {
     document.getElementById('address_id').value = '';
     document.getElementById('address_label').value = '';
@@ -882,87 +884,26 @@ document.addEventListener('DOMContentLoaded', function() {
     addressModalTitle.textContent = 'Add New Address';
     addressModal.style.display = 'block';
   });
-  
-  // Image preview
-  profileImageInput.addEventListener('change', function() {
-    imagePreview.innerHTML = '';
-    if (this.files && this.files[0]) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const img = document.createElement('img');
-        img.src = e.target.result;
-        img.style.maxWidth = '100px';
-        img.style.borderRadius = '50%';
-        imagePreview.appendChild(img);
-      };
-      reader.readAsDataURL(this.files[0]);
-    }
-  });
 
-  // Handle profile form submission with image upload
-  const editProfileForm = document.getElementById('edit-profile-form');
-  editProfileForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    
-    // First, handle image upload if a file is selected
-    if (profileImageInput.files.length > 0) {
-      const imageFormData = new FormData();
-      imageFormData.append('profile_image', profileImageInput.files[0]);
-      
-      fetch('upload_image.php', {
-        method: 'POST',
-        body: imageFormData
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // Update avatar immediately
-          const avatar = document.querySelector('.user-avatar');
-          avatar.innerHTML = `<img src="${data.image_path}" alt="Profile Image">`;
-          
-          // Proceed with profile update
-          submitProfileForm(formData);
-        } else {
-          alert(data.message);
-        }
-      })
-      .catch(error => {
-        alert('Error uploading image: ' + error.message);
-      });
-    } else {
-      // No image selected, proceed with profile update
-      submitProfileForm(formData);
-    }
-  });
-
-  function submitProfileForm(formData) {
-    fetch('', {
-      method: 'POST',
-      body: formData
-    })
-    .then(response => response.text())
-    .then(data => {
-      // Reload page to show updated profile and success message
-      window.location.reload();
-    })
-    .catch(error => {
-      alert('Error updating profile: ' + error.message);
+  // Image preview functionality
+  if (profileImageInput) {
+    profileImageInput.addEventListener('change', function() {
+      imagePreview.innerHTML = '';
+      if (this.files && this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          img.style.maxWidth = '100px';
+          img.style.borderRadius = '50%';
+          imagePreview.appendChild(img);
+        };
+        reader.readAsDataURL(this.files[0]);
+      }
     });
   }
 
-  // Edit address buttons
-  const editAddressBtns = document.querySelectorAll('.edit-address-btn');
-  editAddressBtns.forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      const addressId = this.getAttribute('data-id');
-      // This would ideally fetch address data via AJAX
-      addressModalTitle.textContent = 'Edit Address';
-      addressModal.style.display = 'block';
-    });
-  });
-  
+  // Handle close buttons
   closeButtons.forEach(function(btn) {
     btn.addEventListener('click', function() {
       modals.forEach(function(modal) {
@@ -971,11 +912,89 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   
+  // Close modal when clicking outside
   window.addEventListener('click', function(event) {
     modals.forEach(function(modal) {
       if (event.target === modal) {
         modal.style.display = 'none';
       }
+    });
+  });
+  
+  // Edit address buttons
+  const editAddressBtns = document.querySelectorAll('.edit-address-btn');
+  editAddressBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const addressId = this.getAttribute('data-id');
+      
+      // Find the address card parent element
+      const addressCard = this.closest('.address-card');
+      if (!addressCard) return;
+      
+      // Get address data directly from the DOM
+      const label = addressCard.querySelector('h4').textContent;
+      const paragraphs = addressCard.querySelectorAll('p');
+      
+      // Extract data from paragraphs
+      let fullName = '';
+      let addressLine1 = '';
+      let addressLine2 = '';
+      let city = '';
+      let state = '';
+      let postalCode = '';
+      let country = '';
+      let phone = '';
+      
+      if (paragraphs.length > 0) fullName = paragraphs[0].textContent;
+      if (paragraphs.length > 1) addressLine1 = paragraphs[1].textContent;
+      
+      // Handle optional address line 2
+      let cityIndex = 2;
+      if (paragraphs.length > 3 && !paragraphs[2].textContent.includes(',')) {
+        addressLine2 = paragraphs[2].textContent;
+        cityIndex = 3;
+      }
+      
+      // Parse city, state, zip from the format "City, State, Zip"
+      if (paragraphs.length > cityIndex) {
+        const cityStateZip = paragraphs[cityIndex].textContent.split(',');
+        if (cityStateZip.length >= 1) city = cityStateZip[0].trim();
+        if (cityStateZip.length >= 2) state = cityStateZip[1].trim();
+        if (cityStateZip.length >= 3) postalCode = cityStateZip[2].trim();
+      }
+      
+      // Get country
+      if (paragraphs.length > cityIndex + 1) {
+        country = paragraphs[cityIndex + 1].textContent;
+      }
+      
+      // Extract phone number from format "Phone: 123456789"
+      if (paragraphs.length > cityIndex + 2) {
+        const phoneText = paragraphs[cityIndex + 2].textContent;
+        if (phoneText.startsWith('Phone:')) {
+          phone = phoneText.replace('Phone:', '').trim();
+        }
+      }
+      
+      // Check if this is the default address
+      const isDefault = addressCard.querySelector('.badge') !== null;
+      
+      // Populate form fields
+      document.getElementById('address_id').value = addressId;
+      document.getElementById('address_label').value = label;
+      document.getElementById('full_name').value = fullName;
+      document.getElementById('phone').value = phone;
+      document.getElementById('address_line1').value = addressLine1;
+      document.getElementById('address_line2').value = addressLine2;
+      document.getElementById('city').value = city;
+      document.getElementById('state').value = state;
+      document.getElementById('postal_code').value = postalCode;
+      document.getElementById('country').value = country;
+      document.getElementById('is_default').checked = isDefault;
+      
+      // Update modal title and display it
+      addressModalTitle.textContent = 'Edit Address';
+      addressModal.style.display = 'block';
     });
   });
 });
