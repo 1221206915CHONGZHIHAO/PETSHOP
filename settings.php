@@ -27,7 +27,6 @@ $stmt->execute();
 $result = $stmt->get_result();
 $staff = $result->fetch_assoc();
 
-
 if (!$staff) {
     session_unset();
     session_destroy();
@@ -214,7 +213,7 @@ $db->close();
     <div>
         <span class="text-light me-3">
             <i class="fas fa-user-circle me-1"></i>
-            Welcome, <?php echo htmlspecialchars($_SESSION['staff_name']); ?>
+            Welcome, <?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?>
         </span>
         <a href="logout.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
@@ -236,13 +235,13 @@ $db->close();
                         <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
                             <span class="text-white" style="font-size: 24px;">
                                 <?php 
-                                $name = $_SESSION['staff_name'];
-                                echo strtoupper(substr($name, 0, 1)); 
+                                $username = $staff['Staff_username'] ?? $_SESSION['staff_name'];
+                                echo strtoupper(substr($username, 0, 1)); 
                                 ?>
                             </span>
                         </div>
                     <?php endif; ?>
-                    <h5 class="text-white mb-1"><?php echo htmlspecialchars($_SESSION['staff_name']); ?></h5>
+                    <h5 class="text-white mb-1"><?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?></h5>
                     <small class="text-muted"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
                 </div>
 
@@ -351,10 +350,10 @@ $db->close();
                                     <img src="<?php echo $avatar_path; ?>" alt="Profile Image" id="avatarImage">
                                 <?php else: ?>
                                     <?php 
-                                    $name = $staff['Staff_name'];
-                                    $initials = strtoupper(substr($name, 0, 1));
-                                    if (strpos($name, ' ') !== false) {
-                                        $name_parts = explode(' ', $name);
+                                    $username = $staff['Staff_username'] ?? $staff['Staff_name'];
+                                    $initials = strtoupper(substr($username, 0, 1));
+                                    if (strpos($username, ' ') !== false) {
+                                        $name_parts = explode(' ', $username);
                                         $initials = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
                                     }
                                     echo $initials;
