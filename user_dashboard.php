@@ -202,7 +202,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
       <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h2>Account Details</h2>
-          <a href="account_setting.php" class="btn btn-link">View more</a>
+          <a href="myprofile_address.php" class="btn btn-link">View more</a>
         </div>
         <div class="info-card">
           <div class="account-details">
