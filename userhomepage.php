@@ -110,6 +110,139 @@ if (isset($_SESSION['customer_id'])) {
   <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
   <!-- Your Custom Styles -->
   <link rel="stylesheet" href="userhomepage.css">
+  <style>
+    /* Testimonials Section */
+.testimonials {
+  background: linear-gradient(to right, rgba(48, 81, 114, 0.9), rgba(240, 242, 245, 0.5));
+  position: relative;
+  padding: 80px 0;
+}
+
+/* Section title styling */
+.testimonials .section-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: #212529;
+  position: relative;
+  display: inline-block;
+}
+
+.testimonials .section-title:after {
+  content: '';
+  display: block;
+  height: 4px;
+  width: 70px;
+  background-color: #4e9f3d;
+  margin-top: 0.5rem;
+}
+
+.testimonials .section-subtitle {
+  color: #6c757d;
+  font-size: 1.1rem;
+  max-width: 700px;
+  margin: 0 auto 3rem;
+}
+
+/* Testimonial Cards */
+.testimonial-card {
+  border-radius: 10px;
+  border: none;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  padding: 25px;
+  background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+  height: 100%;
+}
+
+.testimonial-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+/* Quote icon styling */
+.testimonial-card .quote-icon {
+  font-size: 2rem;
+  color: #4e9f3d;
+  opacity: 0.2;
+  margin-bottom: 15px;
+}
+
+/* Testimonial text styling */
+.testimonial-card .card-text {
+  font-style: italic;
+  margin-bottom: 20px;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #555;
+}
+
+/* Author section styling */
+.testimonial-card .author {
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Enhanced profile image styling */
+.testimonial-card .author-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #fff;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  margin-right: 15px;
+  position: relative;
+}
+
+.testimonial-card .author-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+/* Author info styling */
+.testimonial-card .author-info {
+  flex: 1;
+}
+
+.testimonial-card .author-info h6 {
+  margin-bottom: 3px;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.testimonial-card .author-info span {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+/* Specific card accent colors */
+.testimonial-card.accent-primary {
+  border-top: 4px solid #4e9f3d;
+}
+
+.testimonial-card.accent-secondary {
+  border-top: 4px solid #ff7e2e;
+}
+
+.testimonial-card.accent-tertiary {
+  border-top: 4px solid #1e3a8a;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .testimonial-card {
+    margin-bottom: 25px;
+  }
+}
+  </style>
 </head>
 <body>
     <!-- Navigation -->
@@ -314,67 +447,67 @@ if (isset($_SESSION['customer_id'])) {
   </section>
 
   <!-- Testimonials Section with improved visual design -->
-  <section class="testimonials py-5">
-    <div class="container">
-      <div class="text-center mb-5" data-aos="fade-up">
-        <h2 class="section-title">Happy Pet Parents</h2>
-        <p class="section-subtitle">See what our customers have to say about their experience with Hachi Pet Shop</p>
-      </div>
-      <!-- Decorative paw prints background -->
-      <div class="position-absolute" style="z-index: -1; opacity: 0.05; right: 5%; top: 10%; width: 100%;">
-      </div>
-      <div class="row">
-        <!-- Testimonial 1 -->
-        <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="100">
-          <div class="card testimonial-card h-100" style="border-top: 4px solid var(--primary);">
-            <div class="quote-icon"><i class="bi bi-quote"></i></div>
-            <p class="card-text">"Hachi Pet Shop completely changed how I shop for my golden retriever, Max. Their premium food options have improved his coat, and the toys keep him entertained for hours. The customer service is exceptional!"</p>
-            <div class="author">
-              <div class="author-img me-3">
-                <img src="user1.png" alt="Sarah Johnson" class="rounded-circle" width="50" height="50">
-              </div>
-              <div class="author-info">
-                <h6>Sarah Johnson</h6>
-                <span class="text-primary">Dog Owner</span>
-              </div>
+<section class="testimonials py-5">
+  <div class="container">
+    <div class="text-center mb-5" data-aos="fade-up">
+      <h2 class="section-title">Happy Pet Parents</h2>
+      <p class="section-subtitle">See what our customers have to say about their experience with Hachi Pet Shop</p>
+    </div>
+    
+    <div class="row">
+      <!-- Testimonial 1 -->
+      <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="100">
+        <div class="testimonial-card accent-primary h-100">
+          <div class="quote-icon"><i class="bi bi-quote"></i></div>
+          <p class="card-text">"Hachi Pet Shop completely changed how I shop for my golden retriever, Max. Their premium food options have improved his coat, and the toys keep him entertained for hours. The customer service is exceptional!"</p>
+          <div class="author">
+            <div class="author-img">
+              <img src="user3.jpg" alt="Sarah Johnson">
+            </div>
+            <div class="author-info">
+              <h6>Sarah Johnson</h6>
+              <span class="text-primary">Dog Owner</span>
             </div>
           </div>
         </div>
-        <!-- Testimonial 2 -->
-        <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="200">
-          <div class="card testimonial-card h-100" style="border-top: 4px solid var(--accent);">
-            <div class="quote-icon"><i class="bi bi-quote"></i></div>
-            <p class="card-text">"I've been ordering from Hachi for over a year now for my two cats. The quality is consistently excellent, shipping is always on time, and their rewards program saves me so much money. Couldn't be happier!"</p>
-            <div class="author">
-              <div class="author-img me-3">
-                <img src="user2.png" alt="Michael Rodriguez" class="rounded-circle" width="50" height="50">
-              </div>
-              <div class="author-info">
-                <h6>Michael Rodriguez</h6>
-                <span style="color: var(--accent);">Cat Owner</span>
-              </div>
+      </div>
+      
+      <!-- Testimonial 2 -->
+      <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="200">
+        <div class="testimonial-card accent-secondary h-100">
+          <div class="quote-icon"><i class="bi bi-quote"></i></div>
+          <p class="card-text">"I've been ordering from Hachi for over a year now for my two cats. The quality is consistently excellent, shipping is always on time, and their rewards program saves me so much money. Couldn't be happier!"</p>
+          <div class="author">
+            <div class="author-img">
+              <img src="user2.png" alt="Michael Rodriguez">
+            </div>
+            <div class="author-info">
+              <h6>Michael Rodriguez</h6>
+              <span style="color: var(--accent);">Cat Owner</span>
             </div>
           </div>
         </div>
-        <!-- Testimonial 3 -->
-        <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="300">
-          <div class="card testimonial-card h-100" style="border-top: 4px solid var(--secondary);">
-            <div class="quote-icon"><i class="bi bi-quote"></i></div>
-            <p class="card-text">"As someone who owns both fish and a parakeet, it's hard to find a store that caters to both needs. Hachi has everything I need in one place, with great prices and helpful advice when I need it. Highly recommend!"</p>
-            <div class="author">
-              <div class="author-img me-3">
-                <img src="user3.png" alt="Emily Chen" class="rounded-circle" width="50" height="50">
-              </div>
-              <div class="author-info">
-                <h6>Emily Chen</h6>
-                <span style="color: var(--secondary);">Multiple Pet Owner</span>
-              </div>
+      </div>
+      
+      <!-- Testimonial 3 -->
+      <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="300">
+        <div class="testimonial-card accent-tertiary h-100">
+          <div class="quote-icon"><i class="bi bi-quote"></i></div>
+          <p class="card-text">"As someone who owns both fish and a parakeet, it's hard to find a store that caters to both needs. Hachi has everything I need in one place, with great prices and helpful advice when I need it. Highly recommend!"</p>
+          <div class="author">
+            <div class="author-img">
+              <img src="user1.png" alt="Emily Chen">
+            </div>
+            <div class="author-info">
+              <h6>Emily Chen</h6>
+              <span style="color: var(--secondary);">Multiple Pet Owner</span>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
   <!-- Brands Section with improved visual interest -->
   <section class="brands py-5" style="background: linear-gradient(135deg, var(--light-gray) 0%, white 50%, var(--light-gray) 100%);">
