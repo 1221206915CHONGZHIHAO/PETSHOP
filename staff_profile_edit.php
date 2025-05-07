@@ -546,23 +546,25 @@ echo strtoupper(substr($username, 0, 1));
                             if (file_exists($avatar_path)): ?>
                                 <img src="<?php echo $avatar_path; ?>" id="avatarPreview" alt="Profile Image">
                             <?php else: ?>
-                                <span id="avatarInitials">
-                                    <?php 
-                                    $name = $staff['Staff_name'];
-                                    $initials = strtoupper(substr($name, 0, 1));
-                                    if (strpos($name, ' ') !== false) {
-                                        $name_parts = explode(' ', $name);
-                                        $initials = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
-                                    }
-                                    echo $initials;
-                                    ?>
-                                </span>
+                                <div id="initialsContainer">
+                                    <span id="avatarInitials">
+                                        <?php 
+                                        $name = $staff['Staff_username'] ?? $staff['Staff_name'];
+                                        $initials = strtoupper(substr($name, 0, 1));
+                                        if (strpos($name, ' ') !== false) {
+                                            $name_parts = explode(' ', $name);
+                                            $initials = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
+                                        }
+                                        echo $initials;
+                                        ?>
+                                    </span>
+                                </div>
                             <?php endif; ?>
                             <div class="user-avatar-edit" onclick="document.getElementById('avatar').click()">
                                 <i class="fas fa-camera me-1"></i> Change
                             </div>
                         </div>
-                        <h4 id="namePreview"><?php echo htmlspecialchars($staff['Staff_name']); ?></h4>
+                        <h4 id="namePreview"><?php echo htmlspecialchars($staff['Staff_username'] ?? $staff['Staff_name']); ?></h4>
                         <p class="text-muted mb-1" id="emailPreview"><?php echo htmlspecialchars($staff['Staff_Email']); ?></p>
                         <span class="badge bg-primary"><?php echo htmlspecialchars($staff['position']); ?></span>
                     </div>
@@ -606,7 +608,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const namePreview = document.getElementById('namePreview');
     nameInput.addEventListener('input', function() {
         namePreview.textContent = this.value;
-        updateInitials();
+        updateInitials(this.value);
     });
 
     // Live preview for email
@@ -618,22 +620,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Avatar preview
     const avatarInput = document.getElementById('avatar');
-    const avatarPreview = document.getElementById('avatarPreview');
-    const avatarInitials = document.getElementById('avatarInitials');
+    const avatarContainer = document.querySelector('.user-avatar');
     
     avatarInput.addEventListener('change', function() {
         if (this.files && this.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
+                // First, check if there's already an image preview
+                let avatarPreview = document.getElementById('avatarPreview');
+                
                 if (avatarPreview) {
+                    // If there is an image already, just update its source
                     avatarPreview.src = e.target.result;
                 } else {
-                    // Create image element if it doesn't exist
-                    const img = document.createElement('img');
-                    img.id = 'avatarPreview';
-                    img.src = e.target.result;
-                    img.alt = 'Profile Image';
-                    avatarInitials.parentNode.replaceChild(img, avatarInitials);
+                    // If there isn't an image (showing initials instead), create one
+                    const initialsContainer = document.getElementById('initialsContainer');
+                    if (initialsContainer) {
+                        // Remove the initials container
+                        initialsContainer.remove();
+                    }
+                    
+                    // Create new image element
+                    avatarPreview = document.createElement('img');
+                    avatarPreview.id = 'avatarPreview';
+                    avatarPreview.src = e.target.result;
+                    avatarPreview.alt = 'Profile Image';
+                    
+                    // Add it to the avatar container (before the edit button)
+                    const editButton = avatarContainer.querySelector('.user-avatar-edit');
+                    avatarContainer.insertBefore(avatarPreview, editButton);
                 }
             };
             reader.readAsDataURL(this.files[0]);
@@ -641,30 +656,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function togglePassword(inputId, button) {
-    const input = document.getElementById(inputId);
-    const icon = button.querySelector('i');
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.classList.remove('bi-eye');
-        icon.classList.add('bi-eye-slash');
-    } else {
-        input.type = 'password';
-        icon.classList.remove('bi-eye-slash');
-        icon.classList.add('bi-eye');
-    }
-}
-
-function updateInitials() {
-    const name = document.getElementById('name').value;
+// Function to update initials display from username
+function updateInitials(name) {
     const avatarInitials = document.getElementById('avatarInitials');
     if (avatarInitials) {
-        let initials = name.length > 0 ? name[0].toUpperCase() : '';
+        let initials = name.length > 0 ? name.charAt(0).toUpperCase() : '';
         if (name.includes(' ')) {
             const parts = name.split(' ');
-            initials = parts[0][0].toUpperCase();
+            initials = parts[0].charAt(0).toUpperCase();
             if (parts.length > 1) {
-                initials += parts[parts.length - 1][0].toUpperCase();
+                initials += parts[parts.length - 1].charAt(0).toUpperCase();
             }
         }
         avatarInitials.textContent = initials;

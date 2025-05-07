@@ -3,7 +3,7 @@ session_start();
 
 // Check if staff is logged in
 if (!isset($_SESSION['staff_id'])) {
-    header("Location: login.php?redirect=customer_list.php");
+    header("Location: login.php?redirect=staff_reports.php");
     exit;
 }
 
@@ -41,12 +41,12 @@ switch ($report_type) {
         // Get sales data for the last 8 weeks
         $result = $conn->query("
             SELECT 
-                YEARWEEK(Order_Date) AS week,
+                YEARWEEK(order_date) AS week,
                 SUM(Total) AS total_sales,
                 COUNT(Order_ID) AS order_count
-            FROM `Orders`
-            WHERE Order_Date >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
-            GROUP BY YEARWEEK(Order_Date)
+            FROM orders
+            WHERE order_date >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
+            GROUP BY YEARWEEK(order_date)
             ORDER BY week DESC
         ");
         
@@ -67,12 +67,12 @@ switch ($report_type) {
         // Get sales data for the last 12 months
         $result = $conn->query("
             SELECT 
-                DATE_FORMAT(Order_Date, '%Y-%m') AS month,
+                DATE_FORMAT(order_date, '%Y-%m') AS month,
                 SUM(Total) AS total_sales,
                 COUNT(Order_ID) AS order_count
-            FROM `Orders`
-            WHERE Order_Date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-            GROUP BY DATE_FORMAT(Order_Date, '%Y-%m')
+            FROM orders
+            WHERE order_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+            GROUP BY DATE_FORMAT(order_date, '%Y-%m')
             ORDER BY month DESC
         ");
         
@@ -91,11 +91,11 @@ switch ($report_type) {
         // Get sales data for all years
         $result = $conn->query("
             SELECT 
-                YEAR(Order_Date) AS year,
+                YEAR(order_date) AS year,
                 SUM(Total) AS total_sales,
                 COUNT(Order_ID) AS order_count
-            FROM `Orders`
-            GROUP BY YEAR(Order_Date)
+            FROM orders
+            GROUP BY YEAR(order_date)
             ORDER BY year DESC
         ");
         
@@ -185,7 +185,7 @@ $conn->close();
     <div>
     <span class="text-light me-3">
     <i class="fas fa-user-circle me-1"></i>
-    Welcome, <?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?>
+    Welcome, <?php echo htmlspecialchars($staff_username); ?>
 </span>
         <a href="logout.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
@@ -207,13 +207,12 @@ $conn->close();
                         <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
                             <span class="text-white" style="font-size: 24px;">
                             <?php 
-$username = $staff['Staff_username'] ?? $_SESSION['staff_name'];
-echo strtoupper(substr($username, 0, 1)); 
-?>
+                            echo strtoupper(substr($staff_username, 0, 1)); 
+                            ?>
                             </span>
                         </div>
                     <?php endif; ?>
-                    <h5 class="text-white mb-1"><?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?></h5>
+                    <h5 class="text-white mb-1"><?php echo htmlspecialchars($staff_username); ?></h5>
                     <small class="text-muted text-center"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
                 </div>
 
@@ -287,7 +286,7 @@ echo strtoupper(substr($username, 0, 1));
                 <h1 class="h2"><i class="fas fa-chart-line me-2"></i>Sales Reports</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
-                        <a href="reports.php?report_type=<?php echo $report_type; ?>&export=1" class="btn btn-sm btn-outline-primary" id="exportBtn">
+                        <a href="staff_reports.php?report_type=<?php echo $report_type; ?>&export=1" class="btn btn-sm btn-outline-primary" id="exportBtn">
                             <i class="fas fa-file-export me-1"></i>Export to CSV
                         </a>
                     </div>
@@ -298,19 +297,19 @@ echo strtoupper(substr($username, 0, 1));
             <ul class="nav nav-pills mb-4">
                 <li class="nav-item">
                     <a class="nav-link <?php echo $report_type === 'weekly' ? 'active' : ''; ?>" 
-                       href="reports.php?report_type=weekly">
+                       href="staff_reports.php?report_type=weekly">
                         <i class="fas fa-calendar-week me-1"></i>Weekly
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link <?php echo $report_type === 'monthly' ? 'active' : ''; ?>" 
-                       href="reports.php?report_type=monthly">
+                       href="staff_reports.php?report_type=monthly">
                         <i class="fas fa-calendar-alt me-1"></i>Monthly
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link <?php echo $report_type === 'yearly' ? 'active' : ''; ?>" 
-                       href="reports.php?report_type=yearly">
+                       href="staff_reports.php?report_type=yearly">
                         <i class="fas fa-calendar me-1"></i>Yearly
                     </a>
                 </li>
