@@ -19,6 +19,16 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
+// Fetch staff username
+$staff_id = $_SESSION['staff_id'];
+$stmt = $conn->prepare("SELECT Staff_username FROM staff WHERE Staff_ID = ?");
+$stmt->bind_param("i", $staff_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$staff = $result->fetch_assoc();
+$staff_username = $staff['Staff_username'];
+
+
 // Default report type (weekly)
 $report_type = isset($_GET['report_type']) ? $_GET['report_type'] : 'weekly';
 $report_data = [];
@@ -173,10 +183,10 @@ $conn->close();
         </a>
     </div>
     <div>
-        <span class="text-light me-3">
-            <i class="fas fa-user-circle me-1"></i>
-            Welcome, <?php echo htmlspecialchars($_SESSION['staff_name']); ?>
-        </span>
+    <span class="text-light me-3">
+    <i class="fas fa-user-circle me-1"></i>
+    Welcome, <?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?>
+</span>
         <a href="logout.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
@@ -196,14 +206,14 @@ $conn->close();
                     <?php else: ?>
                         <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
                             <span class="text-white" style="font-size: 24px;">
-                                <?php 
-                                $name = $_SESSION['staff_name'];
-                                echo strtoupper(substr($name, 0, 1)); 
-                                ?>
+                            <?php 
+$username = $staff['Staff_username'] ?? $_SESSION['staff_name'];
+echo strtoupper(substr($username, 0, 1)); 
+?>
                             </span>
                         </div>
                     <?php endif; ?>
-                    <h5 class="text-white mb-1 text-center"><?php echo htmlspecialchars($_SESSION['staff_name']); ?></h5>
+                    <h5 class="text-white mb-1"><?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?></h5>
                     <small class="text-muted text-center"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
                 </div>
 

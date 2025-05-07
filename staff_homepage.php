@@ -15,7 +15,7 @@ if ($db->connect_error) {
 
 // Fetch staff details
 $staff_id = $_SESSION['staff_id'];
-$query = "SELECT Staff_name, position, Staff_Email FROM staff WHERE Staff_ID = ?";
+$query = "SELECT Staff_name, Staff_username, position, Staff_Email FROM staff WHERE Staff_ID = ?";
 $stmt = $db->prepare($query);
 $stmt->bind_param("i", $staff_id);
 $stmt->execute();
@@ -31,6 +31,7 @@ if (!$staff) {
 
 // Update session
 $_SESSION['staff_name'] = $staff['Staff_name'];
+$_SESSION['staff_username'] = $staff['Staff_username'];
 $_SESSION['position'] = $staff['position'];
 $_SESSION['staff_email'] = $staff['Staff_Email'];
 
