@@ -268,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </div>
                         <p>Your trusted partner in pet product. We're dedicated to providing quality products for pet lovers everywhere.</p>
                         <div class="social-links">
-                            <a href="#"><i class="bi bi-facebook"></i></a>
+                            <a href="https://www.facebook.com/profile.php?id=61575717095389"><i class="bi bi-facebook"></i></a>
                             <a href="#"><i class="bi bi-instagram"></i></a>
                         </div>
                     </div>
