@@ -557,48 +557,49 @@ echo strtoupper(substr($username, 0, 1));
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Order Details Modal Handler
-    const detailsModal = document.getElementById('orderDetailsModal');
-    if (detailsModal) {
-        detailsModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            try {
-                const orderDetails = JSON.parse(button.getAttribute('data-order-details'));
+const detailsModal = document.getElementById('orderDetailsModal');
+if (detailsModal) {
+    detailsModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const orderDetails = JSON.parse(button.getAttribute('data-order-details'));
+        
+        // Populate the modal with order details
+        document.getElementById('detailsOrderId').textContent = orderDetails.Order_ID;
+        document.getElementById('detailsCustomer').textContent = orderDetails.Customer_name;
+        document.getElementById('detailsOrderDate').textContent = new Date(orderDetails.Order_Date).toLocaleString();
+        document.getElementById('detailsStatus').innerHTML = `<span class="badge bg-${
+            orderDetails.Status === 'Completed' ? 'success' : 
+            orderDetails.Status === 'Processing' ? 'warning' : 
+            orderDetails.Status === 'Shipped' ? 'info' : 
+            orderDetails.Status === 'Pending' ? 'secondary' : 'danger'
+        }">${orderDetails.Status}</span>`;
+        document.getElementById('detailsAddress').textContent = orderDetails.Address;
+        document.getElementById('detailsPayment').textContent = orderDetails.PaymentMethod;
+        document.getElementById('detailsTotal').textContent = parseFloat(orderDetails.Total).toFixed(2);
+        
+        // Populate order items
+        const itemsList = document.getElementById('orderItemsList');
+        itemsList.innerHTML = '';
+        
+        // Check if full_items exists and is an array
+        if (orderDetails.full_items && Array.isArray(orderDetails.full_items)) {
+            orderDetails.full_items.forEach(item => {
+                const li = document.createElement('li');
+                const quantity = parseInt(item.quantity);
+                const price = parseFloat(item.price);
+                const totalPrice = quantity * price;
                 
-                // Populate the modal with order details
-                document.getElementById('detailsOrderId').textContent = orderDetails.Order_ID;
-                document.getElementById('detailsCustomer').textContent = orderDetails.Customer_name;
-                document.getElementById('detailsOrderDate').textContent = new Date(orderDetails.Order_Date).toLocaleString();
-                document.getElementById('detailsStatus').innerHTML = `<span class="badge bg-${
-                    orderDetails.Status === 'Completed' ? 'success' : 
-                    orderDetails.Status === 'Processing' ? 'warning' : 
-                    orderDetails.Status === 'Shipped' ? 'info' : 
-                    orderDetails.Status === 'Pending' ? 'secondary' : 'danger'
-                }">${orderDetails.Status}</span>`;
-                document.getElementById('detailsAddress').textContent = orderDetails.Address;
-                document.getElementById('detailsPayment').textContent = orderDetails.PaymentMethod;
-                document.getElementById('detailsTotal').textContent = orderDetails.Total.toFixed(2);
-                
-                // Populate order items
-                const itemsList = document.getElementById('orderItemsList');
-                itemsList.innerHTML = '';
-                
-                if (orderDetails.full_items && orderDetails.full_items.length > 0) {
-                    orderDetails.full_items.forEach(item => {
-                        const li = document.createElement('li');
-                        li.innerHTML = `<strong>${item.name}</strong> - ${item.quantity} x $${item.price.toFixed(2)} = $${(item.quantity * item.price).toFixed(2)}`;
-                        itemsList.appendChild(li);
-                    });
-                } else {
-                    const li = document.createElement('li');
-                    li.textContent = 'No items found in this order';
-                    itemsList.appendChild(li);
-                }
-            } catch (e) {
-                console.error('Error parsing order details:', e);
-            }
-        });
-    }
->>>>>>> 7fc62b3c03fdf5f41e1c06dcd262a32c1deb1ae7
+                li.innerHTML = `<strong>${item.name}</strong> - ${quantity} x $${price.toFixed(2)} = $${totalPrice.toFixed(2)}`;
+                itemsList.appendChild(li);
+            });
+        } else {
+            // Fallback if full_items is not available
+            const li = document.createElement('li');
+            li.textContent = "Product details not available";
+            itemsList.appendChild(li);
+        }
+    });
+}
 
     // Update Status Modal Handler
     const updateStatusModal = document.getElementById('updateStatusModal');
