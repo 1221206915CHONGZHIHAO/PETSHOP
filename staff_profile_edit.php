@@ -94,36 +94,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['avatar'] = "File size must be less than 2MB";
         } else {
             $upload_dir = 'staff_avatars/';
+            
+            // Create directory if it doesn't exist and make sure it's writable
             if (!file_exists($upload_dir)) {
-                mkdir($upload_dir, 0755, true);
-            }
-            
-            $file_extension = pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION);
-            $avatar_filename = $staff_id . '.' . $file_extension;
-            $avatar_path = $upload_dir . $avatar_filename;
-            
-            // Delete old image if it exists
-            if (!empty($staff['img_URL']) && file_exists($staff['img_URL'])) {
-                unlink($staff['img_URL']);
-            }
-            
-            if (move_uploaded_file($_FILES['avatar']['tmp_name'], $avatar_path)) {
-                // Update database with image path
-                $update_img_query = "UPDATE staff SET img_URL = ? WHERE Staff_ID = ?";
-                $stmt = $db->prepare($update_img_query);
-                $stmt->bind_param("si", $avatar_path, $staff_id);
-                
-                if ($stmt->execute()) {
-                    $upload_success = true;
-                    $staff['img_URL'] = $avatar_path;
-                    $_SESSION['avatar_path'] = $avatar_path;
-                } else {
-                    $errors['database'] = "Failed to update profile picture: " . $db->error;
+                if (!mkdir($upload_dir, 0755, true)) {
+                    $errors['avatar'] = "Failed to create upload directory";
                 }
-            } else {
-                $errors['avatar'] = "Failed to upload image";
+            } elseif (!is_writable($upload_dir)) {
+                $errors['avatar'] = "Upload directory is not writable";
+            }
+            
+            if (empty($errors['avatar'])) {
+                $file_extension = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
+                $avatar_filename = $staff_id . '_' . uniqid() . '.' . $file_extension;
+                $avatar_path = $upload_dir . $avatar_filename;
+                
+                // Delete old image if it exists
+                if (!empty($staff['img_URL']) && file_exists($staff['img_URL'])) {
+                    unlink($staff['img_URL']);
+                }
+                
+                if (move_uploaded_file($_FILES['avatar']['tmp_name'], $avatar_path)) {
+                    // Update database with image path (relative path for display)
+                    $display_path = 'staff_avatars/' . $avatar_filename;
+                    $update_img_query = "UPDATE staff SET img_URL = ? WHERE Staff_ID = ?";
+                    $stmt = $db->prepare($update_img_query);
+                    $stmt->bind_param("si", $display_path, $staff_id);
+                    
+                    if ($stmt->execute()) {
+                        $upload_success = true;
+                        $staff['img_URL'] = $display_path;
+                        $_SESSION['avatar_path'] = $display_path;
+                    } else {
+                        $errors['database'] = "Failed to update profile picture: " . $db->error;
+                        // Remove the uploaded file if database update failed
+                        if (file_exists($avatar_path)) {
+                            unlink($avatar_path);
+                        }
+                    }
+                } else {
+                    $errors['avatar'] = "Failed to upload image";
+                }
             }
         }
+    } elseif (isset($_FILES['avatar']) && $_FILES['avatar']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $upload_errors = [
+            0 => 'There is no error, the file uploaded with success',
+            1 => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
+            2 => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form',
+            3 => 'The uploaded file was only partially uploaded',
+            4 => 'No file was uploaded',
+            6 => 'Missing a temporary folder',
+            7 => 'Failed to write file to disk.',
+            8 => 'A PHP extension stopped the file upload.',
+        ];
+        $error_code = $_FILES['avatar']['error'];
+        $errors['avatar'] = "File upload error: " . ($upload_errors[$error_code] ?? 'Unknown error');
     }
 
     // Update database if no errors (excluding avatar errors if no file was uploaded)
