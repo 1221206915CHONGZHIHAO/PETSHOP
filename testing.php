@@ -16,11 +16,10 @@ if ($db->connect_error) {
 // Initialize variables
 $errors = [];
 $success = false;
-$upload_success = false;
 
-// Fetch staff details including img_URL
+// Fetch staff details
 $staff_id = $_SESSION['staff_id'];
-$query = "SELECT Staff_name, position, Staff_Email, Staff_password, img_URL FROM staff WHERE Staff_ID = ?";
+$query = "SELECT Staff_name, position, Staff_Email, Staff_password FROM staff WHERE Staff_ID = ?";
 $stmt = $db->prepare($query);
 $stmt->bind_param("i", $staff_id);
 $stmt->execute();
@@ -83,15 +82,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Handle profile picture upload
+    $avatar_path = null;
     if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
         $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
         $file_type = $_FILES['avatar']['type'];
-        $max_size = 2 * 1024 * 1024; // 2MB
         
         if (!in_array($file_type, $allowed_types)) {
             $errors['avatar'] = "Only JPG, PNG, and GIF files are allowed";
-        } elseif ($_FILES['avatar']['size'] > $max_size) {
-            $errors['avatar'] = "File size must be less than 2MB";
         } else {
             $upload_dir = 'staff_avatars/';
             if (!file_exists($upload_dir)) {
@@ -102,32 +99,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $avatar_filename = $staff_id . '.' . $file_extension;
             $avatar_path = $upload_dir . $avatar_filename;
             
-            // Delete old image if it exists
-            if (!empty($staff['img_URL']) && file_exists($staff['img_URL'])) {
-                unlink($staff['img_URL']);
-            }
-            
-            if (move_uploaded_file($_FILES['avatar']['tmp_name'], $avatar_path)) {
-                // Update database with image path
-                $update_img_query = "UPDATE staff SET img_URL = ? WHERE Staff_ID = ?";
-                $stmt = $db->prepare($update_img_query);
-                $stmt->bind_param("si", $avatar_path, $staff_id);
-                
-                if ($stmt->execute()) {
-                    $upload_success = true;
-                    $staff['img_URL'] = $avatar_path;
-                    $_SESSION['avatar_path'] = $avatar_path;
-                } else {
-                    $errors['database'] = "Failed to update profile picture: " . $db->error;
-                }
-            } else {
+            if (!move_uploaded_file($_FILES['avatar']['tmp_name'], $avatar_path)) {
                 $errors['avatar'] = "Failed to upload image";
             }
         }
     }
 
-    // Update database if no errors (excluding avatar errors if no file was uploaded)
-    if (empty(array_diff_key($errors, ['avatar' => '']))) {
+    // Update database if no errors
+    if (empty($errors)) {
         $update_query = "UPDATE staff SET Staff_name = ?, Staff_Email = ?";
         $params = [$name, $email];
         $types = "ss";
@@ -168,7 +147,7 @@ $db->close();
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Profile - PetShop Staff</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -256,6 +235,7 @@ $db->close();
     </style>
 </head>
 <body>
+
 <nav class="navbar navbar-dark bg-dark px-3">
     <div class="d-flex align-items-center">
         <button class="btn btn-dark me-3 d-lg-none" id="sidebarToggle">
@@ -363,35 +343,30 @@ $db->close();
             </div>
         </nav>
 
-    <!-- Main Content -->
-    <main class="col-lg-10 ms-sm-auto p-4">
-        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-            <h1 class="h2"><i class="fas fa-user-edit me-2"></i>Edit Profile</h1>
-            <div>
-                <a href="settings.php" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i> Back to Settings
-                </a>
+        <!-- Main Content -->
+        <main class="col-lg-10 ms-sm-auto p-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="fas fa-user-edit me-2"></i>Edit Profile</h1>
+                <div>
+                    <a href="settings.php" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Settings
+                    </a>
+                </div>
             </div>
-        </div>
 
-        <?php if ($success): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle me-2"></i> Profile updated successfully!
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        <?php elseif ($upload_success): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle me-2"></i> Profile picture updated successfully!
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        <?php elseif (!empty($errors['database'])): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-circle me-2"></i> <?php echo htmlspecialchars($errors['database']); ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        <?php endif; ?>
+            <?php if ($success): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i> Profile updated successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php elseif (!empty($errors['database'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i> <?php echo htmlspecialchars($errors['database']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
 
-        <div class="row">
+            <div class="row">
                 <div class="col-md-8">
                     <form id="profileForm" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
                         <div class="card mb-4">
@@ -507,43 +482,43 @@ $db->close();
                     </form>
                 </div>
 
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        <i class="fas fa-user-circle me-2"></i>Profile Preview
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="user-avatar mx-auto mb-3">
-                            <?php
-                            // Check for image in this order: 1. Database img_URL, 2. Legacy path, 3. Show initials
-                            $avatar_path = !empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
-                            if (file_exists($avatar_path)): ?>
-                                <img src="<?php echo $avatar_path; ?>" id="avatarPreview" alt="Profile Image">
-                            <?php else: ?>
-                                <span id="avatarInitials">
-                                    <?php 
-                                    $name = $staff['Staff_name'];
-                                    $initials = strtoupper(substr($name, 0, 1));
-                                    if (strpos($name, ' ') !== false) {
-                                        $name_parts = explode(' ', $name);
-                                        $initials = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
-                                    }
-                                    echo $initials;
-                                    ?>
-                                </span>
-                            <?php endif; ?>
-                            <div class="user-avatar-edit" onclick="document.getElementById('avatar').click()">
-                                <i class="fas fa-camera me-1"></i> Change
-                            </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-user-circle me-2"></i>Profile Preview
                         </div>
-                        <h4 id="namePreview"><?php echo htmlspecialchars($staff['Staff_name']); ?></h4>
-                        <p class="text-muted mb-1" id="emailPreview"><?php echo htmlspecialchars($staff['Staff_Email']); ?></p>
-                        <span class="badge bg-primary"><?php echo htmlspecialchars($staff['position']); ?></span>
+                        <div class="card-body text-center">
+                            <div class="user-avatar mx-auto mb-3">
+                                <?php
+                                $avatar_path = "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
+                                if (file_exists($avatar_path)): ?>
+                                    <img src="<?php echo $avatar_path; ?>" id="avatarPreview" alt="Profile Image">
+                                <?php else: ?>
+                                    <span id="avatarInitials">
+                                        <?php 
+                                        $name = $staff['Staff_name'];
+                                        $initials = strtoupper(substr($name, 0, 1));
+                                        if (strpos($name, ' ') !== false) {
+                                            $name_parts = explode(' ', $name);
+                                            $initials = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
+                                        }
+                                        echo $initials;
+                                        ?>
+                                    </span>
+                                <?php endif; ?>
+                                <div class="user-avatar-edit" onclick="document.getElementById('avatar').click()">
+                                    <i class="fas fa-camera me-1"></i> Change
+                                </div>
+                            </div>
+                            <h4 id="namePreview"><?php echo htmlspecialchars($staff['Staff_name']); ?></h4>
+                            <p class="text-muted mb-1" id="emailPreview"><?php echo htmlspecialchars($staff['Staff_Email']); ?></p>
+                            <span class="badge bg-primary"><?php echo htmlspecialchars($staff['position']); ?></span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 </div>
 
 <!-- JavaScript -->
@@ -590,8 +565,8 @@ document.addEventListener('DOMContentLoaded', function() {
         emailPreview.textContent = this.value;
     });
 
-    // Avatar preview
-    const avatarInput = document.getElementById('avatar');
+ // Avatar preview
+ const avatarInput = document.getElementById('avatar');
     const avatarPreview = document.getElementById('avatarPreview');
     const avatarInitials = document.getElementById('avatarInitials');
     

@@ -16,10 +16,11 @@ if ($db->connect_error) {
 // Initialize variables
 $errors = [];
 $success = false;
+$upload_success = false;
 
 // Fetch staff details
 $staff_id = $_SESSION['staff_id'];
-$query = "SELECT Staff_name, position, Staff_Email, Staff_password FROM staff WHERE Staff_ID = ?";
+$query = "SELECT Staff_name, position, Staff_Email, Staff_password, img_URL FROM staff WHERE Staff_ID = ?";
 $stmt = $db->prepare($query);
 $stmt->bind_param("i", $staff_id);
 $stmt->execute();
@@ -70,6 +71,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
             $staff['Staff_password'] = $new_password;
         } else {
             $errors['database'] = "Failed to update password: " . $db->error;
+        }
+    }
+}
+
+// Handle profile picture upload
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profileImage']) && $_FILES['profileImage']['error'] === UPLOAD_ERR_OK) {
+    $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+    $file_type = $_FILES['profileImage']['type'];
+    $max_size = 2 * 1024 * 1024; // 2MB
+    
+    if (!in_array($file_type, $allowed_types)) {
+        $errors['profileImage'] = "Only JPG, PNG, and GIF files are allowed";
+    } elseif ($_FILES['profileImage']['size'] > $max_size) {
+        $errors['profileImage'] = "File size must be less than 2MB";
+    } else {
+        $upload_dir = 'staff_avatars/';
+        if (!file_exists($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        
+        $file_extension = pathinfo($_FILES['profileImage']['name'], PATHINFO_EXTENSION);
+        $avatar_filename = $staff_id . '.' . $file_extension;
+        $avatar_path = $upload_dir . $avatar_filename;
+        
+        // Delete old image if it exists
+        if (!empty($staff['img_URL']) && file_exists($staff['img_URL'])) {
+            unlink($staff['img_URL']);
+        }
+        
+        if (move_uploaded_file($_FILES['profileImage']['tmp_name'], $avatar_path)) {
+            // Update database with image path
+            $update_query = "UPDATE staff SET img_URL = ? WHERE Staff_ID = ?";
+            $stmt = $db->prepare($update_query);
+            $stmt->bind_param("si", $avatar_path, $staff_id);
+            
+            if ($stmt->execute()) {
+                $upload_success = true;
+                $staff['img_URL'] = $avatar_path;
+                $_SESSION['avatar_path'] = $avatar_path;
+            } else {
+                $errors['database'] = "Failed to update profile picture: " . $db->error;
+            }
+        } else {
+            $errors['profileImage'] = "Failed to upload image";
         }
     }
 }
@@ -138,6 +183,20 @@ $db->close();
                 transform: translateX(0);
             }
         }
+        .is-invalid {
+            border-color: #dc3545;
+        }
+        .invalid-feedback {
+            color: #dc3545;
+            display: none;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875em;
+        }
+        .was-validated .form-control:invalid ~ .invalid-feedback,
+        .form-control.is-invalid ~ .invalid-feedback {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -167,14 +226,21 @@ $db->close();
             <div class="position-sticky pt-3">
                 <div class="text-center mb-4">
                     <?php
-                    // Path to the staff avatar image
-                    $avatar_path = "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
+                    // Use img_URL from database if available, otherwise fall back to legacy path
+                    $avatar_path = !empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
                     
-                    // Check if the avatar exists, if so, display it
-                    if (file_exists($avatar_path)) {
-                        echo '<img src="' . $avatar_path . '" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">';
-                    }
-                    ?>
+                    if (file_exists($avatar_path)): ?>
+                        <img src="<?php echo $avatar_path; ?>" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
+                    <?php else: ?>
+                        <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                            <span class="text-white" style="font-size: 24px;">
+                                <?php 
+                                $name = $_SESSION['staff_name'];
+                                echo strtoupper(substr($name, 0, 1)); 
+                                ?>
+                            </span>
+                        </div>
+                    <?php endif; ?>
                     <h5 class="text-white mb-1"><?php echo htmlspecialchars($_SESSION['staff_name']); ?></h5>
                     <small class="text-muted"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
                 </div>
@@ -254,6 +320,11 @@ $db->close();
                     <i class="fas fa-check-circle me-2"></i> Password changed successfully!
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
+            <?php elseif ($upload_success): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i> Profile picture updated successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
             <?php elseif (!empty($errors['database'])): ?>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <i class="fas fa-exclamation-circle me-2"></i> <?php echo htmlspecialchars($errors['database']); ?>
@@ -273,9 +344,10 @@ $db->close();
                         <div class="account-details">
                             <div class="user-avatar">
                                 <?php
-                                $avatar_path = "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
+                                // Check for image in this order: 1. Database img_URL, 2. Legacy path, 3. Show initials
+                                $avatar_path = !empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
                                 if (file_exists($avatar_path)): ?>
-                                    <img src="<?php echo $avatar_path; ?>" alt="Profile Image">
+                                    <img src="<?php echo $avatar_path; ?>" alt="Profile Image" id="avatarImage">
                                 <?php else: ?>
                                     <?php 
                                     $name = $staff['Staff_name'];
@@ -381,10 +453,15 @@ $db->close();
                             <i class="fas fa-image me-2"></i>Profile Picture
                         </div>
                         <div class="card-body">
-                            <form id="profilePictureForm" enctype="multipart/form-data">
+                            <form method="POST" enctype="multipart/form-data">
                                 <div class="mb-3">
                                     <label for="profileImage" class="form-label">Upload New Image</label>
-                                    <input class="form-control" type="file" id="profileImage" name="profileImage" accept="image/*">
+                                    <input class="form-control <?php echo isset($errors['profileImage']) ? 'is-invalid' : ''; ?>" 
+                                           type="file" id="profileImage" name="profileImage" accept="image/*">
+                                    <?php if (isset($errors['profileImage'])): ?>
+                                        <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['profileImage']); ?></div>
+                                    <?php endif; ?>
+                                    <small class="text-muted">Allowed formats: JPG, PNG, GIF. Max size: 2MB</small>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Upload Picture</button>
                             </form>
@@ -415,11 +492,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Profile picture form submission
-    document.getElementById('profilePictureForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        // Add profile picture upload logic here
-        alert('Profile picture upload functionality will be implemented here');
+    // Profile picture preview
+    document.getElementById('profileImage').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const avatarImage = document.getElementById('avatarImage');
+                if (avatarImage) {
+                    avatarImage.src = e.target.result;
+                } else {
+                    const avatarDiv = document.querySelector('.user-avatar');
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = 'Profile Image';
+                    img.id = 'avatarImage';
+                    avatarDiv.innerHTML = '';
+                    avatarDiv.appendChild(img);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
     });
 });
 
