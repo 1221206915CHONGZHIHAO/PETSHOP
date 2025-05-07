@@ -18,14 +18,15 @@ $errors = [];
 $success = false;
 $upload_success = false;
 
-// Fetch staff details
+// Fetch staff details including Staff_username
 $staff_id = $_SESSION['staff_id'];
-$query = "SELECT Staff_name, position, Staff_Email, Staff_password, img_URL FROM staff WHERE Staff_ID = ?";
+$query = "SELECT Staff_name, Staff_username, position, Staff_Email, Staff_password, img_URL FROM staff WHERE Staff_ID = ?";
 $stmt = $db->prepare($query);
 $stmt->bind_param("i", $staff_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $staff = $result->fetch_assoc();
+
 
 if (!$staff) {
     session_unset();
@@ -362,8 +363,8 @@ $db->close();
                             </div>
                             <div class="user-info">
                                 <div class="row">
-                                    <div class="col-md-3 fw-bold">Name:</div>
-                                    <div class="col-md-9"><?php echo htmlspecialchars($staff['Staff_name']); ?></div>
+                                    <div class="col-md-3 fw-bold">Username:</div>
+                                    <div class="col-md-9"><?php echo htmlspecialchars($staff['Staff_username'] ?? $staff['Staff_name']); ?></div>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-3 fw-bold">Password:</div>

@@ -18,9 +18,9 @@ $errors = [];
 $success = false;
 $upload_success = false;
 
-// Fetch staff details including img_URL
+// Fetch staff details including img_URL and Staff_username
 $staff_id = $_SESSION['staff_id'];
-$query = "SELECT Staff_name, position, Staff_Email, Staff_password, img_URL FROM staff WHERE Staff_ID = ?";
+$query = "SELECT Staff_name, Staff_username, position, Staff_Email, Staff_password, img_URL FROM staff WHERE Staff_ID = ?";
 $stmt = $db->prepare($query);
 $stmt->bind_param("i", $staff_id);
 $stmt->execute();
@@ -37,16 +37,16 @@ if (!$staff) {
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate and sanitize inputs
-    $name = trim($_POST['name'] ?? '');
+    $username = trim($_POST['name'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $current_password = trim($_POST['current_password'] ?? '');
     $new_password = trim($_POST['new_password'] ?? '');
     $confirm_password = trim($_POST['confirm_password'] ?? '');
 
-    // Validate name
-    if (empty($name)) {
-        $errors['name'] = "Name is required";
-    } elseif (!preg_match("/^[a-zA-Z ]*$/", $name)) {
+    // Validate username
+    if (empty($username)) {
+        $errors['name'] = "Username is required";
+    } elseif (!preg_match("/^[a-zA-Z ]*$/", $username)) {
         $errors['name'] = "Only letters and white space allowed";
     }
 
@@ -154,13 +154,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Update database if no errors (excluding avatar errors if no file was uploaded)
     if (empty(array_diff_key($errors, ['avatar' => '']))) {
-        $update_query = "UPDATE staff SET Staff_name = ?, Staff_Email = ?";
-        $params = [$name, $email];
+        $update_query = "UPDATE staff SET Staff_username = ?, Staff_Email = ?";
+        $params = [$username, $email];
         $types = "ss";
         
         if ($password_changed) {
             $update_query .= ", Staff_password = ?";
-            $params[] = $new_password; // Store in plain text
+            $params[] = $new_password;
             $types .= "s";
         }
         
@@ -174,10 +174,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute()) {
             $success = true;
             // Update session variables
-            $_SESSION['staff_name'] = $name;
+            $_SESSION['staff_name'] = $username;
             $_SESSION['staff_email'] = $email;
             // Refresh staff data
-            $staff['Staff_name'] = $name;
+            $staff['Staff_username'] = $username;
             $staff['Staff_Email'] = $email;
             if ($password_changed) {
                 $staff['Staff_password'] = $new_password;
@@ -190,6 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $db->close();
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -418,24 +419,23 @@ $db->close();
         <?php endif; ?>
 
         <div class="row">
-                <div class="col-md-8">
-                    <form id="profileForm" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <i class="fas fa-user me-2"></i>Basic Information
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label for="name" class="form-label">Full Name</label>
-                                    <input type="text" class="form-control <?php echo isset($errors['name']) ? 'is-invalid' : ''; ?>" 
-                                           id="name" name="name" value="<?php echo htmlspecialchars($staff['Staff_name']); ?>" required>
-                                    <?php if (isset($errors['name'])): ?>
-                                        <div class="invalid-feedback"><?php echo htmlspecialchars($errors['name']); ?></div>
-                                    <?php else: ?>
-                                        <div class="invalid-feedback">Please provide your name.</div>
-                                    <?php endif; ?>
-                                </div>
-
+    <div class="col-md-8">
+        <form id="profileForm" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-user me-2"></i>Basic Information
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Username</label>
+                        <input type="text" class="form-control <?php echo isset($errors['name']) ? 'is-invalid' : ''; ?>" 
+                               id="name" name="name" value="<?php echo htmlspecialchars($staff['Staff_username'] ?? $staff['Staff_name']); ?>" required>
+                        <?php if (isset($errors['name'])): ?>
+                            <div class="invalid-feedback"><?php echo htmlspecialchars($errors['name']); ?></div>
+                        <?php else: ?>
+                            <div class="invalid-feedback">Please provide your username.</div>
+                        <?php endif; ?>
+                    </div>
                                 <div class="mb-3">
                                     <label for="email" class="form-label">Email Address</label>
                                     <input type="email" class="form-control <?php echo isset($errors['email']) ? 'is-invalid' : ''; ?>" 
