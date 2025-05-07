@@ -59,8 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Check if password is being changed
     $password_changed = false;
     if (!empty($current_password) || !empty($new_password) || !empty($confirm_password)) {
-        // Verify current password
-        if (!password_verify($current_password, $staff['Staff_password'])) {
+        // Verify current password (plain text comparison)
+        if (empty($current_password)) {
+            $errors['current_password'] = "Current password is required to change password";
+        } elseif ($current_password !== $staff['Staff_password']) {
             $errors['current_password'] = "Current password is incorrect";
         }
 
@@ -111,8 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if ($password_changed) {
             $update_query .= ", Staff_password = ?";
-            $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-            $params[] = $hashed_password;
+            $params[] = $new_password; // Store in plain text
             $types .= "s";
         }
         
@@ -132,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $staff['Staff_name'] = $name;
             $staff['Staff_Email'] = $email;
             if ($password_changed) {
-                $staff['Staff_password'] = $hashed_password;
+                $staff['Staff_password'] = $new_password;
             }
         } else {
             $errors['database'] = "Failed to update profile: " . $db->error;

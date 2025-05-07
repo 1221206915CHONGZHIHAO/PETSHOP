@@ -128,27 +128,25 @@ $db->close();
     <div class="row">
         <!-- Sidebar -->
         <nav id="sidebar" class="col-lg-2 d-lg-block bg-dark sidebar">
-            <div class="position-sticky pt-3">
-                <div class="text-center mb-4">
-                    <?php
-                    // Path to the staff avatar image
-                    $avatar_path = "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
-                    if (file_exists($avatar_path)): ?>
-                        <img src="<?php echo $avatar_path; ?>" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
-                    <?php else: ?>
-                        <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                            <span class="text-white" style="font-size: 24px;">
-                                <?php 
-                                $name = $_SESSION['staff_name'];
-                                echo strtoupper(substr($name, 0, 1)); 
-                                ?>
-                            </span>
-                        </div>
-                    <?php endif; ?>
-                    <h5 class="text-white mb-1"><?php echo htmlspecialchars($_SESSION['staff_name']); ?></h5>
-                    <small class="text-muted"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
+    <div class="position-sticky pt-3">
+        <div class="d-flex flex-column align-items-center mb-4">
+            <?php
+            $avatar_path = "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
+            if (file_exists($avatar_path)): ?>
+                <img src="<?php echo $avatar_path; ?>" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
+            <?php else: ?>
+                <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                    <span class="text-white" style="font-size: 24px;">
+                        <?php 
+                        $name = $_SESSION['staff_name'];
+                        echo strtoupper(substr($name, 0, 1)); 
+                        ?>
+                    </span>
                 </div>
-
+            <?php endif; ?>
+            <h5 class="text-white mb-1 text-center"><?php echo htmlspecialchars($_SESSION['staff_name']); ?></h5>
+            <small class="text-muted text-center"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
+        </div>
         <!-- Sidebar Menu -->
         <ul class="nav flex-column">
             <li class="nav-item">
