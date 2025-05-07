@@ -1,3 +1,4 @@
+// Description: Staff Order Management Page
 <?php
 session_start();
 
