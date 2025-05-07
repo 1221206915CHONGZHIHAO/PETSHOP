@@ -221,7 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
       </div>
       <div class="col-md-4 col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="200">
         <div class="card border-0 shadow-sm">
-          <img src="teammember1.jpg" class="card-img-top" alt="CTO">
+          <img src="team1.jpg" class="card-img-top" alt="CTO">
           <div class="card-body text-center">
             <h5>David Hi Zhe Ya</h5>
             <p class="text-muted">CTO</p>
