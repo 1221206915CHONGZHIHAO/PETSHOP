@@ -109,7 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profileImage']) && $
             if ($stmt->execute()) {
                 $upload_success = true;
                 $staff['img_URL'] = $avatar_path;
-                $_SESSION['avatar_path'] = $avatar_path;
+                $_SESSION['avatar_path'] = $avatar_path; // Store in session
+                $_SESSION['staff_avatar'] = $avatar_path; // Add this line for redundancy
             } else {
                 $errors['database'] = "Failed to update profile picture: " . $db->error;
             }

@@ -42,7 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         else {
             if ($role === "staff") {
-                $sql = "SELECT Staff_id, Staff_Username, Staff_Email, Staff_Password, status, password_reset_token 
+                $sql = "SELECT Staff_id, Staff_Username, Staff_Email, Staff_Password, status, password_reset_token, img_URL 
                         FROM Staff 
                         WHERE (Staff_Username = ? OR Staff_Email = ?)";
             } elseif ($role === "customer") {
@@ -64,7 +64,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                     if ($stmt->num_rows > 0) {
                         if ($role === "staff") {
-                            $stmt->bind_result($db_staff_id, $db_username, $db_email, $db_password, $db_status, $db_reset_token);
+                            $stmt->bind_result($db_staff_id, $db_username, $db_email, $db_password, $db_status, $db_reset_token, $db_img_url);
                         } elseif ($role === "customer") {
                             $stmt->bind_result($db_customer_id, $db_username, $db_email, $db_password);
                         }
@@ -89,6 +89,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 $_SESSION['staff_id'] = $db_staff_id;
                                 $_SESSION['username'] = $db_username;
                                 $_SESSION['email'] = $db_email;
+                                $_SESSION['avatar_path'] = $db_img_url; // Store avatar path in session
                                 $conn->query("UPDATE Staff SET password_reset_token = NULL WHERE Staff_id = $db_staff_id");
                                 
                                 // Record successful staff login

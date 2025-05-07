@@ -309,11 +309,15 @@ $db->close();
                 <div class="d-flex flex-column align-items-center mb-4">
                     <?php
                     // Check for avatar in this order: 1. Session avatar_path, 2. staff_avatars folder, 3. Default initials
-                    $avatar_path = isset($_SESSION['avatar_path']) ? $_SESSION['avatar_path'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
-                    
-                    if (file_exists($avatar_path)): ?>
-                        <img src="<?php echo $avatar_path; ?>" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
-                    <?php else: ?>
+// Replace the avatar display section with:
+$avatar_path = isset($_SESSION['avatar_path']) ? $_SESSION['avatar_path'] : 
+              (!empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg");
+
+if (file_exists($avatar_path)): ?>
+    <img src="<?php echo $avatar_path; ?>" id="avatarPreview" alt="Profile Image">
+<?php else: ?>
+    <!-- Initials display -->
+<?php endif; ?>
                         <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
                             <span class="text-white" style="font-size: 24px;">
                             <?php 
