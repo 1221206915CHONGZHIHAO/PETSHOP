@@ -6,15 +6,6 @@ $cart_items = [];
 $error_message = '';
 $success_message = '';
 
-$shopSettings = [];
-$settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
-$settingsQuery->execute();
-$result = $settingsQuery->get_result();
-
-if ($result->num_rows > 0) {
-    $shopSettings = $result->fetch_assoc();
-}
-
 // Process cart actions if submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // Connect to database
