@@ -14,6 +14,7 @@ if ($conn->connect_error) {
 
 $error_message = "";
 $success_message = "";
+$redirect = false;
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST['username'];
@@ -27,6 +28,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $error_message = "Invalid email format.";
     } elseif ($password !== $confirm_password) {
         $error_message = "Passwords do not match.";
+    } elseif (strlen($password) < 8) {
+        $error_message = "Password must be at least 8 characters long.";
     } else {
         // Check if username already exists
         $check_username = "SELECT * FROM Customer WHERE Customer_name = ?";
@@ -53,8 +56,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->bind_param("sss", $username, $email, $password);
 
             if ($stmt->execute()) {
-                $success_message = "Customer registration successful!";
+                $success_message = "Customer registration successful! Redirecting to login page...";
                 $username = $email = $password = $confirm_password = "";
+                $redirect = true;
             } else {
                 $error_message = "Error: " . $stmt->error;
             }
@@ -78,10 +82,13 @@ $conn->close();
     <title>Customer Register</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="Register.css">
+    <?php if ($redirect): ?>
+    <meta http-equiv="refresh" content="3;url=login.php">
+    <?php endif; ?>
 </head>
 <body>
 <div class="register-container">
-    <h2 class="text-center mb-4">Customer Register</h2>
+    <h2 class="text-center mb-4">Create New Account</h2>
     
     <?php if (!empty($error_message)): ?>
         <div class="alert alert-danger"><?php echo $error_message; ?></div>
@@ -93,23 +100,23 @@ $conn->close();
 
     <form method="POST" action="">
         <div class="mb-3">
-            <label class="form-label">Username:</label>
-            <input type="text" name="username" class="form-control" required>
+            <label class="form-label">Name</label>
+            <input type="text" name="username" class="form-control" placeholder="Enter your name" required>
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Email:</label>
-            <input type="email" name="email" class="form-control" required>
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" placeholder="name@domain.com" required>
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Password:</label>
-            <input type="password" name="password" class="form-control" required>
+            <label class="form-label">Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Min. 8 characters" required>
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Confirm Password:</label>
-            <input type="password" name="confirm_password" class="form-control" required>
+            <label class="form-label">Confirm Password</label>
+            <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your password" required>
         </div>
 
         <button type="submit" class="btn btn-primary w-100">Register</button>
