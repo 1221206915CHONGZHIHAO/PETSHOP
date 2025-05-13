@@ -21,7 +21,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
 
-    
     if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
         $error_message = "All fields are required.";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -29,19 +28,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } elseif ($password !== $confirm_password) {
         $error_message = "Passwords do not match.";
     } else {
+        // Check if username already exists
+        $check_username = "SELECT * FROM Customer WHERE Customer_name = ?";
+        $stmt_username = $conn->prepare($check_username);
+        $stmt_username->bind_param("s", $username);
+        $stmt_username->execute();
+        $result_username = $stmt_username->get_result();
         
-        $sql = "INSERT INTO Customer (Customer_name, Customer_email, Customer_password) VALUES (?, ?, ?)";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("sss", $username, $email, $password);
-
-        if ($stmt->execute()) {
-            $success_message = "Customer registration successful!";
-            $username = $email = $password = $confirm_password = "";
+        // Check if email already exists
+        $check_email = "SELECT * FROM Customer WHERE Customer_email = ?";
+        $stmt_email = $conn->prepare($check_email);
+        $stmt_email->bind_param("s", $email);
+        $stmt_email->execute();
+        $result_email = $stmt_email->get_result();
+        
+        if ($result_username->num_rows > 0) {
+            $error_message = "Username already exists. Please choose a different username.";
+        } elseif ($result_email->num_rows > 0) {
+            $error_message = "Email already registered. Please use a different email address.";
         } else {
-            $error_message = "Error: " . $stmt->error;
-        }
+            // Username and email are unique, proceed with registration
+            $sql = "INSERT INTO Customer (Customer_name, Customer_email, Customer_password) VALUES (?, ?, ?)";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("sss", $username, $email, $password);
 
-        $stmt->close();
+            if ($stmt->execute()) {
+                $success_message = "Customer registration successful!";
+                $username = $email = $password = $confirm_password = "";
+            } else {
+                $error_message = "Error: " . $stmt->error;
+            }
+
+            $stmt->close();
+        }
+        
+        $stmt_username->close();
+        $stmt_email->close();
     }
 }
 
