@@ -58,8 +58,13 @@ $masked_password = str_repeat('*', strlen($actual_password));
       margin-right: 20px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    .sidebar-nav { list-style: none; padding: 0; }
-    .sidebar-nav li { margin-bottom: 10px; }
+    .sidebar-nav { 
+      list-style: none; 
+      padding: 0; 
+    }
+    .sidebar-nav li { 
+      margin-bottom: 10px; 
+    }
     .sidebar-nav a {
       display: flex;
       align-items: center;
@@ -69,9 +74,22 @@ $masked_password = str_repeat('*', strlen($actual_password));
       border-radius: 5px;
       transition: all 0.3s ease;
     }
-    .sidebar-nav a:hover, .sidebar-nav a.active { background-color: #e9ecef; }
-    .sidebar-nav a i { margin-right: 10px; width: 20px; text-align: center; }
-    .main-content { flex: 1; }
+    .sidebar-nav a:hover { 
+      background-color: rgba(78, 159, 61, 0.1);
+      color: var(--primary);
+    }
+    .sidebar-nav a.active { 
+      background-color: var(--primary); 
+      color: white;
+    }
+    .sidebar-nav a i { 
+      margin-right: 10px; 
+      width: 20px; 
+      text-align: center; 
+    }
+    .main-content { 
+      flex: 1; 
+    }
     .info-card {
       background-color: #fff;
       border-radius: 10px;
@@ -79,7 +97,10 @@ $masked_password = str_repeat('*', strlen($actual_password));
       margin-bottom: 20px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    .account-details { display: flex; align-items: center; }
+    .account-details { 
+      display: flex; 
+      align-items: center; 
+    }
     .user-avatar {
       width: 80px;
       height: 80px;
@@ -93,10 +114,20 @@ $masked_password = str_repeat('*', strlen($actual_password));
       margin-right: 20px;
       overflow: hidden;
     }
-    .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .user-info { flex: 1; }
-    .user-info .row { margin-bottom: 10px; }
-    .password-container { position: relative; }
+    .user-avatar img { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: cover; 
+    }
+    .user-info { 
+      flex: 1; 
+    }
+    .user-info .row { 
+      margin-bottom: 10px; 
+    }
+    .password-container { 
+      position: relative; 
+    }
     .password-toggle {
       position: absolute;
       right: 0;
@@ -105,6 +136,38 @@ $masked_password = str_repeat('*', strlen($actual_password));
       background: none;
       border: none;
       color: #6c757d;
+    }
+    /* Dashboard menu styling */
+    .dashboard-menu .active {
+      background-color: var(--primary) !important;
+      color: white !important;
+    }
+    .dashboard-menu a:hover {
+      background-color: rgba(78, 159, 61, 0.1);
+      color: var(--primary);
+    }
+    .logout-link {
+      color: #dc3545 !important;
+    }
+    .logout-link:hover {
+      background-color: rgba(220, 53, 69, 0.1) !important;
+      color: #dc3545 !important;
+    }
+    
+    /* User dropdown menu styling */
+    .user-dropdown .active-dropdown-item {
+      background-color: var(--primary) !important;
+      color: white !important;
+    }
+    
+    .user-dropdown .dropdown-item:hover {
+      background-color: rgba(78, 159, 61, 0.1);
+      color: var(--primary);
+    }
+    
+    .dropdown-item.active, .dropdown-item:active {
+      background-color: var(--primary);
+      color: white;
     }
   </style>
 </head>
@@ -167,17 +230,17 @@ $masked_password = str_repeat('*', strlen($actual_password));
                 <i class="bi bi-person"></i>
               <?php endif; ?>
             </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <ul class="dropdown-menu dropdown-menu-end user-dropdown" aria-labelledby="userDropdown">
               <?php if(isset($_SESSION['customer_id'])): ?>
-                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'user_dashboard.php' ? 'active' : ''; ?>" href="user_dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
-                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'my_orders.php' ? 'active' : ''; ?>" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
-                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'favorites.php' ? 'active' : ''; ?>" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favorites</a></li>
-                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'myprofile_address.php' ? 'active' : ''; ?>" href="myprofile_address.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'user_dashboard.php' ? 'active-dropdown-item' : ''; ?>" href="user_dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'my_orders.php' ? 'active-dropdown-item' : ''; ?>" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'favorites.php' ? 'active-dropdown-item' : ''; ?>" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favorites</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'myprofile_address.php' ? 'active-dropdown-item' : ''; ?>" href="myprofile_address.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
               <?php else: ?>
-                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'login.php' ? 'active' : ''; ?>" href="login.php">Login</a></li>
-                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'register.php' ? 'active' : ''; ?>" href="register.php">Register</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'login.php' ? 'active-dropdown-item' : ''; ?>" href="login.php">Login</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'register.php' ? 'active-dropdown-item' : ''; ?>" href="register.php">Register</a></li>
               <?php endif; ?>
             </ul>
           </li>
@@ -188,12 +251,12 @@ $masked_password = str_repeat('*', strlen($actual_password));
 
 <div class="dashboard-container container">
   <div class="sidebar">
-    <ul class="sidebar-nav">
+    <ul class="sidebar-nav dashboard-menu">
       <li><a href="user_dashboard.php" class="active"><i class="bi bi-house"></i> Dashboard</a></li>
       <li><a href="my_orders.php"><i class="bi bi-box"></i> My Orders</a></li>
       <li><a href="favorites.php"><i class="bi bi-heart"></i> My Favourite</a></li>
       <li><a href="myprofile_address.php"><i class="bi bi-person-lines-fill"></i> My Profile/Address</a></li>
-      <li><a href="logout.php" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+      <li><a href="logout.php" class="logout-link"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
     </ul>
   </div>
   
@@ -202,7 +265,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
       <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h2>Account Details</h2>
-          <a href="myprofile_address.php" class="btn btn-link">View more</a>
+          <a href="myprofile_address.php" class="btn btn-outline-primary">View more</a>
         </div>
         <div class="info-card">
           <div class="account-details">
@@ -230,6 +293,9 @@ $masked_password = str_repeat('*', strlen($actual_password));
                 <div class="col-md-3 fw-bold">Password:</div>
                 <div class="col-md-9 password-container">
                   <span id="passwordDisplay"><?php echo $masked_password; ?></span>
+                  <button type="button" class="password-toggle" onclick="togglePassword()">
+                    <i class="bi bi-eye" id="passwordToggleIcon"></i>
+                  </button>
                 </div>
               </div>
               <div class="row">
@@ -344,65 +410,20 @@ $masked_password = str_repeat('*', strlen($actual_password));
       }
     });
     
-    // Add to Cart Functionality
-    const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
-    addToCartButtons.forEach(button => {
-      button.addEventListener('click', function(e) {
-        e.preventDefault();
-        const productId = this.getAttribute('data-product-id');
-        const productName = this.getAttribute('data-product-name');
-        
-        // Create a toast notification
-        const toastContainer = document.createElement('div');
-        toastContainer.classList.add('toast-container', 'position-fixed', 'bottom-0', 'end-0', 'p-3');
-        toastContainer.style.zIndex = '5';
-        
-        const toastElement = document.createElement('div');
-        toastElement.classList.add('toast', 'align-items-center', 'text-white', 'bg-primary', 'border-0');
-        toastElement.setAttribute('role', 'alert');
-        toastElement.setAttribute('aria-live', 'assertive');
-        toastElement.setAttribute('aria-atomic', 'true');
-        
-        toastElement.innerHTML = `
-          <div class="d-flex">
-            <div class="toast-body">
-              <i class="bi bi-check-circle me-2"></i> ${productName} added to cart!
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-          </div>
-        `;
-        
-        toastContainer.appendChild(toastElement);
-        document.body.appendChild(toastContainer);
-        
-        // Show the toast
-        const toast = new bootstrap.Toast(toastElement);
-        toast.show();
-        
-        // Send AJAX request to add item to cart
-        // This is where you would normally add AJAX code to update the cart on the server
-        console.log(`Product added to cart: ID - ${productId}, Name - ${productName}`);
-        
-        // For demo purposes, remove the toast container after it's hidden
-        toastElement.addEventListener('hidden.bs.toast', function () {
-          document.body.removeChild(toastContainer);
-        });
-      });
-    });
-    
-function togglePassword() {
-  const passwordDisplay = document.getElementById('passwordDisplay');
-  const passwordToggleIcon = document.getElementById('passwordToggleIcon');
-  if (passwordDisplay.textContent === '<?php echo $masked_password; ?>') {
-    passwordDisplay.textContent = '<?php echo addslashes($actual_password); ?>';
-    passwordToggleIcon.classList.remove('bi-eye');
-    passwordToggleIcon.classList.add('bi-eye-slash');
-  } else {
-    passwordDisplay.textContent = '<?php echo $masked_password; ?>';
-    passwordToggleIcon.classList.remove('bi-eye-slash');
-    passwordToggleIcon.classList.add('bi-eye');
-  }
-}
-</script>
+    // Toggle Password Visibility
+    function togglePassword() {
+      const passwordDisplay = document.getElementById('passwordDisplay');
+      const passwordToggleIcon = document.getElementById('passwordToggleIcon');
+      if (passwordDisplay.textContent === '<?php echo $masked_password; ?>') {
+        passwordDisplay.textContent = '<?php echo addslashes($actual_password); ?>';
+        passwordToggleIcon.classList.remove('bi-eye');
+        passwordToggleIcon.classList.add('bi-eye-slash');
+      } else {
+        passwordDisplay.textContent = '<?php echo $masked_password; ?>';
+        passwordToggleIcon.classList.remove('bi-eye-slash');
+        passwordToggleIcon.classList.add('bi-eye');
+      }
+    }
+  </script>
 </body>
 </html>

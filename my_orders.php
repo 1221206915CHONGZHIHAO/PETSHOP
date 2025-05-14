@@ -113,56 +113,75 @@ $conn->close();
   </style>
 </head>
 <body>
-<!-- Navigation -->
+  <!-- Navigation -->
 <nav class="navbar navbar-expand-lg custom-nav fixed-top">
     <div class="container">
+      <!-- Brand on the left -->
       <a class="navbar-brand" href="userhomepage.php">
         <img src="Hachi_Logo.png" alt="Hachi Pet Shop">
       </a>
       
+      <!-- Toggler for mobile view -->
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
 
       <div class="collapse navbar-collapse" id="navbarNav">
+        <!-- Main nav links centered -->
         <ul class="navbar-nav mx-auto">
-          <li class="nav-item"><a class="nav-link" href="userhomepage.php">Home</a></li>
-          <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
-          <li class="nav-item"><a class="nav-link" href="products.php">Products</a></li>
-          <li class="nav-item"><a class="nav-link" href="contact_us.php">Contact Us</a></li>
+        <li class="nav-item"><a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'userhomepage.php' ? 'active' : ''; ?>" href="userhomepage.php">Home</a></li>
+        <li class="nav-item"><a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'about_us.php' ? 'active' : ''; ?>" href="about_us.php">About Us</a></li>
+        <li class="nav-item"><a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'products.php' ? 'active' : ''; ?>" href="products.php">Products</a></li>
+        <li class="nav-item"><a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'contact_us.php' ? 'active' : ''; ?>" href="contact_us.php">Contact Us</a></li>
         </ul>
 
-                <ul class="navbar-nav ms-auto nav-icons">
+        <!-- Icons on the right -->
+        <ul class="navbar-nav ms-auto nav-icons">
+          <!-- Search Icon with Dropdown - Modified to redirect to products.php -->
+          <li class="nav-item dropdown">
+            <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-search"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end search-dropdown" aria-labelledby="searchDropdown">
+              <form class="d-flex search-form" action="products.php" method="GET">
+                <input class="form-control me-2" type="search" name="search" placeholder="Search products..." aria-label="Search" required>
+                <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+              </form>
+            </ul>
+          </li>
+
+          <!-- Cart Icon with item count -->
           <li class="nav-item">
-            <a class="nav-link" href="cart.php">
+            <a class="nav-link position-relative" href="cart.php">
               <i class="bi bi-cart"></i>
-              <?php if(isset($_SESSION['cart_count']) && $_SESSION['cart_count'] > 0): ?>
+              <?php if (isset($_SESSION['cart_count']) && $_SESSION['cart_count'] > 0): ?>
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
-                  <?php echo $_SESSION['cart_count']; ?>
+                  <?php echo htmlspecialchars($_SESSION['cart_count']); ?>
                 </span>
               <?php endif; ?>
             </a>
           </li>
-          
+
+          <!-- User Icon with Dynamic Dropdown -->
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+            <a class="nav-link dropdown-toggle d-flex align-items-center <?php echo in_array(basename($_SERVER['PHP_SELF']), ['user_dashboard.php', 'my_orders.php', 'favorites.php', 'myprofile_address.php']) ? 'active' : ''; ?>" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <?php if(isset($_SESSION['customer_id'])): ?>
                 <span class="me-1"><?php echo htmlspecialchars($_SESSION['customer_name']); ?></span>
               <?php else: ?>
                 <i class="bi bi-person"></i>
               <?php endif; ?>
             </a>
-            <ul class="dropdown-menu dropdown-menu-end">
+            <ul class="dropdown-menu dropdown-menu-end user-dropdown" aria-labelledby="userDropdown">
               <?php if(isset($_SESSION['customer_id'])): ?>
-                <li><a class="dropdown-item" href="user_dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
-                <li><a class="dropdown-item" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
-                <li><a class="dropdown-item" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favorites</a></li>
-                <li><a class="dropdown-item" href="myprofile_address.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'user_dashboard.php' ? 'active-dropdown-item' : ''; ?>" href="user_dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'my_orders.php' ? 'active-dropdown-item' : ''; ?>" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'favorites.php' ? 'active-dropdown-item' : ''; ?>" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favorites</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'myprofile_address.php' ? 'active-dropdown-item' : ''; ?>" href="myprofile_address.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
               <?php else: ?>
-                <li><a class="dropdown-item" href="login.php">Login</a></li>
-                <li><a class="dropdown-item" href="register.php">Register</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'login.php' ? 'active-dropdown-item' : ''; ?>" href="login.php">Login</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'register.php' ? 'active-dropdown-item' : ''; ?>" href="register.php">Register</a></li>
               <?php endif; ?>
             </ul>
           </li>

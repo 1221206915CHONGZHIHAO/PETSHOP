@@ -150,84 +150,93 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Pet Shop Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="Login.css">
-    <style>
-        #togglePassword {
-            position: absolute;
-            top: 70%; 
-            right: 10px;
-            transform: translateY(-50%); 
-            border: none;
-            background: none;
-            opacity: 1; 
-            padding: 0; 
-            color: #6c757d; 
-        }
-        #togglePassword:hover i {
-            color: black; 
-        }
-        .login-container {
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-        }
-    </style>
 </head>
 <body>
 <div class="container">
     <div class="login-container">
-        <h2 class="text-center mb-4">Login</h2>
-
-        <?php if (!empty($error_message)): ?>
-            <div class="alert alert-danger"><?php echo $error_message; ?></div>
-        <?php endif; ?>
-
-        <?php if (!empty($success_message)): ?>
-            <div class="alert alert-success"><?php echo $success_message; ?></div>
-        <?php endif; ?>
-
-        <form method="POST" action="">
-            <div class="mb-3">
-                <label class="form-label">Login as:</label>
-                <select name="role" class="form-select" required>
-                    <option value="admin">Admin</option>
-                    <option value="staff">Staff</option>
-                    <option value="customer">Customer</option>
-                </select>
+        <!-- Paw print decorations (replace with actual cat_paw.png when available) -->
+        <div class="paw-print paw-top-right"></div>
+        <div class="paw-print paw-bottom-left"></div>
+        
+        <div class="login-banner">
+            <!-- Replace with your actual logo -->
+            <h2 class="section-title">Welcome</h2>
+        </div>
+        
+        <div class="alert alert-danger" id="errorAlert" style="display: none;"></div>
+        <div class="alert alert-success" id="successAlert" style="display: none;"></div>
+        
+        <form method="POST" action="" id="loginForm">
+            <!-- Role selector with icons -->
+            <div class="role-selector mb-4">
+                <label class="role-option" id="adminOption">
+                    <input type="radio" name="role" value="admin" required>
+                    <i class="bi bi-shield-lock"></i>
+                    Admin
+                </label>
+                <label class="role-option" id="staffOption">
+                    <input type="radio" name="role" value="staff" required>
+                    <i class="bi bi-person-badge"></i>
+                    Staff
+                </label>
+                <label class="role-option active" id="customerOption">
+                    <input type="radio" name="role" value="customer" required checked>
+                    <i class="bi bi-person-heart"></i>
+                    Pet Owner
+                </label>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Username or Email:</label>
-                <input type="text" name="login_input" class="form-control" required>
+            <div class="mb-4">
+                <label class="form-label">
+                    <i class="bi bi-person me-2" style="color: var(--primary);"></i>
+                    Username or Email
+                </label>
+                <input type="text" name="login_input" class="form-control" required placeholder="Enter your username or email">
             </div>
 
-            <div class="mb-3 position-relative">
-                <label class="form-label">Password:</label>
-                <input type="password" name="password" id="password" class="form-control" required>
-                <button type="button" id="togglePassword" class="btn btn-outline-secondary">
+            <div class="mb-4 position-relative">
+                <label class="form-label">
+                    <i class="bi bi-lock me-2" style="color: var(--primary);"></i>
+                    Password
+                </label>
+                <input type="password" name="password" id="password" class="form-control" required placeholder="Enter your password">
+                <button type="button" id="togglePassword" class="btn">
                     <i class="bi bi-eye"></i>
                 </button>
             </div>
 
-             <!-- Add hidden input for redirect parameter -->
-             <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect); ?>">
+            <input type="hidden" name="redirect" id="redirectInput" value="">
 
-            <button type="submit" class="btn btn-primary w-100">Login</button>
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-box-arrow-in-right me-2"></i>
+                Login
+            </button>
         </form>
 
-        <p class="text-center mt-3">
-            Don't have an account? <a href="register.php">Register here</a><br>
-            <a href="forgot_password.php">Forgot Password?</a>
+        <p class="text-center mt-4">
+            New pet parent? <a href="register.php" class="d-inline-block">Register here</a><br>
+            <a href="forgot_password.php" class="mt-2 d-inline-block">
+                <i class="bi bi-question-circle me-1"></i>
+                Forgot Password?
+            </a>
         </p>
     </div>
 </div>
 
 <script>
+// Parse URL to get redirect parameter
+const urlParams = new URLSearchParams(window.location.search);
+const redirect = urlParams.get('redirect') || '';
+document.getElementById('redirectInput').value = redirect;
+
+// Toggle password visibility
 document.getElementById('togglePassword').addEventListener('click', function () {
     const passwordInput = document.getElementById('password');
     const icon = this.querySelector('i');
@@ -241,6 +250,27 @@ document.getElementById('togglePassword').addEventListener('click', function () 
         icon.classList.add('bi-eye'); 
     }
 });
+
+// Role selector functionality
+const roleOptions = document.querySelectorAll('.role-option');
+roleOptions.forEach(option => {
+    option.addEventListener('click', function() {
+        roleOptions.forEach(opt => opt.classList.remove('active'));
+        this.classList.add('active');
+        this.querySelector('input').checked = true;
+    });
+});
+
+// Display PHP messages via JavaScript
+<?php if (!empty($error_message)): ?>
+    document.getElementById('errorAlert').textContent = "<?php echo $error_message; ?>";
+    document.getElementById('errorAlert').style.display = 'block';
+<?php endif; ?>
+
+<?php if (!empty($success_message)): ?>
+    document.getElementById('successAlert').textContent = "<?php echo $success_message; ?>";
+    document.getElementById('successAlert').style.display = 'block';
+<?php endif; ?>
 
 <?php if (!empty($redirect_url)): ?>
 setTimeout(function () {

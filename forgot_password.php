@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
         
             // Set to 0 for production
-            $mail->SMTPDebug = 2; 
+            $mail->SMTPDebug = 0; 
             $mail->Debugoutput = 'html';
           
             $mail->send();
@@ -63,164 +63,257 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password - PetShop</title>
+    <title>Forgot Password - Pet Shop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #6d4c41;
-            --secondary-color: #ffab91;
-            --accent-color: #5d4037;
+            --primary: #4e9f3d; /* Fresh green */
+            --primary-light: #8fd14f;
+            --primary-dark: #38761d;
+            --secondary: #1e3a8a; /* Deep navy blue */
+            --accent: #ff7e2e; /* Warm orange */
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --light-gray: #f0f2f5;
         }
         
         body {
-            background-color: #f9f5f0;
-            font-family: 'Comic Sans MS', cursive, sans-serif;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M30,15 Q50,5 70,15 Q80,30 70,45 Q50,55 30,45 Q20,30 30,15 Z" fill="%23ffab91" opacity="0.1"/></svg>');
-            background-size: 150px;
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow-x: hidden;
+            background-color: var(--light-gray);
         }
         
-        .pet-container {
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.7)), url("Register_Page_Background.jpg") no-repeat center center;
+            background-size: cover;
+            z-index: -1;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        
+        .forgot-container {
+            background-color: rgba(255, 255, 255, 0.97);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 40px;
             max-width: 450px;
-            margin: 50px auto;
-            padding: 30px;
-            border-radius: 15px;
-            background-color: white;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            border: 2px solid var(--secondary-color);
+            margin: 0 auto;
             position: relative;
             overflow: hidden;
+            border: none;
         }
         
-        .pet-header {
-            color: var(--primary-color);
-            text-align: center;
-            margin-bottom: 25px;
+        .forgot-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+        }
+        
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--dark);
             position: relative;
+            display: inline-block;
         }
         
-        .pet-header i {
-            font-size: 2.5rem;
-            margin-bottom: 15px;
-            color: var(--secondary-color);
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
         }
         
-        .pet-header h2 {
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        .form-label {
+            color: var(--dark);
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 8px;
         }
         
         .form-control {
-            border-radius: 10px;
+            border: 1px solid #e1e1e1;
+            border-radius: 8px;
             padding: 12px 15px;
-            border: 2px solid #ddd;
+            font-size: 15px;
             transition: all 0.3s;
         }
         
         .form-control:focus {
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 0 0.25rem rgba(255, 171, 145, 0.25);
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 0.25rem rgba(78, 159, 61, 0.25);
         }
         
-        .btn-pet {
-            background-color: var(--primary-color);
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            padding: 12px 30px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(78, 159, 61, 0.3);
+            border-radius: 8px;
+        }
+        
+        .btn-primary:hover, .btn-primary:focus {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(78, 159, 61, 0.4);
+        }
+        
+        .alert {
+            border-radius: 8px;
             border: none;
-            padding: 12px;
-            border-radius: 10px;
-            font-weight: bold;
-            transition: all 0.3s;
-            color: white;
-        }
-        
-        .btn-pet:hover {
-            background-color: var(--accent-color);
-            transform: translateY(-2px);
-        }
-        
-        .pet-footer {
-            text-align: center;
-            margin-top: 20px;
-            color: var(--primary-color);
-        }
-        
-        .pet-footer a {
-            color: var(--secondary-color);
-            font-weight: bold;
-            text-decoration: none;
-        }
-        
-        .pet-footer a:hover {
-            text-decoration: underline;
-        }
-        
-        .pet-paw-print {
-            position: absolute;
-            opacity: 0.1;
-            z-index: 0;
-        }
-        
-        .paw-1 {
-            top: 20px;
-            right: 20px;
-            transform: rotate(30deg);
-            font-size: 40px;
-        }
-        
-        .paw-2 {
-            bottom: 20px;
-            left: 20px;
-            transform: rotate(-20deg);
-            font-size: 30px;
-        }
-        
-        .input-group-text {
-            background-color: #ffab91;
-            color: white;
-            border: none;
+            padding: 15px;
+            margin-bottom: 25px;
         }
         
         .alert-danger {
-            background-color: #ffebee;
-            border-color: #ef9a9a;
+            background-color: #ff3333;
+            border-color: #e62e2e;
+            color: white;
+        }
+        
+        .text-center a {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .text-center a:hover {
+            color: var(--primary-dark);
+            transform: translateY(-2px);
+            display: inline-block;
+        }
+        
+        .paw-print {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background-image: url('cat_paw.png');
+            background-size: contain;
+            opacity: 0.05;
+            z-index: 0;
+        }
+        
+        .paw-top-right {
+            top: 10px;
+            right: 10px;
+            transform: rotate(45deg);
+        }
+        
+        .paw-bottom-left {
+            bottom: 10px;
+            left: 10px;
+            transform: rotate(-45deg);
+        }
+        
+        .forgot-banner {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .forgot-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+        
+        .input-group-text {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px 0 0 8px;
+        }
+        
+        .text-muted {
+            color: var(--gray) !important;
+            font-size: 13px;
+            margin-top: 6px;
+        }
+        
+        @media (max-width: 576px) {
+            .forgot-container {
+                padding: 30px 20px;
+                margin: 20px;
+            }
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <div class="pet-container">
-        <i class="fas fa-paw pet-paw-print paw-1"></i>
-        <i class="fas fa-paw pet-paw-print paw-2"></i>
+    <div class="forgot-container">
+        <!-- Paw print decorations -->
+        <div class="paw-print paw-top-right"></div>
+        <div class="paw-print paw-bottom-left"></div>
         
-        <div class="pet-header">
-            <i class="fas fa-question-circle"></i>
-            <h2>Forgot Your Password?</h2>
+        <div class="forgot-banner">
+            <div class="forgot-icon">
+                <i class="bi bi-question-circle"></i>
+            </div>
+            <h2 class="section-title">Forgot Password?</h2>
             <p>Enter your email to receive a verification code</p>
         </div>
         
         <?php if ($error): ?>
             <div class="alert alert-danger">
-                <i class="fas fa-exclamation-circle me-2"></i><?= $error ?>
+                <i class="bi bi-exclamation-circle me-2"></i><?= $error ?>
             </div>
         <?php endif; ?>
         
         <form method="POST">
-            <div class="mb-3">
-                <label class="form-label">Your Email Address</label>
+            <div class="mb-4">
+                <label class="form-label">
+                    <i class="bi bi-envelope me-2" style="color: var(--primary);"></i>
+                    Your Email Address
+                </label>
                 <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                    <input type="email" name="email" class="form-control" placeholder="meow@example.com" required>
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    <input type="email" name="email" class="form-control" placeholder="Enter your email address" required>
                 </div>
-                <small class="text-muted">We'll send a verification code to this email</small>
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i> 
+                    We'll send a verification code to this email
+                </small>
             </div>
 
-            <button type="submit" class="btn btn-pet btn-primary w-100">
-                <i class="fas fa-paper-plane me-2"></i> Send Verification Code
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-send me-2"></i> Send Verification Code
             </button>
         </form>
 
-        <div class="pet-footer">
-            Remembered your password? <a href="login.php">Login here</a>
-        </div>
+        <p class="text-center mt-4">
+            Remembered your password? <a href="login.php" class="d-inline-block">Login here</a>
+        </p>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
