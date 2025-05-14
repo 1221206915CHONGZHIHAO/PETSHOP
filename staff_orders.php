@@ -111,7 +111,8 @@ $where_clauses = [];
 $params = [];
 $types = '';
 
-if (!empty($_GET['status'])) {
+// Only add status filter if not showing disabled orders
+if (!$show_disabled && !empty($_GET['status'])) {
     $where_clauses[] = "o.Status = ?";
     $params[] = $_GET['status'];
     $types .= 's';
@@ -180,6 +181,7 @@ if ($result->num_rows > 0) {
 
 $conn->close();
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -394,6 +396,7 @@ echo strtoupper(substr($username, 0, 1));
                 <div class="card-body">
                     <form method="GET" class="row g-3">
                         <input type="hidden" name="show_disabled" value="<?php echo $show_disabled ? '1' : '0'; ?>">
+                        <?php if (!$show_disabled): ?>
                         <div class="col-md-3">
                             <label for="statusFilter" class="form-label">Status</label>
                             <select class="form-select" id="statusFilter" name="status">
@@ -405,15 +408,16 @@ echo strtoupper(substr($username, 0, 1));
                                 <option value="Cancelled" <?php echo (isset($_GET['status'])) && $_GET['status'] === 'Cancelled' ? 'selected' : ''; ?>>Cancelled</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <?php endif; ?>
+                        <div class="col-md-<?php echo $show_disabled ? '6' : '3'; ?>">
                             <label for="dateFrom" class="form-label">From Date</label>
                             <input type="date" class="form-control" id="dateFrom" name="date_from" value="<?php echo $_GET['date_from'] ?? ''; ?>">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-<?php echo $show_disabled ? '6' : '3'; ?>">
                             <label for="dateTo" class="form-label">To Date</label>
                             <input type="date" class="form-control" id="dateTo" name="date_to" value="<?php echo $_GET['date_to'] ?? ''; ?>">
                         </div>
-                        <div class="col-md-3 d-flex align-items-end">
+                        <div class="col-md-<?php echo $show_disabled ? '12' : '3'; ?> d-flex align-items-end">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-filter me-1"></i> Apply Filters
                             </button>
@@ -426,7 +430,6 @@ echo strtoupper(substr($username, 0, 1));
                     </form>
                 </div>
             </div>
-
             <div class="card">
                 <div class="card-header">
                     <i class="fas fa-table me-2"></i><?php echo $show_disabled ? 'Disabled Orders' : 'Active Orders'; ?>
