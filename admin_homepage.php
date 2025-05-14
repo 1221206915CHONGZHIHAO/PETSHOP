@@ -19,11 +19,32 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
-// Handle order deletion
-if (isset($_GET['delete_order'])) {
-    $order_id = $_GET['delete_order'];
-    $conn->query("DELETE FROM orders WHERE order_id = $order_id");
-    $conn->query("DELETE FROM order_items WHERE order_id = $order_id");
+// Handle order status toggle (disable/enable)
+if (isset($_GET['toggle_status'])) {
+    $order_id = intval($_GET['order_id']);
+    $action = $_GET['action'];
+    
+    // Validate action
+    if (!in_array($action, ['disable', 'enable'])) {
+        $_SESSION['error_message'] = "Invalid action";
+        header("Location: admin_homepage.php");
+        exit;
+    }
+    
+    // Prepare the new status
+    $new_status = ($action === 'disable') ? 'Disabled' : 'Pending';
+    
+    // Update the order status
+    $stmt = $conn->prepare("UPDATE orders SET status = ? WHERE Order_ID = ?");
+    $stmt->bind_param("si", $new_status, $order_id);
+    
+    if ($stmt->execute()) {
+        $_SESSION['success_message'] = "Order #$order_id has been " . ($action === 'disable' ? 'disabled' : 'enabled');
+    } else {
+        $_SESSION['error_message'] = "Error updating order status: " . $conn->error;
+    }
+    
+    $stmt->close();
     header("Location: admin_homepage.php");
     exit;
 }
@@ -36,19 +57,22 @@ if (isset($_GET['export'])) {
     $output = fopen('php://output', 'w');
     fputcsv($output, array('Order ID', 'Customer', 'Products', 'Total', 'Date', 'Status'));
     
+    $dateFilter = isset($_GET['week_filter']) ? "WHERE orders.order_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK) AND orders.status != 'Disabled'" : "WHERE orders.status != 'Disabled'";
+    
     $result = $conn->query("SELECT 
-        o.order_id, 
+        orders.Order_ID as order_id, 
         c.customer_name, 
-        o.Total, 
-        o.order_date, 
-        o.status,
+        orders.Total, 
+        orders.order_date, 
+        orders.status,
         GROUP_CONCAT(CONCAT(p.product_name, ' (', oi.quantity, ')')) as products
-        FROM orders o
-        JOIN customer c ON o.customer_id = c.customer_id
-        JOIN order_items oi ON o.order_id = oi.order_id
+        FROM orders
+        JOIN customer c ON orders.Customer_ID = c.customer_id
+        JOIN order_items oi ON orders.Order_ID = oi.order_id
         JOIN products p ON oi.product_id = p.product_id
-        GROUP BY o.order_id
-        ORDER BY o.order_date DESC
+        $dateFilter
+        GROUP BY orders.Order_ID
+        ORDER BY orders.order_date DESC
         LIMIT 5");
     
     while ($row = $result->fetch_assoc()) {
@@ -66,33 +90,31 @@ if (isset($_GET['export'])) {
     exit;
 }
 
-// Fetch data for summary cards
-$summaryData = [];
-$result = $conn->query("SELECT COUNT(*) as total_orders FROM orders");
+// Handle week filter
+$dateFilter = isset($_GET['week_filter']) ? "WHERE orders.order_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK) AND orders.status != 'Disabled'" : "WHERE orders.status != 'Disabled'";
+$summaryWhere = isset($_GET['week_filter']) ? "AND order_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK) AND status != 'Disabled'" : "AND status != 'Disabled'";
+
+// Fetch data for summary cards - FIXED: Removed table alias 'o' since we're not joining tables here
+$result = $conn->query("SELECT COUNT(*) as total_orders FROM orders $dateFilter");
 $summaryData['total_orders'] = $result->fetch_assoc()['total_orders'];
 
-$result = $conn->query("SELECT SUM(Total) as total_revenue FROM orders WHERE status = 'completed'");
+$result = $conn->query("SELECT SUM(Total) as total_revenue FROM orders WHERE status = 'completed' $summaryWhere");
 $summaryData['total_revenue'] = $result->fetch_assoc()['total_revenue'] ?? 0;
 
-$result = $conn->query("SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending'");
+$result = $conn->query("SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending' $summaryWhere");
 $summaryData['pending_orders'] = $result->fetch_assoc()['pending_orders'];
 
 $result = $conn->query("SELECT COUNT(*) as low_stock FROM products WHERE stock_quantity < 10");
 $summaryData['low_stock'] = $result->fetch_assoc()['low_stock'];
 
-// Handle week filter
-$dateFilter = "";
-if (isset($_GET['week_filter'])) {
-    $dateFilter = "WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK)";
-}
-
-// Fetch data for sales chart (last 6 months)
+// Fetch data for sales chart (last 6 months, exclude disabled)
 $salesData = [];
 $result = $conn->query("SELECT 
     DATE_FORMAT(order_date, '%b') as month,
     SUM(Total) as amount 
     FROM orders 
-    WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+    WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND status != 'Disabled'
+    $summaryWhere
     GROUP BY MONTH(order_date)
     ORDER BY order_date ASC");
 while ($row = $result->fetch_assoc()) {
@@ -100,22 +122,22 @@ while ($row = $result->fetch_assoc()) {
     $salesData['data'][] = $row['amount'];
 }
 
-// Fetch recent orders (always limit to 5)
+// Fetch recent orders (always limit to 5, exclude disabled)
 $recentOrders = [];
 $result = $conn->query("SELECT 
-    o.order_id, 
+    orders.Order_ID as order_id, 
     c.customer_name, 
-    o.Total, 
-    o.order_date, 
-    o.status,
+    orders.Total, 
+    orders.order_date, 
+    orders.status,
     GROUP_CONCAT(CONCAT(p.product_name, ' (', oi.quantity, ')')) as products
-    FROM orders o
-    JOIN customer c ON o.customer_id = c.customer_id
-    JOIN order_items oi ON o.order_id = oi.order_id
+    FROM orders
+    JOIN customer c ON orders.Customer_ID = c.customer_id
+    JOIN order_items oi ON orders.Order_ID = oi.order_id
     JOIN products p ON oi.product_id = p.product_id
-    $dateFilter
-    GROUP BY o.order_id
-    ORDER BY o.order_date DESC
+    WHERE orders.status != 'Disabled'
+    GROUP BY orders.Order_ID
+    ORDER BY orders.order_date DESC
     LIMIT 5");
 while ($row = $result->fetch_assoc()) {
     $recentOrders[] = $row;
@@ -151,6 +173,9 @@ $conn->close();
         .dropdown-toggle::after {
             display: none;
         }
+        .badge-disabled {
+            background-color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -180,7 +205,6 @@ $conn->close();
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
                     </li>
-                    <li class="nav-item">
                     <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
                             <i class="fas fa-users me-2"></i>Staff Management
@@ -230,6 +254,11 @@ $conn->close();
                                         <i class="fas fa-list me-2"></i>Current Orders
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="orders.php?show_disabled=1">
+                                        <i class="fas fa-ban me-2"></i>Disabled Orders
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </li>
@@ -259,21 +288,37 @@ $conn->close();
 
         <!-- Main Content -->
         <main class="col-md-10 ms-sm-auto px-md-4">
+            <?php if (isset($_SESSION['success_message'])): ?>
+                <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+                    <?php echo $_SESSION['success_message']; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php unset($_SESSION['success_message']); ?>
+            <?php endif; ?>
+            
+            <?php if (isset($_SESSION['error_message'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                    <?php echo $_SESSION['error_message']; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php unset($_SESSION['error_message']); ?>
+            <?php endif; ?>
+
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
-                        <a href="?export=1" class="btn btn-sm btn-outline-secondary">
+                        <a href="?export=1<?php echo isset($_GET['week_filter']) ? '&week_filter=1' : ''; ?>" class="btn btn-sm btn-outline-secondary">
                             <i class="fas fa-download me-1"></i> Export
                         </a>
                     </div>
                     <div class="dropdown">
                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="weekDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-calendar me-1"></i>This week
+                            <i class="fas fa-calendar me-1"></i><?php echo isset($_GET['week_filter']) ? 'This Week' : 'All Time'; ?>
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="weekDropdown">
-                            <li><a class="dropdown-item" href="?week_filter=1">This Week</a></li>
-                            <li><a class="dropdown-item" href="admin_homepage.php">All Time</a></li>
+                            <li><a class="dropdown-item <?php echo isset($_GET['week_filter']) ? 'active' : ''; ?>" href="?week_filter=1">This Week</a></li>
+                            <li><a class="dropdown-item <?php echo !isset($_GET['week_filter']) ? 'active' : ''; ?>" href="admin_homepage.php">All Time</a></li>
                         </ul>
                     </div>
                 </div>
@@ -380,8 +425,10 @@ $conn->close();
                                         $badgeClass = [
                                             'completed' => 'bg-success',
                                             'pending' => 'bg-warning text-dark',
-                                            'shipping' => 'bg-info',
-                                            'cancelled' => 'bg-danger'
+                                            'shipped' => 'bg-info',
+                                            'processing' => 'bg-primary',
+                                            'cancelled' => 'bg-danger',
+                                            'disabled' => 'bg-secondary'
                                         ];
                                         $status = strtolower($order['status']);
                                         ?>
@@ -390,8 +437,8 @@ $conn->close();
                                         </span>
                                     </td>
                                     <td>
-                                        <a href="?delete_order=<?php echo $order['order_id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this order?')">
-                                            <i class="fas fa-trash"></i>
+                                        <a href="?toggle_status=1&order_id=<?php echo $order['order_id']; ?>&action=disable" class="btn btn-sm btn-secondary" onclick="return confirm('Are you sure you want to disable this order?')">
+                                            <i class="fas fa-ban"></i>
                                         </a>
                                     </td>
                                 </tr>
