@@ -504,13 +504,6 @@ echo strtoupper(substr($username, 0, 1));
                                                         <i class="fas fa-check"></i>
                                                     </button>
                                                 <?php endif; ?>
-                                                <button class="btn btn-sm btn-danger delete-order-btn" 
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#deleteOrderModal"
-                                                        data-order-id="<?php echo $order['Order_ID']; ?>"
-                                                        data-customer="<?php echo htmlspecialchars($order['Customer_name']); ?>">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -639,32 +632,6 @@ echo strtoupper(substr($username, 0, 1));
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-success">Enable Order</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Delete Confirmation Modal -->
-<div class="modal fade delete-modal" id="deleteOrderModal" tabindex="-1" aria-labelledby="deleteOrderModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="POST" action="staff_orders.php">
-                <input type="hidden" name="delete_order" value="1">
-                <input type="hidden" name="order_id" id="deleteOrderId">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteOrderModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete this order?</p>
-                    <p><strong>Order ID:</strong> <span id="displayOrderId"></span></p>
-                    <p><strong>Customer:</strong> <span id="deleteCustomer"></span></p>
-                    <p class="text-danger"><small>This action cannot be undone!</small></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Delete Order</button>
                 </div>
             </form>
         </div>
