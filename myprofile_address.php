@@ -1,6 +1,6 @@
 <?php
 session_start();
-error_reporting(E_ALL); // Add error reporting to see any issues
+error_reporting(E_ALL);
 require_once 'db_connection.php';
 
 // Check if user is logged in
@@ -35,13 +35,9 @@ if ($result->num_rows > 0) {
 
 // Handle form submissions
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Update profile information
+    // Update profile information - REMOVED NAME UPDATE
     if (isset($_POST['update_profile'])) {
-        $name = $_POST['name'];
         $email = $_POST['email'];
-        
-        // For debugging - comment out or remove in production
-        // echo "<pre>POST data: "; print_r($_POST); echo "</pre>";
         
         // Handle profile image upload
         $profile_image = $customer['profile_image']; // Keep existing image by default
@@ -80,15 +76,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         
         if (!isset($error_message)) {
-            $stmt = $conn->prepare("UPDATE customer SET Customer_name = ?, Customer_email = ?, profile_image = ? WHERE Customer_ID = ?");
-            $stmt->bind_param("sssi", $name, $email, $profile_image, $customer_id);
+            $stmt = $conn->prepare("UPDATE customer SET Customer_email = ?, profile_image = ? WHERE Customer_ID = ?");
+            $stmt->bind_param("ssi", $email, $profile_image, $customer_id);
             
             if ($stmt->execute()) {
                 $success_message = "Profile updated successfully!";
-                
-                // Update session data
-                $_SESSION['customer_name'] = $name;
-                
                 // Refresh customer data
                 $stmt = $conn->prepare("SELECT * FROM customer WHERE Customer_ID = ?");
                 $stmt->bind_param("i", $customer_id);
@@ -693,7 +685,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
     <i class="bi bi-arrow-up"></i>
   </a>
 
-<!-- Edit Profile Modal - Modified to use standard form submission -->
+<!-- Edit Profile Modal - Modified to show name but make it readonly -->
 <div id="edit-profile-modal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -707,8 +699,9 @@ $masked_password = str_repeat('*', strlen($actual_password));
         <div id="image-preview" class="mt-2"></div>
       </div>
       <div class="form-group">
-        <label for="name" class="form-label">Name</label>
-        <input type="text" class="form-control" id="name" name="name" value="<?php echo htmlspecialchars($customer['Customer_name']); ?>" required>
+        <label for="name" class="form-label">Name <span class="text-muted">(Cannot be changed)</span></label>
+        <input type="text" class="form-control" id="name" name="name" value="<?php echo htmlspecialchars($customer['Customer_name']); ?>" readonly style="background-color: #f8f9fa; cursor: not-allowed;">
+        <small class="text-muted">Contact support if you need to change your name</small>
       </div>
       <div class="form-group">
         <label for="email" class="form-label">Email</label>

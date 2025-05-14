@@ -185,19 +185,24 @@ echo strtoupper(substr($username, 0, 1));
             </li>
 
             <li class="nav-item">
-                <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
-                    <i class="fas fa-shopping-cart me-2"></i>Order Management
-                </a>
-                <div class="collapse" id="orderMenu">
-                    <ul class="nav flex-column ps-4">
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="staff_orders.php">
-                                <i class="fas fa-list me-2"></i>Current Orders
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
+                            <i class="fas fa-shopping-cart me-2"></i>Order Management
+                        </a>
+                        <div class="collapse" id="orderMenu">
+                            <ul class="nav flex-column ps-4">
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_orders.php">
+                                        <i class="fas fa-list me-2"></i>Current Orders
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_orders.php?show_disabled=1">
+                                        <i class="fas fa-ban me-2"></i>Disabled Orders
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
 
             <li class="nav-item">
                         <a class="nav-link text-light" href="staff_reports.php">
@@ -226,9 +231,6 @@ echo strtoupper(substr($username, 0, 1));
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2"><i class="fas fa-users me-2"></i>Customer List</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
-                    </div>
                 </div>
             </div>
 

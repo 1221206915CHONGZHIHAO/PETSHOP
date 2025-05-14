@@ -369,6 +369,11 @@ echo strtoupper(substr($username, 0, 1));
                                         <i class="fas fa-list me-2"></i>Current Orders
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_orders.php?show_disabled=1">
+                                        <i class="fas fa-ban me-2"></i>Disabled Orders
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </li>

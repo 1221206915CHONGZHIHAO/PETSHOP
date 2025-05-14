@@ -273,7 +273,6 @@ $db->close();
                             </ul>
                         </div>
                     </li>
-
                     <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
                             <i class="fas fa-shopping-cart me-2"></i>Order Management
@@ -283,6 +282,11 @@ $db->close();
                                 <li class="nav-item">
                                     <a class="nav-link text-light" href="staff_orders.php">
                                         <i class="fas fa-list me-2"></i>Current Orders
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_orders.php?show_disabled=1">
+                                        <i class="fas fa-ban me-2"></i>Disabled Orders
                                     </a>
                                 </li>
                             </ul>
