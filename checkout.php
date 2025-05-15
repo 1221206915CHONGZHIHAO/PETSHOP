@@ -29,17 +29,39 @@ $shipping_address = '';
 
 // Get customer details if logged in
 if (isset($_SESSION['customer_id'])) {
-    $stmt = $conn->prepare("SELECT * FROM Customer WHERE Customer_ID = ?");
-    $stmt->bind_param("i", $_SESSION['customer_id']);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $customer_details = $result->fetch_assoc();
-    $stmt->close();
-    
-    // Set default shipping address
-    if (!empty($customer_details['address'])) {
-        $shipping_address = $customer_details['address'];
+  // Get basic customer info
+  $stmt = $conn->prepare("SELECT * FROM Customer WHERE Customer_ID = ?");
+  $stmt->bind_param("i", $_SESSION['customer_id']);
+  $stmt->execute();
+  $result = $stmt->get_result();
+  $customer_details = $result->fetch_assoc();
+  $stmt->close();
+  
+  // Get default address if available
+  $stmt = $conn->prepare("SELECT * FROM customer_address WHERE Customer_ID = ? AND Is_Default = 1");
+  $stmt->bind_param("i", $_SESSION['customer_id']);
+  $stmt->execute();
+  $address_result = $stmt->get_result();
+  
+  if ($address_result->num_rows > 0) {
+    $default_address = $address_result->fetch_assoc();
+    // Format the address more clearly
+    $shipping_address = "Recipient: " . $default_address['Full_Name'] . "\n";
+    $shipping_address .= "Address Line 1: " . $default_address['Address_Line1'] . "\n";
+    if (!empty($default_address['Address_Line2'])) {
+        $shipping_address .= "Address Line 2: " . $default_address['Address_Line2'] . "\n";
     }
+    $shipping_address .= "City: " . $default_address['City'] . "\n";
+    if (!empty($default_address['State'])) {
+        $shipping_address .= "State: " . $default_address['State'] . "\n";
+    }
+    $shipping_address .= "Postal Code: " . $default_address['Postal_Code'] . "\n";
+    $shipping_address .= "Country: " . $default_address['Country'] . "\n";
+    $shipping_address .= "Phone: " . $default_address['Phone_Number'];
+    
+    // Debug output - verify the formatted address
+    error_log("Formatted shipping address: \n" . $shipping_address);
+  }
 }
 
 // Process checkout form submission
@@ -223,11 +245,20 @@ $conn->close();
       height: 30px;
       margin-right: 10px;
     }
-    .order-summary {
-      background-color: #f8f9fa;
-      border-radius: 8px;
-      padding: 1.5rem;
-    }
+    .order-summary table {
+    font-size: 0.9rem;
+}
+    .order-summary th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+    .order-summary .total-row th {
+    background-color: #e9ecef;
+    font-size: 1.1rem;
+}
+    .order-summary tfoot tr:not(.total-row) th {
+    border-top: 1px dashed #dee2e6;
+}
     .card-element {
       background: white;
       padding: 1rem;
@@ -261,9 +292,25 @@ $conn->close();
           <div class="checkout-container mb-4">
             <h3 class="mb-4">Shipping Information</h3>
             
+            <!-- Replace the shipping address textarea section with this code -->
             <div class="mb-3">
-              <label for="shipping_address" class="form-label">Shipping Address</label>
-              <textarea class="form-control" id="shipping_address" name="shipping_address" rows="3" required><?php echo htmlspecialchars($shipping_address); ?></textarea>
+                <label for="shipping_address" class="form-label">Shipping Address</label>
+                <?php if (!empty($shipping_address)): ?>
+                    <textarea class="form-control" id="shipping_address" name="shipping_address" rows="5" required><?php echo htmlspecialchars($shipping_address); ?></textarea>
+                    <small class="text-muted">This is your default address from your profile</small>
+                    <div class="mt-2">
+                        <a href="myprofile_address.php" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-pencil"></i> Edit Address
+                        </a>
+                    </div>
+                <?php else: ?>
+                    <textarea class="form-control" id="shipping_address" name="shipping_address" rows="5" required></textarea>
+                    <div class="mt-2">
+                        <a href="myprofile_address.php" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-plus"></i> Add Address
+                        </a>
+                    </div>
+                <?php endif; ?>
             </div>
             
             <div class="form-check mb-3">
@@ -325,43 +372,54 @@ $conn->close();
           </div>
         </div>
         
-        <div class="col-lg-4">
-          <div class="order-summary">
-            <h3 class="mb-4">Order Summary</h3>
-            
-            <div class="mb-3">
-              <?php foreach($cart_items as $item): ?>
-              <div class="d-flex justify-content-between mb-2">
-                <div>
-                  <?php echo htmlspecialchars($item['name']); ?> 
-                  <span class="text-muted">x<?php echo $item['quantity']; ?></span>
-                </div>
-                <div>RM<?php echo number_format($item['price'] * $item['quantity'], 2); ?></div>
-              </div>
-              <?php endforeach; ?>
-            </div>
-            
-            <hr>
-            
-            <div class="d-flex justify-content-between mb-2">
-              <div>Subtotal</div>
-              <div>RM<?php echo number_format($cart_total, 2); ?></div>
-            </div>
-            
-            <div class="d-flex justify-content-between mb-2">
-              <div>Shipping</div>
-              <div>Free</div>
-            </div>
-            
-            <hr>
-            
-            <div class="d-flex justify-content-between mb-4">
-              <h5>Total</h5>
-              <h5>RM<?php echo number_format($cart_total, 2); ?></h5>
-            </div>
-            
-            <button type="submit" class="btn btn-primary w-100 py-2">Place Order</button>
-          </div>
+        <!-- Replace the existing order summary section with this code -->
+<div class="col-lg-4">
+    <div class="order-summary">
+        <h3 class="mb-4">Order Summary</h3>
+        
+        <div class="table-responsive mb-3">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach($cart_items as $item): ?>
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img src="<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" class="img-thumbnail me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                                <div><?php echo htmlspecialchars($item['name']); ?></div>
+                            </div>
+                        </td>
+                        <td class="text-center"><?php echo $item['quantity']; ?></td>
+                        <td class="text-end">RM<?php echo number_format($item['price'], 2); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="2" class="text-end">Subtotal:</th>
+                        <th class="text-end">RM<?php echo number_format($cart_total, 2); ?></th>
+                    </tr>
+                    <tr>
+                        <th colspan="2" class="text-end">Shipping:</th>
+                        <th class="text-end">Free</th>
+                    </tr>
+                    <tr class="total-row">
+                        <th colspan="2" class="text-end">Total:</th>
+                        <th class="text-end">RM<?php echo number_format($cart_total, 2); ?></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        <button type="submit" class="btn btn-primary w-100 py-2">Place Order</button>
+    </div>
+</div>
         </div>
       </div>
     </form>
