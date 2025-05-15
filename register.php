@@ -12,6 +12,9 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
+// Turn off the NO_AUTO_VALUE_ON_ZERO mode to avoid the error
+$conn->query("SET SESSION sql_mode = ''");
+
 $error_message = "";
 $success_message = "";
 $redirect = false;
@@ -57,6 +60,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $error_message = "Email already registered. Please use a different email address.";
         } else {
             // Username and email are unique, proceed with registration
+            // Explicitly specify NULL for Customer_ID to let the database generate the auto-increment value
             $sql = "INSERT INTO Customer (Customer_name, Customer_email, Customer_password) VALUES (?, ?, ?)";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("sss", $username, $email, $password);
