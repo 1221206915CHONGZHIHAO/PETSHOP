@@ -230,8 +230,13 @@ $masked_password = str_repeat('*', strlen($actual_password));
       margin-right: 20px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    .sidebar-nav { list-style: none; padding: 0; }
-    .sidebar-nav li { margin-bottom: 10px; }
+    .sidebar-nav { 
+      list-style: none; 
+      padding: 0; 
+    }
+    .sidebar-nav li { 
+      margin-bottom: 10px; 
+    }
     .sidebar-nav a {
       display: flex;
       align-items: center;
@@ -241,8 +246,19 @@ $masked_password = str_repeat('*', strlen($actual_password));
       border-radius: 5px;
       transition: all 0.3s ease;
     }
-    .sidebar-nav a:hover, .sidebar-nav a.active { background-color: #e9ecef; }
-    .sidebar-nav a i { margin-right: 10px; width: 20px; text-align: center; }
+    .sidebar-nav a:hover { 
+      background-color: rgba(78, 159, 61, 0.1);
+      color: var(--primary);
+    }
+    .sidebar-nav a.active { 
+      background-color: var(--primary); 
+      color: white;
+    }
+    .sidebar-nav a i { 
+      margin-right: 10px; 
+      width: 20px; 
+      text-align: center; 
+    }
     .main-content { flex: 1; }
     .info-card {
       background-color: #fff;
@@ -275,9 +291,9 @@ $masked_password = str_repeat('*', strlen($actual_password));
       padding: 1rem 1.5rem;
     }
     .nav-tabs .nav-link.active {
-      color: var(--bs-primary);
+      color: var(--primary);
       background-color: transparent;
-      border-bottom: 3px solid var(--bs-primary);
+      border-bottom: 3px solid var(--primary);
     }
     .address-card {
       border: 1px solid #dee2e6;
@@ -287,7 +303,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
       position: relative;
     }
     .address-card .badge {
-      background-color: var(--bs-primary);
+      background-color: var(--primary);
       position: absolute;
       top: 10px;
       right: 10px;
@@ -343,7 +359,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
     .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
     .form-row .form-group { flex: 1; margin-bottom: 0; }
     .btn {
-      background-color: var(--bs-primary);
+      background-color: var(--primary);
       color: white;
       border: none;
       padding: 8px 20px;
@@ -360,6 +376,39 @@ $masked_password = str_repeat('*', strlen($actual_password));
       background: none;
       border: none;
       color: #6c757d;
+    }
+    
+    /* Dashboard menu styling */
+    .dashboard-menu .active {
+      background-color: var(--primary) !important;
+      color: white !important;
+    }
+    .dashboard-menu a:hover {
+      background-color: rgba(78, 159, 61, 0.1);
+      color: var(--primary);
+    }
+    .logout-link {
+      color: #dc3545 !important;
+    }
+    .logout-link:hover {
+      background-color: rgba(220, 53, 69, 0.1) !important;
+      color: #dc3545 !important;
+    }
+    
+    /* User dropdown menu styling */
+    .user-dropdown .active-dropdown-item {
+      background-color: var(--primary) !important;
+      color: white !important;
+    }
+    
+    .user-dropdown .dropdown-item:hover {
+      background-color: rgba(78, 159, 61, 0.1);
+      color: var(--primary);
+    }
+    
+    .dropdown-item.active, .dropdown-item:active {
+      background-color: var(--primary);
+      color: white;
     }
   </style>
 </head>
@@ -422,17 +471,17 @@ $masked_password = str_repeat('*', strlen($actual_password));
                 <i class="bi bi-person"></i>
               <?php endif; ?>
             </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <ul class="dropdown-menu dropdown-menu-end user-dropdown" aria-labelledby="userDropdown">
               <?php if(isset($_SESSION['customer_id'])): ?>
-                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'user_dashboard.php' ? 'active' : ''; ?>" href="user_dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
-                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'my_orders.php' ? 'active' : ''; ?>" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
-                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'favorites.php' ? 'active' : ''; ?>" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favorites</a></li>
-                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'myprofile_address.php' ? 'active' : ''; ?>" href="myprofile_address.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'user_dashboard.php' ? 'active-dropdown-item' : ''; ?>" href="user_dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'my_orders.php' ? 'active-dropdown-item' : ''; ?>" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'favorites.php' ? 'active-dropdown-item' : ''; ?>" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favorites</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'myprofile_address.php' ? 'active-dropdown-item' : ''; ?>" href="myprofile_address.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
               <?php else: ?>
-                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'login.php' ? 'active' : ''; ?>" href="login.php">Login</a></li>
-                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'register.php' ? 'active' : ''; ?>" href="register.php">Register</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'login.php' ? 'active-dropdown-item' : ''; ?>" href="login.php">Login</a></li>
+                <li><a class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'register.php' ? 'active-dropdown-item' : ''; ?>" href="register.php">Register</a></li>
               <?php endif; ?>
             </ul>
           </li>
@@ -443,12 +492,12 @@ $masked_password = str_repeat('*', strlen($actual_password));
 
 <div class="dashboard-container container">
   <div class="sidebar">
-    <ul class="sidebar-nav">
+    <ul class="sidebar-nav dashboard-menu">
       <li><a href="user_dashboard.php"><i class="bi bi-house"></i> Dashboard</a></li>
       <li><a href="my_orders.php"><i class="bi bi-box"></i> My Orders</a></li>
       <li><a href="favorites.php"><i class="bi bi-heart"></i> My Favourite</a></li>
       <li><a href="myprofile_address.php" class="active"><i class="bi bi-person-lines-fill"></i> My Profile/Address</a></li>
-      <li><a href="logout.php" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+      <li><a href="logout.php" class="logout-link"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
     </ul>
   </div>
   
