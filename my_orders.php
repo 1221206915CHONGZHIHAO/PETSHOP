@@ -110,6 +110,22 @@ $conn->close();
       color: #6c757d;
       margin-bottom: 1.5rem;
     }
+
+    /* User dropdown menu styling */
+    .user-dropdown .active-dropdown-item {
+      background-color: var(--primary) !important;
+      color: white !important;
+    }
+    
+    .user-dropdown .dropdown-item:hover {
+      background-color: rgba(78, 159, 61, 0.1);
+      color: var(--primary);
+    }
+    
+    .dropdown-item.active, .dropdown-item:active {
+      background-color: var(--primary);
+      color: white;
+    }
   </style>
 </head>
 <body>

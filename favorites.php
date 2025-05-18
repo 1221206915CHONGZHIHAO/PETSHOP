@@ -126,6 +126,22 @@ $conn->close();
       gap: 10px;
       margin-top: 15px;
     }
+
+    /* User dropdown menu styling */
+    .user-dropdown .active-dropdown-item {
+      background-color: var(--primary) !important;
+      color: white !important;
+    }
+    
+    .user-dropdown .dropdown-item:hover {
+      background-color: rgba(78, 159, 61, 0.1);
+      color: var(--primary);
+    }
+    
+    .dropdown-item.active, .dropdown-item:active {
+      background-color: var(--primary);
+      color: white;
+    }
     
     @media (max-width: 768px) {
       .favorites-container {
@@ -246,7 +262,7 @@ $conn->close();
                 </p>
                 <h5 class="mb-3">RM<?php echo number_format($product['price'], 2); ?></h5>
                 <div class="action-buttons">
-                  <a href="products.php?product_id=<?php echo $product['product_id']; ?>" class="btn btn-outline-primary btn-sm flex-grow-1">
+                  <a href="product_details.php?id=<?php echo $product['product_id']; ?>" class="btn btn-outline-primary btn-sm flex-grow-1">
                     <i class="bi bi-eye me-1"></i> View
                   </a>
                   <a href="favorites.php?remove=<?php echo $product['product_id']; ?>" class="btn btn-outline-danger btn-sm flex-grow-1">
@@ -263,9 +279,10 @@ $conn->close();
 </div>
 
 <!-- Footer -->
-<footer>
+<footer style="background: linear-gradient(to bottom,rgb(134, 138, 135),rgba(46, 21, 1, 0.69));">
   <div class="container">
     <div class="row">
+      <!-- Footer About -->
       <div class="col-md-5 mb-4 mb-lg-0">
         <div class="footer-about">
           <div class="footer-logo">
@@ -273,47 +290,52 @@ $conn->close();
           </div>
           <p>Your trusted partner in pet care since 2015. We're dedicated to providing quality products and exceptional service for pet lovers everywhere.</p>
           <div class="social-links">
-            <a href="#"><i class="bi bi-facebook"></i></a>
+            <a href="https://www.facebook.com/profile.php?id=61575717095389"><i class="bi bi-facebook"></i></a>
             <a href="#"><i class="bi bi-instagram"></i></a>
           </div>
         </div>
       </div>
       
+      <!-- Contact Info -->
       <div class="col-md-7">
-        <h4 class="footer-title">Contact Us</h4>
-        <div class="row">
-          <div class="col-sm-6 mb-3">
-            <div class="contact-info">
-              <i class="bi bi-geo-alt"></i>
-              <span>123 Pet Street, Animal City<br>Singapore 123456</span>
+                    <h4 class="footer-title">Contact Us</h4>
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-geo-alt"></i>
+                                <span><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-telephone"></i>
+                                <span><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-envelope"></i>
+                                <span><?php echo !empty($shopSettings['contact_email']) ? htmlspecialchars($shopSettings['contact_email']) : 'Email not available'; ?></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-clock"></i>
+                                <span><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div class="col-sm-6 mb-3">
-            <div class="contact-info">
-              <i class="bi bi-telephone"></i>
-              <span>+65 1234 5678</span>
-            </div>
-          </div>
-          <div class="col-sm-6 mb-3">
-            <div class="contact-info">
-              <i class="bi bi-envelope"></i>
-              <span>info@hachipetshop.com</span>
-            </div>
-          </div>
-          <div class="col-sm-6 mb-3">
-            <div class="contact-info">
-              <i class="bi bi-clock"></i>
-              <span>Mon-Fri: 9am-6pm<br>Sat-Sun: 10am-4pm</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
     
-    <div class="footer-bottom">
-      <div class="row align-items-center">
-        <div class="col-md-6 text-center text-md-start">
-          <p class="mb-md-0">© 2025 Hachi Pet Shop. All Rights Reserved.</p>
+      <!-- Footer Bottom -->
+      <div class="col-12">
+        <div class="footer-bottom" style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 40px; padding-top: 20px;">
+          <div class="row align-items-center">
+            <div class="col-md-6 text-center text-md-start">
+              <p class="mb-md-0">© 2025 Hachi Pet Shop. All Rights Reserved.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

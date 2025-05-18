@@ -64,9 +64,6 @@ if (!$product) {
 
 // Page title
 $page_title = htmlspecialchars($product['product_name']);
-
-// Mock original price (for discount display, assuming a 20% discount)
-$original_price = $product['price'] * 1.2;
 ?>
 
 <!DOCTYPE html>
@@ -181,21 +178,6 @@ $original_price = $product['price'] * 1.2;
       font-family: 'Open Sans', sans-serif;
       font-weight: 700;
       font-size: 2rem;
-    }
-    .product-details .price .original-price {
-      color: var(--gray);
-      font-family: 'Open Sans', sans-serif;
-      font-size: 1.3rem;
-      text-decoration: line-through;
-    }
-    .product-details .price .discount {
-      color: #dc3545;
-      font-family: 'Open Sans', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 600;
-      background-color: rgba(220, 53, 69, 0.1);
-      padding: 2px 8px;
-      border-radius: 12px;
     }
     .product-details .stock-status {
       font-family: 'Open Sans', sans-serif;
@@ -360,12 +342,6 @@ $original_price = $product['price'] * 1.2;
       .product-details .price .current-price {
         font-size: 1.7rem;
       }
-      .product-details .price .original-price {
-        font-size: 1.1rem;
-      }
-      .product-details .price .discount {
-        font-size: 0.9rem;
-      }
       .thumbnail {
         width: 60px;
         height: 60px;
@@ -384,12 +360,6 @@ $original_price = $product['price'] * 1.2;
       }
       .product-details .price .current-price {
         font-size: 1.4rem;
-      }
-      .product-details .price .original-price {
-        font-size: 1rem;
-      }
-      .product-details .price .discount {
-        font-size: 0.8rem;
       }
       .quantity-selector .input-group {
         width: 120px;
@@ -525,8 +495,6 @@ $original_price = $product['price'] * 1.2;
           <h1><?php echo htmlspecialchars($product['product_name']); ?></h1>
           <div class="price">
             <span class="current-price">RM<?php echo number_format($product['price'], 2); ?></span>
-            <span class="original-price">RM<?php echo number_format($original_price, 2); ?></span>
-            <span class="discount">20% OFF</span>
           </div>
           <p class="stock-status">
             <?php if ($product['stock_quantity'] > 0): ?>
@@ -555,8 +523,7 @@ $original_price = $product['price'] * 1.2;
           </div>
           <!-- Extra Actions -->
           <div class="extra-actions">
-            <a href="#" title="Add to Wishlist"><i class="bi bi-heart"></i></a>
-            <a href="#" title="Share"><i class="bi bi-share"></i></a>
+            <a href="#" id="add-to-favorites" title="Add to Favorites" data-product-id="<?php echo $product['product_id']; ?>"><i class="bi bi-heart"></i></a>
           </div>
         </div>
       </div>
@@ -787,6 +754,91 @@ if (addToCartButton) {
     .catch(error => {
       this.disabled = false;
       this.innerHTML = originalText;
+      console.error('Error:', error);
+    });
+  });
+}
+
+// Add to Favorites Functionality
+const addToFavoritesButton = document.getElementById('add-to-favorites');
+if (addToFavoritesButton) {
+  addToFavoritesButton.addEventListener('click', function(e) {
+    e.preventDefault();
+    const productId = this.getAttribute('data-product-id');
+    
+    // Change icon to loading spinner
+    const originalHtml = this.innerHTML;
+    this.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
+    this.style.pointerEvents = 'none';
+    
+    fetch('add_to_favorites.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `product_id=${productId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+      // Reset button
+      this.innerHTML = originalHtml;
+      this.style.pointerEvents = 'auto';
+      
+      if (data.success) {
+        // Change heart icon to filled heart
+        this.innerHTML = '<i class="bi bi-heart-fill" style="color: #dc3545;"></i>';
+        this.title = "Added to Favorites";
+        
+        // Show toast notification
+        const toastContainer = document.createElement('div');
+        toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
+        toastContainer.style.zIndex = '9999';
+        
+        const toastElement = document.createElement('div');
+        toastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
+        toastElement.style.backgroundColor = '#dc3545';
+        toastElement.setAttribute('role', 'alert');
+        toastElement.setAttribute('aria-live', 'assertive');
+        toastElement.setAttribute('aria-atomic', 'true');
+        
+        toastElement.innerHTML = `
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="bi bi-heart-fill me-2"></i> Product added to favorites!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        `;
+        
+        toastContainer.appendChild(toastElement);
+        document.body.appendChild(toastContainer);
+        
+        const toast = new bootstrap.Toast(toastElement, {
+          autohide: true,
+          delay: 3000
+        });
+        toast.show();
+        
+        toastElement.addEventListener('hidden.bs.toast', function () {
+          document.body.removeChild(toastContainer);
+        });
+      } else if (data.already_added) {
+        // Product already in favorites
+        this.innerHTML = '<i class="bi bi-heart-fill" style="color: #dc3545;"></i>';
+        this.title = "Already in Favorites";
+        
+        alert('This product is already in your favorites');
+      } else if (data.require_login) {
+        // Redirect to login if not logged in
+        window.location.href = 'login.php';
+      } else {
+        alert(data.message || 'Failed to add to favorites');
+        console.error('Failed to add to favorites:', data.message);
+      }
+    })
+    .catch(error => {
+      this.innerHTML = originalHtml;
+      this.style.pointerEvents = 'auto';
       console.error('Error:', error);
     });
   });
