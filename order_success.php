@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-if (!isset($_GET['order_id'])) {
+if (!isset($_GET['order_id']) || !isset($_SESSION['customer_id'])) {
     header('Location: products.php');
     exit;
 }
@@ -20,27 +20,40 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Get order details - updated to match your database schema
+// Get order items with product details
 $stmt = $conn->prepare("
     SELECT o.Order_ID, o.order_date, o.Total, o.PaymentMethod as payment_method, 
-           o.status, COUNT(oi.order_item_id) as item_count 
+           o.status, o.Address as shipping_address,
+           oi.quantity, oi.unit_price, oi.subtotal,
+           p.product_id, p.product_name, p.image_url
     FROM Orders o
     JOIN Order_Items oi ON o.Order_ID = oi.order_id
+    JOIN products p ON oi.product_id = p.product_id
     WHERE o.Order_ID = ? AND o.Customer_ID = ?
-    GROUP BY o.Order_ID
 ");
 $stmt->bind_param("ii", $order_id, $_SESSION['customer_id']);
 $stmt->execute();
 $result = $stmt->get_result();
-$order = $result->fetch_assoc();
+$order_items = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-$conn->close();
-
-if (!$order) {
+// Get basic order info if items exist
+if (!empty($order_items)) {
+    $order = [
+        'Order_ID' => $order_items[0]['Order_ID'],
+        'order_date' => $order_items[0]['order_date'],
+        'Total' => $order_items[0]['Total'],
+        'payment_method' => $order_items[0]['payment_method'],
+        'status' => $order_items[0]['status'],
+        'shipping_address' => $order_items[0]['shipping_address'],
+        'item_count' => count($order_items)
+    ];
+} else {
     header('Location: products.php');
     exit;
 }
+
+$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -58,6 +71,55 @@ if (!$order) {
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/order_success.css">
   <link rel="stylesheet" href="userhomepage.css">
+  <style>
+    .success-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .success-icon {
+      color: #28a745;
+      font-size: 5rem;
+      margin-bottom: 1.5rem;
+    }
+    .order-details {
+      background-color: #f8f9fa;
+      border-radius: 10px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    .ordered-items {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      margin-bottom: 2rem;
+    }
+    .ordered-items table {
+      margin-bottom: 0;
+    }
+    .ordered-items th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
+    .ordered-items .img-thumbnail {
+      padding: 0;
+      border: none;
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+    }
+    .btn-success-page {
+      padding: 10px 20px;
+      margin: 0 10px;
+    }
+    .shipping-address {
+      white-space: pre-wrap;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      border: 1px solid #dee2e6;
+    }
+  </style>
 </head>
 <body>
 <!-- Navigation -->
@@ -80,16 +142,16 @@ if (!$order) {
         </ul>
 
         <ul class="navbar-nav ms-auto nav-icons">
-        <li class="nav-item">
-  <a class="nav-link" href="cart.php">
-    <i class="bi bi-cart"></i>
-    <?php if(isset($_SESSION['cart_count']) && $_SESSION['cart_count'] > 0): ?>
-      <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
-        <?php echo $_SESSION['cart_count']; ?>
-      </span>
-    <?php endif; ?>
-  </a>
-</li>
+          <li class="nav-item">
+            <a class="nav-link" href="cart.php">
+              <i class="bi bi-cart"></i>
+              <?php if(isset($_SESSION['cart_count']) && $_SESSION['cart_count'] > 0): ?>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                  <?php echo $_SESSION['cart_count']; ?>
+                </span>
+              <?php endif; ?>
+            </a>
+          </li>
           
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
@@ -130,32 +192,75 @@ if (!$order) {
         <h3><i class="bi bi-receipt me-2"></i>Order Summary</h3>
         
         <div class="row text-start">
-          <div class="col-md-6">
+          <div class="col-md-6 mb-3">
             <p><strong>Order Number:</strong> #<?php echo $order['Order_ID']; ?></p>
             <p><strong>Date Placed:</strong> <?php echo date('F j, Y \a\t g:i a', strtotime($order['order_date'])); ?></p>
             <p><strong>Items:</strong> <?php echo $order['item_count']; ?></p>
-            <p><strong>Status:</strong> <?php echo htmlspecialchars($order['status']); ?></p>
+            <p><strong>Status:</strong> <span class="badge bg-<?php 
+              echo $order['status'] == 'Completed' ? 'success' : 
+                   ($order['status'] == 'Processing' ? 'primary' : 'warning'); 
+            ?>"><?php echo htmlspecialchars($order['status']); ?></span></p>
           </div>
-          <div class="col-md-6">
+          <div class="col-md-6 mb-3">
             <p><strong>Total Amount:</strong> RM<?php echo number_format($order['Total'], 2); ?></p>
             <p><strong>Payment Method:</strong> <?php echo htmlspecialchars($order['payment_method']); ?></p>
+            <p><strong>Shipping Address:</strong></p>
+            <div class="shipping-address"><?php echo htmlspecialchars($order['shipping_address']); ?></div>
           </div>
         </div>
-        
-        <hr class="my-4">
-        
-        <div class="delivery-info">
-          <i class="bi bi-truck me-2"></i>
-          <p>We're preparing your order for shipment. You'll receive a confirmation email at <strong><?php echo isset($_SESSION['customer_email']) ? htmlspecialchars($_SESSION['customer_email']) : 'your registered email'; ?></strong> when it's on its way.</p>
+      </div>
+      
+      <div class="ordered-items">
+        <h4><i class="bi bi-cart-check me-2"></i>Purchased Items</h4>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($order_items as $item): ?>
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <img src="<?php echo htmlspecialchars($item['image_url']); ?>" 
+                         alt="<?php echo htmlspecialchars($item['product_name']); ?>" 
+                         class="img-thumbnail me-3">
+                    <div>
+                      <h6><?php echo htmlspecialchars($item['product_name']); ?></h6>
+                      <small class="text-muted">Product ID: <?php echo $item['product_id']; ?></small>
+                    </div>
+                  </div>
+                </td>
+                <td>RM<?php echo number_format($item['unit_price'], 2); ?></td>
+                <td><?php echo $item['quantity']; ?></td>
+                <td>RM<?php echo number_format($item['subtotal'], 2); ?></td>
+              </tr>
+              <?php endforeach; ?>
+              <tr>
+                <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                <td><strong>RM<?php echo number_format($order['Total'], 2); ?></strong></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </div>
+      
+      <div class="delivery-info alert alert-info">
+        <i class="bi bi-truck me-2"></i>
+        <p class="mb-0">We're preparing your order for shipment. You'll receive a confirmation email at <strong><?php echo isset($_SESSION['customer_email']) ? htmlspecialchars($_SESSION['customer_email']) : 'your registered email'; ?></strong> when it's on its way.</p>
       </div>
       
       <div class="action-buttons mt-5">
         <a href="products.php" class="btn btn-primary btn-success-page">
           <i class="bi bi-arrow-left me-2"></i>Continue Shopping
         </a>
-        <a href="my_orders.php" class="btn btn-outline-secondary btn-success-page">
-          <i class="bi bi-list-check me-2"></i>View Order Details
+        <a href="my_orders.php?order_id=<?php echo $order['Order_ID']; ?>" class="btn btn-outline-secondary btn-success-page">
+          <i class="bi bi-list-check me-2"></i>View Order History
         </a>
       </div>
     </div>
