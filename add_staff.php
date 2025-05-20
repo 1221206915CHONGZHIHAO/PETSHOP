@@ -32,10 +32,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <title>Add Staff - Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
 </head>
 <body>
-
+    <style>
+            h1, h2, h3, h4, h5, h6 {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 600;
+    }
+    .section-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--dark);
+        position: relative;
+        display: inline-block;
+    }
+    .section-title:after {
+        content: '';
+        display: block;
+        height: 4px;
+        width: 70px;
+        background-color: var(--primary);
+        margin-top: 0.5rem;
+    }
+    </style>
 <nav class="navbar navbar-dark bg-dark px-3">
     <div class="d-flex align-items-center">
         <button class="btn btn-dark me-3 d-md-none" id="sidebarToggle">
@@ -105,12 +127,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                         <i class="fas fa-list me-2"></i>Current Orders
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="orders.php?show_disabled=1">
+                                        <i class="fas fa-ban me-2"></i>Disabled Orders
+                                    </a>
                                 </li>
                             </ul>
                         </div>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light" href="#">
+                        <a class="nav-link text-light" href="reports.php">
                             <i class="fas fa-chart-line me-2"></i>Reports
                         </a>
                     </li>

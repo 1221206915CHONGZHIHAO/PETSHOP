@@ -10,6 +10,7 @@ include('db_connection.php');
     <title>Manage Staff - Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
     <style>
         .deactivate-modal .modal-header {
@@ -30,19 +31,41 @@ include('db_connection.php');
         .tab-pane {
             padding-top: 20px;
         }
+                                    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 600;
+    }
+    .section-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--dark);
+        position: relative;
+        display: inline-block;
+    }
+    .section-title:after {
+        content: '';
+        display: block;
+        height: 4px;
+        width: 70px;
+        background-color: var(--primary);
+        margin-top: 0.5rem;
+    }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-dark px-3">
+<nav class="navbar navbar-dark px-3">
     <div class="d-flex align-items-center">
         <button class="btn btn-dark me-3 d-md-none" id="sidebarToggle">
             <i class="fas fa-bars"></i>
         </button>
-        <a class="navbar-brand" href="#">PetShop Admin</a>
+        <a class="navbar-brand" href="#">
+            <img src="Hachi_Logo.png" alt="PetShop Admin" height="40">
+        </a>
     </div>
     <div>
-        <span class="text-light me-3">Welcome, Admin</span>
+        <span class="text-light me-3"><i class="fas fa-user-circle me-1"></i> Welcome, <?php echo $_SESSION['username'] ?? 'Admin'; ?></span>
         <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
@@ -106,6 +129,11 @@ include('db_connection.php');
                                 <li class="nav-item">
                                     <a class="nav-link text-light" href="orders.php">
                                         <i class="fas fa-list me-2"></i>Current Orders
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="orders.php?show_disabled=1">
+                                        <i class="fas fa-ban me-2"></i>Disabled Orders
                                     </a>
                                 </li>
                             </ul>
