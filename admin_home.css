@@ -187,3 +187,63 @@ body {
         padding-top: var(--topbar-height);
     }
 }
+/* Footer Styles */
+footer {
+  background: linear-gradient(to bottom,rgb(134, 138, 135),rgba(46, 21, 1, 0.69));
+  position: relative;
+  overflow: hidden;
+  color: white;
+  padding-top: 70px;
+  padding-bottom: 30px;
+}
+
+footer .container {
+  position: relative;
+  z-index: 1;
+}
+
+footer .footer-logo img {
+  height: 60px;
+  margin-bottom: 20px;
+}
+
+footer p {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 20px;
+}
+
+footer .contact-info {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+footer .contact-info i {
+  color: var(--primary);
+  font-size: 1.2rem;
+  margin-right: 15px;
+  margin-top: 5px;
+}
+
+footer .contact-info span {
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.footer-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 40px;
+  padding-top: 20px;
+}
+
+.social-links a {
+  color: white;
+  margin-right: 15px;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+}
+
+.social-links a:hover {
+  color: var(--primary);
+  transform: translateY(-3px);
+}

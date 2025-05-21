@@ -52,6 +52,7 @@ $conn->close();
     <title>Customer Login Logs | PetShop Staff</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
     <style>
         #sidebar {
@@ -91,24 +92,44 @@ $conn->close();
             align-items: center;
             justify-content: center;
         }
+            h1, h2, h3, h4, h5, h6 {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 600;
+    }
+    .section-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--dark);
+        position: relative;
+        display: inline-block;
+    }
+    .section-title:after {
+        content: '';
+        display: block;
+        height: 4px;
+        width: 70px;
+        background-color: var(--primary);
+        margin-top: 0.5rem;
+    }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-dark px-3">
+<nav class="navbar navbar-dark px-3">
     <div class="d-flex align-items-center">
         <button class="btn btn-dark me-3 d-lg-none" id="sidebarToggle">
             <i class="fas fa-bars"></i>
         </button>
         <a class="navbar-brand" href="#">
-            <i class="fas fa-paw me-2"></i>PetShop Staff
+            <img src="Hachi_Logo.png" alt="PetShop Staff" height="40">
         </a>
     </div>
     <div>
-    <span class="text-light me-3">
-    <i class="fas fa-user-circle me-1"></i>
-    Welcome, <?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?>
-</span>
+        <span class="text-light me-3">
+            <i class="fas fa-user-circle me-1"></i>
+            Welcome, <?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?>
+        </span>
         <a href="logout.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
