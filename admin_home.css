@@ -187,65 +187,68 @@ body {
         padding-top: var(--topbar-height);
     }
 }
-/* Footer Styles */
+/* Footer Fix Styles */
+html, body {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1;
+}
+
 footer {
-  background: linear-gradient(to bottom,rgb(134, 138, 135),rgba(46, 21, 1, 0.69));
-  position: relative;
-  overflow: hidden;
-  color: white;
-  padding-top: 70px;
-  padding-bottom: 30px;
+    margin-top: auto;
+    background: linear-gradient(to bottom, rgb(134, 138, 135), rgba(46, 21, 1, 0.69));
+    color: white;
+    padding: 40px 0 20px;
 }
 
-footer .container {
-  position: relative;
-  z-index: 1;
-  padding-left: 120px; 
+/* Footer Content Styling */
+.footer-about {
+    margin-bottom: 20px;
 }
 
-footer .footer-logo img {
-  height: 60px;
-  margin-bottom: 20px;
+.footer-logo img {
+    height: 60px;
+    margin-bottom: 15px;
 }
 
-footer p {
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 20px;
+.contact-info {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
 }
 
-footer .contact-info {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 15px;
-}
-
-footer .contact-info i {
-  color: var(--primary);
-  font-size: 1.2rem;
-  margin-right: 15px;
-  margin-top: 5px;
-}
-
-footer .contact-info span {
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.5;
-}
-
-.footer-bottom {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: 40px;
-  padding-top: 20px;
-  padding-left: 70px;
+.contact-info i {
+    width: 20px;
+    margin-right: 10px;
+    color: var(--primary);
 }
 
 .social-links a {
-  color: white;
-  margin-right: 15px;
-  font-size: 1.2rem;
-  transition: all 0.3s ease;
+    color: white;
+    margin-right: 15px;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
 }
 
 .social-links a:hover {
-  color: var(--primary);
-  transform: translateY(-3px);
+    color: var(--primary);
+    transform: translateY(-3px);
 }
+
+.footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 30px;
+    padding-top: 20px;
+}
+footer .container {
+    padding-left: 20px; /* Adjust this value as needed */
+}
+
