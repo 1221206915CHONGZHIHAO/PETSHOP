@@ -200,6 +200,7 @@ footer {
 footer .container {
   position: relative;
   z-index: 1;
+  padding-left: 120px; 
 }
 
 footer .footer-logo img {
@@ -234,6 +235,7 @@ footer .contact-info span {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   margin-top: 40px;
   padding-top: 20px;
+  padding-left: 70px;
 }
 
 .social-links a {
