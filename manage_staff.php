@@ -65,7 +65,7 @@ include('db_connection.php');
         </a>
     </div>
     <div>
-        <span class="text-light me-3"><i class="fas fa-user-circle me-1"></i> Welcome, <?php echo $_SESSION['username'] ?? 'Admin'; ?></span>
+        <span class="text-light me-3"><i class="fas fa-user-circle me-1"></i> Welcome, <?php echo $_SESSION['username'] ?? 'ADMIN'; ?></span>
         <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
@@ -82,25 +82,30 @@ include('db_connection.php');
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-light active" data-bs-toggle="collapse" href="#staffMenu">
-                            <i class="fas fa-users me-2"></i>Staff Management
-                        </a>
-                        <div class="collapse show" id="staffMenu">
-                            <ul class="nav flex-column ps-4">
-                                <li class="nav-item">
-                                    <a class="nav-link text-light active" href="manage_staff.php">
-                                        <i class="fas fa-list me-2"></i>Staff List
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="staff_logs.php">
-                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
+            <li class="nav-item">
+                <a class="nav-link text-light active" data-bs-toggle="collapse" href="#staffMenu">
+                    <i class="fas fa-users me-2"></i>Staff Management
+                </a>
+                <div class="collapse show" id="staffMenu">
+                    <ul class="nav flex-column ps-4">
+                        <li class="nav-item">
+                            <a class="nav-link text-light active" href="manage_staff.php">
+                                <i class="fas fa-list me-2"></i>Staff List
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="add_staff.php">
+                                <i class="fas fa-plus me-2"></i>Add Staff
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="staff_logs.php">
+                                <i class="fas fa-history me-2"></i>Login/Logout Logs
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
                     <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
                             <i class="fas fa-user-friends me-2"></i>Customer Management

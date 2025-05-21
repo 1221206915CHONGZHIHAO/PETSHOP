@@ -229,25 +229,30 @@ $conn->close();
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
-                            <i class="fas fa-users me-2"></i>Staff Management
-                        </a>
-                        <div class="collapse" id="staffMenu">
-                            <ul class="nav flex-column ps-4">
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="manage_staff.php">
-                                        <i class="fas fa-list me-2"></i>Staff List
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="staff_logs.php">
-                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
+            <li class="nav-item">
+                <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
+                    <i class="fas fa-users me-2"></i>Staff Management
+                </a>
+                <div class="collapse" id="staffMenu">
+                    <ul class="nav flex-column ps-4">
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="manage_staff.php">
+                                <i class="fas fa-list me-2"></i>Staff List
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="add_staff.php">
+                                <i class="fas fa-plus me-2"></i>Add Staff
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="staff_logs.php">
+                                <i class="fas fa-history me-2"></i>Login/Logout Logs
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
                     <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
                             <i class="fas fa-user-friends me-2"></i>Customer Management

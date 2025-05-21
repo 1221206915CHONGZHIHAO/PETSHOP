@@ -18,11 +18,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $newPassword = $_POST['newPassword'] ?? '';
 
     // Validate password if reset is requested
-    if ($resetPassword && empty($newPassword)) {
-        $password_error = "Please enter a new password";
-    } elseif ($resetPassword && strlen($newPassword) < 6) {
-        $password_error = "Password must be at least 6 characters";
-    }
+if ($resetPassword && empty($newPassword)) {
+    $password_error = "Please enter a new password";
+} elseif ($resetPassword && strlen($newPassword) < 8) {
+    $password_error = "Password must be at least 8 characters long";
+} elseif ($resetPassword && !preg_match('/[A-Z]/', $newPassword)) {
+    $password_error = "Password must contain at least one uppercase letter";
+} elseif ($resetPassword && !preg_match('/[0-9]/', $newPassword)) {
+    $password_error = "Password must contain at least one number";
+} elseif ($resetPassword && !preg_match('/[^A-Za-z0-9]/', $newPassword)) {
+    $password_error = "Password must contain at least one special character";
+}
 
     // Only proceed if no password errors
     if (!$resetPassword || empty($password_error)) {
@@ -117,6 +123,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         background-color: var(--primary);
         margin-top: 0.5rem;
     }
+    .password-requirements {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--gray);
+    background-color: rgba(240, 242, 245, 0.8);
+    padding: 10px 15px;
+    border-radius: 8px;
+}
+
+.requirement {
+    margin-bottom: 5px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+}
+
+.requirement i {
+    margin-right: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.requirement.text-success {
+    color: var(--primary) !important;
+}
     </style>
 </head>
 <body>
@@ -139,40 +170,50 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar -->
-        <nav id="sidebar" class="col-md-2 d-md-block bg-dark sidebar">
-            <div class="position-sticky">
-                <h4 class="text-light text-center py-3"><i class="fas fa-paw me-2"></i>Admin Menu</h4>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="admin_homepage.php">
-                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
-                            <i class="fas fa-users me-2"></i>Staff Management
-                        </a>
-                        <div class="collapse" id="staffMenu">
-                            <ul class="nav flex-column ps-4">
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="manage_staff.php">
-                                        <i class="fas fa-list me-2"></i>Staff List
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="staff_logs.php">
-                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
+<nav id="sidebar" class="col-md-2 d-md-block bg-dark sidebar">
+    <div class="position-sticky">
+        <h4 class="text-light text-center py-3"><i class="fas fa-paw me-2"></i>Admin Menu</h4>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link text-light" href="admin_homepage.php">
+                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-light active" data-bs-toggle="collapse" href="#staffMenu">
+                    <i class="fas fa-users me-2"></i>Staff Management
+                </a>
+                <div class="collapse show" id="staffMenu">
+                    <ul class="nav flex-column ps-4">
+                        <li class="nav-item">
+                            <a class="nav-link text-light active" href="manage_staff.php">
+                                <i class="fas fa-list me-2"></i>Staff List
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="add_staff.php">
+                                <i class="fas fa-plus me-2"></i>Add Staff
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="staff_logs.php">
+                                <i class="fas fa-history me-2"></i>Login/Logout Logs
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
                     <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
                             <i class="fas fa-user-friends me-2"></i>Customer Management
                         </a>
                         <div class="collapse" id="customerMenu">
                             <ul class="nav flex-column ps-4">
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="customer_list.php">
+                                        <i class="fas fa-list me-2"></i>Customer List
+                                    </a>
+                                </li>
                                 <li class="nav-item">
                                     <a class="nav-link text-light" href="customer_logs.php">
                                         <i class="fas fa-history me-2"></i>Login/Logout Logs
@@ -306,16 +347,38 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         </div>
 
                         <!-- Password field (hidden by default) -->
-                        <div class="row mb-3" id="passwordField" style="display: none;">
-                            <div class="col-md-6">
-                                <label for="newPassword" class="form-label">New Password</label>
-                                <input type="text" class="form-control" id="newPassword" name="newPassword">
-                                <small class="text-muted password-note">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    The password will be stored as plain text in the database
-                                </small>
-                            </div>
-                        </div>
+<div class="row mb-3" id="passwordField" style="display: none;">
+    <div class="col-md-6">
+        <label for="newPassword" class="form-label">New Password</label>
+        <input type="text" class="form-control" id="newPassword" name="newPassword">
+        <div class="password-requirements mt-2">
+            <div class="requirement" id="length-check">
+                <i class="fas fa-times-circle text-danger"></i>
+                <i class="fas fa-check-circle text-success d-none"></i>
+                <span>At least 8 characters</span>
+            </div>
+            <div class="requirement" id="uppercase-check">
+                <i class="fas fa-times-circle text-danger"></i>
+                <i class="fas fa-check-circle text-success d-none"></i>
+                <span>At least 1 uppercase letter</span>
+            </div>
+            <div class="requirement" id="number-check">
+                <i class="fas fa-times-circle text-danger"></i>
+                <i class="fas fa-check-circle text-success d-none"></i>
+                <span>At least 1 number</span>
+            </div>
+            <div class="requirement" id="symbol-check">
+                <i class="fas fa-times-circle text-danger"></i>
+                <i class="fas fa-check-circle text-success d-none"></i>
+                <span>At least 1 special character</span>
+            </div>
+        </div>
+        <small class="text-muted password-note">
+            <i class="fas fa-info-circle me-1"></i>
+            The password will be stored as plain text in the database
+        </small>
+    </div>
+</div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <a href="manage_staff.php" class="btn btn-secondary me-md-2">
@@ -490,6 +553,39 @@ document.querySelector('form').addEventListener('submit', function(e) {
         }, { once: true });
     }
 });
+// Password validation
+document.getElementById('newPassword').addEventListener('input', function() {
+    const password = this.value;
+    
+    // Check length requirement
+    toggleIconVisibility(document.getElementById('length-check'), password.length >= 8);
+    
+    // Check uppercase requirement
+    toggleIconVisibility(document.getElementById('uppercase-check'), /[A-Z]/.test(password));
+    
+    // Check number requirement
+    toggleIconVisibility(document.getElementById('number-check'), /[0-9]/.test(password));
+    
+    // Check symbol requirement
+    toggleIconVisibility(document.getElementById('symbol-check'), /[^A-Za-z0-9]/.test(password));
+});
+
+function toggleIconVisibility(element, isValid) {
+    const crossIcon = element.querySelector('.fa-times-circle');
+    const checkIcon = element.querySelector('.fa-check-circle');
+    
+    if (isValid) {
+        crossIcon.classList.add('d-none');
+        checkIcon.classList.remove('d-none');
+        element.classList.add('text-success');
+        element.classList.remove('text-danger');
+    } else {
+        crossIcon.classList.remove('d-none');
+        checkIcon.classList.add('d-none');
+        element.classList.add('text-danger');
+        element.classList.remove('text-success');
+    }
+}
 </script>
 </body>
 </html>
