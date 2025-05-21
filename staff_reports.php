@@ -450,7 +450,70 @@ $conn->close();
         </main>
     </div>
 </div>
-
+<!-- Footer Section -->
+<footer>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-10 offset-md-2"> <!-- This matches the main content area -->
+                <div class="row">
+                    <!-- Footer About -->
+                    <div class="col-md-5 mb-4 mb-lg-0">
+                        <div class="footer-about">
+                            <div class="footer-logo">
+                                <img src="Hachi_Logo.png" alt="Hachi Pet Shop">
+                            </div>
+                            <p>Your trusted partner in pet products. We're dedicated to providing quality products for pet lovers everywhere.</p>
+                            <div class="social-links">
+                                <a href="https://www.facebook.com/profile.php?id=61575717095389"><i class="fab fa-facebook"></i></a>
+                                <a href="#"><i class="fab fa-instagram"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Info -->
+                    <div class="col-md-7">
+                        <h4 class="text-white mb-3">Contact Us</h4>
+                        <div class="row">
+                            <div class="col-sm-6 mb-3">
+                                <div class="contact-info">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>123 Pet Street, Animal City</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <div class="contact-info">
+                                    <i class="fas fa-phone"></i>
+                                    <span>+1 (555) 123-4567</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <div class="contact-info">
+                                    <i class="fas fa-envelope"></i>
+                                    <span>info@hachipetshop.com</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <div class="contact-info">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Mon-Fri: 9AM - 6PM</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer Bottom -->
+                <div class="footer-bottom">
+                    <div class="row align-items-center">
+                        <div class="col-md-12 text-center">
+                            <p class="mb-0 text-white">© 2025 Hachi Pet Shop. All Rights Reserved.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>

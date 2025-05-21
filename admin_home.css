@@ -249,6 +249,15 @@ footer {
     padding-top: 20px;
 }
 footer .container {
-    padding-left: 20px; /* Adjust this value as needed */
+    padding-left: 20px;
+    padding-right: 20px; /* Add right padding to match */
+    max-width: 100%; /* Ensure it uses full available width */
+    width: calc(100% - var(--sidebar-width)); /* Adjust width considering sidebar */
 }
 
+/* Add this media query for mobile view */
+@media (max-width: 768px) {
+    footer .container {
+        width: 100%;
+    }
+}
