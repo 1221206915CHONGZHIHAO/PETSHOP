@@ -131,8 +131,10 @@ $conn->close();
       color: white;
     }
     
-    /* Hide elements in PDF */
-    .hide-in-pdf {
+    /* Hide elements during PDF generation */
+    body.pdf-generation .action-buttons,
+    body.pdf-generation nav,
+    body.pdf-generation footer {
       display: none !important;
     }
   </style>
@@ -140,8 +142,61 @@ $conn->close();
 <body>
 <!-- Navigation -->
 <nav class="navbar navbar-expand-lg custom-nav fixed-top">
-    <!-- Your existing navigation code -->
-</nav>
+    <div class="container">
+      <a class="navbar-brand" href="userhomepage.php">
+        <img src="Hachi_Logo.png" alt="Hachi Pet Shop">
+      </a>
+      
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mx-auto">
+          <li class="nav-item"><a class="nav-link" href="userhomepage.php">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
+          <li class="nav-item"><a class="nav-link" href="products.php">Products</a></li>
+          <li class="nav-item"><a class="nav-link" href="contact_us.php">Contact Us</a></li>
+        </ul>
+
+        <ul class="navbar-nav ms-auto nav-icons">
+          <li class="nav-item">
+            <a class="nav-link" href="cart.php">
+              <i class="bi bi-cart"></i>
+              <?php if(isset($_SESSION['cart_count']) && $_SESSION['cart_count'] > 0): ?>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                  <?php echo $_SESSION['cart_count']; ?>
+                </span>
+              <?php endif; ?>
+            </a>
+          </li>
+          
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+              <?php if(isset($_SESSION['customer_id'])): ?>
+                <span class="me-1"><?php echo htmlspecialchars($_SESSION['customer_name']); ?></span>
+              <?php else: ?>
+                <i class="bi bi-person"></i>
+              <?php endif; ?>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <?php if(isset($_SESSION['customer_id'])): ?>
+                <li><a class="dropdown-item" href="user_dashboard.php"><i class="bi bi-house me-2"></i>Dashboard</a></li>
+                <li><a class="dropdown-item" href="my_orders.php"><i class="bi bi-box me-2"></i>My Orders</a></li>
+                <li><a class="dropdown-item" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favorites</a></li>
+                <li><a class="dropdown-item" href="myprofile_address.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+              <?php else: ?>
+                <li><a class="dropdown-item" href="login.php">Login</a></li>
+                <li><a class="dropdown-item" href="register.php">Register</a></li>
+              <?php endif; ?>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
 
 <!-- Page Content -->
 <div class="page-content">
@@ -235,7 +290,60 @@ $conn->close();
 
 <!-- Footer -->
 <footer>
-    <!-- Your existing footer code -->
+  <div class="container">
+    <div class="row">
+      <div class="col-md-5 mb-4 mb-lg-0">
+        <div class="footer-about">
+          <div class="footer-logo">
+            <img src="Hachi_Logo.png" alt="Hachi Pet Shop">
+          </div>
+          <p>Your trusted partner in pet care since 2015. We're dedicated to providing quality products and exceptional service for pet lovers everywhere.</p>
+          <div class="social-links">
+            <a href="#"><i class="bi bi-facebook"></i></a>
+            <a href="#"><i class="bi bi-instagram"></i></a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-7">
+        <h4 class="footer-title">Contact Us</h4>
+        <div class="row">
+          <div class="col-sm-6 mb-3">
+            <div class="contact-info">
+              <i class="bi bi-geo-alt"></i>
+              <span>123 Pet Street, Animal City<br>Singapore 123456</span>
+            </div>
+          </div>
+          <div class="col-sm-6 mb-3">
+            <div class="contact-info">
+              <i class="bi bi-telephone"></i>
+              <span>+65 1234 5678</span>
+            </div>
+          </div>
+          <div class="col-sm-6 mb-3">
+            <div class="contact-info">
+              <i class="bi bi-envelope"></i>
+              <span>info@hachipetshop.com</span>
+            </div>
+          </div>
+          <div class="col-sm-6 mb-3">
+            <div class="contact-info">
+              <i class="bi bi-clock"></i>
+              <span>Mon-Fri: 9am-6pm<br>Sat-Sun: 10am-4pm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <div class="row align-items-center">
+        <div class="col-md-6 text-center text-md-start">
+          <p class="mb-md-0">© 2025 Hachi Pet Shop. All Rights Reserved.</p>
+        </div>
+      </div>
+    </div>
+  </div>
 </footer>
 
 <!-- Bootstrap JS Bundle -->
@@ -258,45 +366,27 @@ document.addEventListener('DOMContentLoaded', function() {
         button.innerHTML = '<i class="bi bi-hourglass me-2"></i>Generating PDF...';
         button.disabled = true;
         
-        // Create a clone of the content to modify for PDF
-        const element = document.getElementById('pdf-content');
-        const clone = element.cloneNode(true);
+        // Add PDF generation class to body
+        document.body.classList.add('pdf-generation');
         
-        // Hide all buttons in the clone
-        clone.querySelectorAll('.btn-success-page').forEach(btn => {
-            btn.classList.add('hide-in-pdf');
-        });
-        
-        // Hide navigation and footer in the clone
-        clone.querySelectorAll('nav, footer').forEach(el => {
-            el.classList.add('hide-in-pdf');
-        });
-        
-        // Temporarily append the clone to the document
-        clone.style.position = 'absolute';
-        clone.style.left = '-9999px';
-        document.body.appendChild(clone);
-        
-        // Options for better quality PDF
+        // Options for PDF generation
         const options = {
             scale: 2,
             useCORS: true,
             allowTaint: true,
             logging: true,
-            backgroundColor: '#FFFFFF'
+            backgroundColor: '#FFFFFF',
+            onclone: function(clonedDoc) {
+                // This ensures buttons are hidden in the cloned version used for PDF
+                clonedDoc.body.classList.add('pdf-generation');
+            }
         };
         
-        // Convert to canvas then to PDF
-        html2canvas(clone, options).then(canvas => {
-            // Remove the clone
-            document.body.removeChild(clone);
-            
-            // Create PDF
+        // Generate PDF from the content div
+        html2canvas(document.getElementById('pdf-content'), options).then(canvas => {
             const pdf = new jsPDF('p', 'mm', 'a4');
             const imgData = canvas.toDataURL('image/png', 1.0);
-            
-            // Calculate dimensions
-            const pdfWidth = pdf.internal.pageSize.getWidth() - 20; // 10mm margins
+            const pdfWidth = pdf.internal.pageSize.getWidth() - 20;
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
             
             // Add image to PDF
@@ -314,20 +404,19 @@ document.addEventListener('DOMContentLoaded', function() {
             // Save the PDF
             pdf.save('Hachi_Order_<?php echo $order['Order_ID']; ?>.pdf');
             
+            // Remove PDF generation class
+            document.body.classList.remove('pdf-generation');
+            
             // Restore button
             button.innerHTML = originalText;
             button.disabled = false;
         }).catch(error => {
             console.error('Error generating PDF:', error);
-            alert('Error generating PDF. Please try again.');
-            
-            // Remove the clone if still exists
-            if (document.body.contains(clone)) {
-                document.body.removeChild(clone);
-            }
-            
+            // Remove PDF generation class on error
+            document.body.classList.remove('pdf-generation');
             button.innerHTML = originalText;
             button.disabled = false;
+            alert('Error generating PDF. Please try again.');
         });
     });
 });
