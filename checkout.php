@@ -160,7 +160,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute();
                 $stmt->close();
             }
-            
+            // After inserting order items
+            $verify_stmt = $conn->prepare("
+                SELECT SUM(subtotal) as calculated_total 
+                FROM Order_Items 
+                WHERE order_id = ?
+            ");
+            $verify_stmt->bind_param("i", $order_id);
+            $verify_stmt->execute();
+            $verify_result = $verify_stmt->get_result();
+            $calculated_total = $verify_result->fetch_assoc()['calculated_total'];
+
+            if (abs($calculated_total - $total_amount) > 0.01) {
+                // Handle the discrepancy
+                $conn->rollback();
+                throw new Exception("Order total verification failed");
+            }
             // Clear cart
             if (isset($_SESSION['customer_id'])) {
                 $stmt = $conn->prepare("DELETE FROM Cart WHERE Customer_ID = ?");

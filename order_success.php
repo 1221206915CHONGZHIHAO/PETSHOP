@@ -21,11 +21,13 @@ if ($conn->connect_error) {
 }
 
 // Get order items with product details
+// Replace the existing query with this one
 $stmt = $conn->prepare("
-    SELECT o.Order_ID, o.order_date, o.Total, o.PaymentMethod as payment_method, 
+    SELECT o.Order_ID, o.order_date, o.PaymentMethod as payment_method, 
            o.status, o.Address as shipping_address,
            oi.quantity, oi.unit_price, oi.subtotal,
-           p.product_id, p.product_name, p.image_url
+           p.product_id, p.product_name, p.image_url,
+           (SELECT SUM(subtotal) FROM Order_Items WHERE order_id = o.Order_ID) as Total
     FROM Orders o
     JOIN Order_Items oi ON o.Order_ID = oi.order_id
     JOIN products p ON oi.product_id = p.product_id
@@ -252,7 +254,7 @@ $conn->close();
       
       <div class="delivery-info alert alert-info">
         <i class="bi bi-truck me-2"></i>
-        <p class="mb-0">We're preparing your order for shipment. You'll receive a confirmation email at <strong><?php echo isset($_SESSION['customer_email']) ? htmlspecialchars($_SESSION['customer_email']) : 'your registered email'; ?></strong> when it's on its way.</p>
+        <p class="mb-0">We're preparing your order for shipment.</p>
       </div>
       
       <div class="action-buttons mt-5">
