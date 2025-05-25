@@ -60,8 +60,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             $product = $result->fetch_assoc();
             
+            // NEW: Check current stock availability
+            if ($product['stock_quantity'] <= 0) {
+                throw new Exception('Sorry, this product is currently out of stock');
+            }
+            
             if ($quantity > $product['stock_quantity']) {
-                throw new Exception('Not enough stock available');
+                throw new Exception('Sorry, only ' . $product['stock_quantity'] . ' items available in stock');
             }
             
             // Update cart in session
@@ -191,7 +196,7 @@ try {
         $stmt->close();
     }
     
-    // Get cart items from session regardless if logged in or not
+    // Get cart items from session with CURRENT stock data
     if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
         // Get all product IDs in cart
         $product_ids = array_keys($_SESSION['cart']);
@@ -202,7 +207,7 @@ try {
             // Build type string for bind_param
             $types = str_repeat('i', count($product_ids));
             
-            // Prepare query to get current product info
+            // Prepare query to get CURRENT product info and stock
             $stmt = $conn->prepare("
                 SELECT product_id, product_name as name, price, stock_quantity as stock, image_url as image 
                 FROM products 
@@ -213,40 +218,84 @@ try {
             $stmt->execute();
             $result = $stmt->get_result();
             
-            // Build cart items array with current product data
+            // Build cart items array with CURRENT stock data
             $cart_items = [];
+            $stock_issues = [];
+            
             while ($product = $result->fetch_assoc()) {
                 $product_id = $product['product_id'];
+                $cart_quantity = $_SESSION['cart'][$product_id]['quantity'];
+                $current_stock = $product['stock'];
+                
+                // Check for stock issues
+                $stock_status = 'in_stock';
+                $stock_message = '';
+                
+                if ($current_stock <= 0) {
+                    $stock_status = 'out_of_stock';
+                    $stock_message = 'Out of Stock';
+                    $stock_issues[] = $product['name'] . ' is now out of stock';
+                } elseif ($cart_quantity > $current_stock) {
+                    $stock_status = 'insufficient_stock';
+                    $stock_message = 'Only ' . $current_stock . ' available';
+                    $stock_issues[] = $product['name'] . ': Only ' . $current_stock . ' available, you have ' . $cart_quantity . ' in cart';
+                } elseif ($current_stock <= 5) {
+                    $stock_status = 'low_stock';
+                    $stock_message = 'Low Stock (' . $current_stock . ' left)';
+                }
+                
                 $cart_items[] = [
                     'product_id' => $product_id,
                     'name' => $product['name'],
                     'price' => $product['price'],
-                    'stock' => $product['stock'],
+                    'stock' => $current_stock,
                     'image' => $product['image'],
-                    'quantity' => $_SESSION['cart'][$product_id]['quantity']
+                    'quantity' => $cart_quantity,
+                    'stock_status' => $stock_status,
+                    'stock_message' => $stock_message
                 ];
                 
                 // Update session cart with latest product info
                 $_SESSION['cart'][$product_id]['name'] = $product['name'];
                 $_SESSION['cart'][$product_id]['price'] = $product['price'];
-                $_SESSION['cart'][$product_id]['stock'] = $product['stock'];
+                $_SESSION['cart'][$product_id]['stock'] = $current_stock;
                 $_SESSION['cart'][$product_id]['image'] = $product['image'];
             }
             $stmt->close();
+            
+            // If there are stock issues, show them as a warning
+            if (!empty($stock_issues)) {
+                $error_message = implode('. ', $stock_issues) . ". Please refresh cart or remove unavailable items.";
+            }
         }
     }
 } catch (Exception $e) {
     $error_message = "Error loading cart: " . $e->getMessage();
 }
 
-// Calculate cart total
+// Calculate cart total (only for items that are available)
 $cart_total = 0;
+$available_items_count = 0;
 foreach ($cart_items as $item) {
-    $cart_total += $item['price'] * $item['quantity'];
+    if ($item['stock_status'] !== 'out_of_stock') {
+        $cart_total += $item['price'] * $item['quantity'];
+        $available_items_count++;
+    }
 }
 
 // Count items in cart
 $cart_count = count($cart_items);
+
+// Check if checkout should be allowed
+$checkout_allowed = true;
+$checkout_message = '';
+foreach ($cart_items as $item) {
+    if ($item['stock_status'] === 'out_of_stock' || $item['stock_status'] === 'insufficient_stock') {
+        $checkout_allowed = false;
+        $checkout_message = 'Please remove unavailable items or refresh cart to proceed with your order';
+        break;
+    }
+}
 
 // Close the connection
 $conn->close();
@@ -365,6 +414,31 @@ $conn->close();
       padding: 1.5rem;
       margin-top: 2rem;
     }
+    
+    /* Stock status styles */
+    .stock-status {
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      margin-top: 0.25rem;
+      display: inline-block;
+    }
+
+    /* Disabled row styles */
+    .cart-row-disabled {
+      opacity: 0.6;
+      background-color: #f8f9fa;
+    }
+    
+    .cart-row-disabled .quantity-group .btn {
+      pointer-events: none;
+    }
+    
+    .cart-row-disabled .quantity-input {
+      background-color: #e9ecef;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -448,16 +522,26 @@ $conn->close();
 <!-- Page Content Wrapper -->
 <div class="page-content">
   <main class="container py-5">
-    <h1 class="section-title mb-4">Your Shopping Cart</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="section-title mb-0">Your Shopping Cart</h1>
+      <!-- Add refresh stock button if cart is not empty -->
+      <?php if (!empty($cart_items)): ?>
+      <button class="btn btn-outline-primary" onclick="window.location.reload()">
+        <i class="bi bi-arrow-clockwise me-1"></i>Refresh Cart
+      </button>
+      <?php endif; ?>
+    </div>
     
     <?php if (!empty($error_message)): ?>
-    <div class="alert alert-danger" role="alert">
+    <div class="alert alert-warning" role="alert">
+      <i class="bi bi-exclamation-triangle me-2"></i>
       <?php echo htmlspecialchars($error_message); ?>
     </div>
     <?php endif; ?>
     
     <?php if (!empty($success_message)): ?>
     <div class="alert alert-success" role="alert">
+      <i class="bi bi-check-circle me-2"></i>
       <?php echo htmlspecialchars($success_message); ?>
     </div>
     <?php endif; ?>
@@ -480,31 +564,62 @@ $conn->close();
             <th scope="col">Name</th>
             <th scope="col" style="width: 100px;">Price</th>
             <th scope="col" style="width: 150px;">Quantity</th>
+            <th scope="col" style="width: 120px;">Stock Status</th>
             <th scope="col" style="width: 100px;">Subtotal</th>
             <th scope="col" style="width: 100px;">Actions</th>
           </tr>
         </thead>
         <tbody id="cart-items">
           <?php foreach($cart_items as $item): ?>
-          <tr data-id="<?php echo $item['product_id']; ?>">
+          <tr data-id="<?php echo $item['product_id']; ?>" 
+              class="<?php echo ($item['stock_status'] === 'out_of_stock') ? 'cart-row-disabled' : ''; ?>">
             <td>
               <img src="<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" class="img-fluid" style="max-height: 80px;">
             </td>
-            <td><?php echo htmlspecialchars($item['name']); ?></td>
+            <td>
+              <?php echo htmlspecialchars($item['name']); ?>
+            </td>
             <td class="price" data-price="<?php echo $item['price']; ?>">RM<?php echo number_format($item['price'], 2); ?></td>
             <td>
               <div class="input-group quantity-group">
-                <button class="btn btn-outline-secondary btn-decrease" type="button">-</button>
-                <input type="number" class="form-control text-center quantity-input" value="<?php echo $item['quantity']; ?>" min="1" max="<?php echo $item['stock']; ?>">
-                <button class="btn btn-outline-secondary btn-increase" type="button">+</button>
+                <button class="btn btn-outline-secondary btn-decrease" type="button" 
+                        <?php echo ($item['stock_status'] === 'out_of_stock') ? 'disabled' : ''; ?>>-</button>
+                <input type="number" class="form-control text-center quantity-input" 
+                       value="<?php echo $item['quantity']; ?>" 
+                       min="1" 
+                       max="<?php echo $item['stock']; ?>"
+                       <?php echo ($item['stock_status'] === 'out_of_stock') ? 'disabled' : ''; ?>>
+                <button class="btn btn-outline-secondary btn-increase" type="button"
+                        <?php echo ($item['stock_status'] === 'out_of_stock') ? 'disabled' : ''; ?>>+</button>
               </div>
             </td>
-            <td class="subtotal">RM<?php echo number_format($item['price'] * $item['quantity'], 2); ?></td>
+            <td>
+              <div class="d-flex align-items-center">
+                <?php if ($item['stock'] <= 0): ?>
+                  <small class="text-danger fw-bold">
+                    <i class="bi bi-x-circle me-1"></i>Out of Stock
+                  </small>
+                <?php else: ?>
+                  <small class="text-muted">
+                    Available: <?php echo $item['stock']; ?>
+                  </small>
+                <?php endif; ?>
+              </div>
+            </td>
+            <td class="subtotal">
+              <?php if ($item['stock_status'] !== 'out_of_stock'): ?>
+                RM<?php echo number_format($item['price'] * $item['quantity'], 2); ?>
+              <?php else: ?>
+                <span class="text-muted">--</span>
+              <?php endif; ?>
+            </td>
             <td>
               <form method="post" class="remove-form">
                 <input type="hidden" name="product_id" value="<?php echo $item['product_id']; ?>">
                 <input type="hidden" name="action" value="remove">
-                <button type="submit" class="btn btn-remove">Remove</button>
+                <button type="submit" class="btn btn-remove btn-sm">
+                  <i class="bi bi-trash"></i> Remove
+                </button>
               </form>
             </td>
           </tr>
@@ -523,7 +638,21 @@ $conn->close();
             <h4>Total: RM<span id="cart-total"><?php echo number_format($cart_total, 2); ?></span></h4>
             <div class="mt-4">
               <a href="products.php" class="btn btn-secondary me-2">Continue Shopping</a>
-              <a href="checkout.php" class="btn btn-primary">Proceed to Checkout</a>
+              
+              <?php if ($checkout_allowed): ?>
+                <a href="checkout.php" class="btn btn-primary">
+                  <i class="bi bi-credit-card me-1"></i>Proceed to Checkout
+                </a>
+              <?php else: ?>
+                <button class="btn btn-primary" disabled title="<?php echo $checkout_message; ?>">
+                  <i class="bi bi-exclamation-triangle me-1"></i>Cannot Checkout
+                </button>
+                <div class="mt-2">
+                  <small class="text-danger">
+                    <i class="bi bi-info-circle me-1"></i><?php echo $checkout_message; ?>
+                  </small>
+                </div>
+              <?php endif; ?>
             </div>
           </div>
         </div>
@@ -597,9 +726,14 @@ $conn->close();
 <!-- Bootstrap JS Bundle (includes Popper) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Cart Operation Script -->
+<!-- Enhanced Cart Operation Script -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Show notification if checkout is disabled
+    <?php if (!$checkout_allowed): ?>
+    showNotification('Some items in your cart are out of stock. Please refresh or remove unavailable items.', 'warning');
+    <?php endif; ?>
+
     // Increase quantity button
     document.querySelectorAll('.btn-increase').forEach(button => {
         button.addEventListener('click', function() {
@@ -614,7 +748,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateCartTotal();
                 updateCartInDatabase(row);
             } else {
-                alert('Sorry, we only have ' + maxVal + ' in stock.');
+                showNotification('Sorry, we only have ' + maxVal + ' in stock.', 'warning');
             }
         });
     });
@@ -647,7 +781,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 value = 1;
             } else if (value > maxVal) {
                 value = maxVal;
-                alert('Sorry, we only have ' + maxVal + ' in stock.');
+                showNotification('Sorry, we only have ' + maxVal + ' in stock.', 'warning');
             }
             
             this.value = value;
@@ -677,37 +811,48 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (response.success) {
                             form.closest('tr').remove();
                             updateCartTotal();
-                            showUpdateMessage(response.message);
+                            showNotification(response.message, 'success');
+                            
                             // Update cart badge
                             const cartBadge = document.querySelector('.nav-link[href="cart.php"] .badge');
                             if (cartBadge) {
                                 cartBadge.textContent = response.cart_count;
                                 if (response.cart_count === 0) {
                                     cartBadge.remove();
+                                    // Show empty cart message
                                     document.getElementById('cart-content').innerHTML = `
-                                        <div id="cart-empty-message" class="alert alert-info text-center" role="alert">
-                                            Your shopping cart is empty. <a href="products.php" class="alert-link">Continue shopping</a>
+                                        <div id="cart-empty-message" class="alert alert-info text-center empty-cart-container">
+                                            <div>
+                                                <i class="bi bi-cart-x" style="font-size: 4rem; color: #17a2b8; margin-bottom: 1rem;"></i>
+                                                <h4>Your shopping cart is empty</h4>
+                                                <p class="mb-4">Looks like you haven't added any products to your cart yet.</p>
+                                                <a href="products.php" class="btn btn-primary">Continue Shopping</a>
+                                            </div>
                                         </div>`;
                                 }
                             }
+                            
+                            // Check if we need to re-enable checkout after removing problematic items
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
                         } else {
-                            alert('Error: ' + response.message);
-                            // Reload the page to sync with database if removal failed
+                            showNotification('Error: ' + response.message, 'error');
                             window.location.reload();
                         }
                     } catch (e) {
                         console.error('Error parsing response:', e);
-                        alert('Error processing request');
+                        showNotification('Error processing request', 'error');
                     }
                 } else {
                     console.error('Request failed with status:', xhr.status);
-                    alert('Network error occurred');
+                    showNotification('Network error occurred', 'error');
                 }
             };
 
             xhr.onerror = function() {
                 console.error('Network error occurred');
-                alert('Network error occurred');
+                showNotification('Network error occurred', 'error');
             };
 
             xhr.send(formData);
@@ -719,6 +864,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const price = parseFloat(row.querySelector('.price').getAttribute('data-price'));
         const quantity = parseInt(row.querySelector('.quantity-input').value);
         const subtotalElem = row.querySelector('.subtotal');
+        
+        // Don't update subtotal for out-of-stock items
+        if (row.classList.contains('cart-row-disabled')) {
+            return;
+        }
+        
         const subtotal = price * quantity;
         subtotalElem.textContent = 'RM' + subtotal.toFixed(2);
     }
@@ -727,6 +878,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateCartTotal() {
         let total = 0;
         document.querySelectorAll('#cart-items tr').forEach(row => {
+            // Skip disabled rows (out of stock items)
+            if (row.classList.contains('cart-row-disabled')) {
+                return;
+            }
+            
             const price = parseFloat(row.querySelector('.price').getAttribute('data-price'));
             const quantity = parseInt(row.querySelector('.quantity-input').value);
             total += price * quantity;
@@ -734,18 +890,65 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('cart-total').textContent = total.toFixed(2);
     }
 
-    // Show update message
-    function showUpdateMessage(message) {
-        const messageElem = document.querySelector('.update-message');
-        messageElem.textContent = message;
-        messageElem.classList.remove('d-none');
+    // Enhanced notification system
+    function showNotification(message, type = 'info') {
+        // Remove existing notifications
+        const existingToasts = document.querySelectorAll('.toast-container');
+        existingToasts.forEach(toast => toast.remove());
+
+        const toastContainer = document.createElement('div');
+        toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
+        toastContainer.style.zIndex = '9999';
         
-        setTimeout(() => {
-            messageElem.classList.add('d-none');
-        }, 3000);
+        const toastElement = document.createElement('div');
+        toastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
+        
+        // Set color based on type
+        const colors = {
+            success: '#4e9f3d',
+            error: '#dc3545',
+            warning: '#fd7e14',
+            info: '#17a2b8'
+        };
+        
+        toastElement.style.backgroundColor = colors[type] || colors.info;
+        toastElement.setAttribute('role', 'alert');
+        toastElement.setAttribute('aria-live', 'assertive');
+        toastElement.setAttribute('aria-atomic', 'true');
+        
+        const icons = {
+            success: 'bi-check-circle',
+            error: 'bi-x-circle',
+            warning: 'bi-exclamation-triangle',
+            info: 'bi-info-circle'
+        };
+        
+        toastElement.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="${icons[type] || icons.info} me-2"></i> ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toastElement);
+        document.body.appendChild(toastContainer);
+        
+        const toast = new bootstrap.Toast(toastElement, {
+            autohide: true,
+            delay: type === 'error' ? 5000 : 3000
+        });
+        toast.show();
+        
+        toastElement.addEventListener('hidden.bs.toast', function () {
+            if (toastContainer.parentNode) {
+                document.body.removeChild(toastContainer);
+            }
+        });
     }
 
-    // Update cart in database with AJAX
+    // Update cart in database with enhanced error handling
     function updateCartInDatabase(row) {
         const productId = row.getAttribute('data-id');
         const quantity = row.querySelector('.quantity-input').value;
@@ -766,22 +969,54 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     const response = JSON.parse(xhr.responseText);
                     if (response.success) {
-                        showUpdateMessage('Cart updated successfully');
+                        showNotification('Cart updated successfully', 'success');
                     } else {
-                        alert('Error updating cart: ' + response.message);
+                        showNotification('Error updating cart: ' + response.message, 'error');
+                        // Reload page to show current stock status
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
                     }
                 } catch (e) {
                     console.error('Error parsing response:', e);
+                    showNotification('Error updating cart', 'error');
                 }
             }
         };
         
         xhr.onerror = function() {
             console.error('Network error occurred');
+            showNotification('Network error occurred', 'error');
         };
         
         xhr.send(formData);
     }
+
+    // Auto-refresh cart every 60 seconds to check for stock changes
+    setInterval(function() {
+        // Only refresh if page is visible and user is not actively interacting
+        if (!document.hidden) {
+            const lastActivity = localStorage.getItem('lastCartActivity');
+            const now = Date.now();
+            
+            // Refresh if no activity in last 30 seconds
+            if (!lastActivity || (now - parseInt(lastActivity)) > 30000) {
+                console.log('Auto-refreshing cart stock status...');
+                // Silent refresh - could implement AJAX stock check here
+                // For now, we'll just refresh if there were stock issues
+                <?php if (!$checkout_allowed): ?>
+                window.location.reload();
+                <?php endif; ?>
+            }
+        }
+    }, 60000);
+
+    // Track user activity
+    ['click', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+        document.addEventListener(event, function() {
+            localStorage.setItem('lastCartActivity', Date.now().toString());
+        }, true);
+    });
 });
 </script>
 </body>
