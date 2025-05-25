@@ -93,7 +93,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
     
-    // Change password
+    // Change password - UPDATED WITH VALIDATION
     if (isset($_POST['change_password'])) {
         $current_password = $_POST['current_password'];
         $new_password = $_POST['new_password'];
@@ -104,6 +104,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $password_error = "Current password is incorrect";
         } elseif ($new_password != $confirm_password) {
             $password_error = "New passwords do not match";
+        } 
+        // Add password strength validation (same as register.php)
+        elseif (strlen($new_password) < 8) {
+            $password_error = "Password must be at least 8 characters long.";
+        } elseif (!preg_match('/[A-Z]/', $new_password)) {
+            $password_error = "Password must contain at least one uppercase letter.";
+        } elseif (!preg_match('/[0-9]/', $new_password)) {
+            $password_error = "Password must contain at least one number.";
+        } elseif (!preg_match('/[^A-Za-z0-9]/', $new_password)) {
+            $password_error = "Password must contain at least one special character.";
         } else {
             $stmt = $conn->prepare("UPDATE customer SET Customer_password = ? WHERE Customer_ID = ?");
             $stmt->bind_param("si", $new_password, $customer_id);
@@ -409,6 +419,51 @@ $masked_password = str_repeat('*', strlen($actual_password));
     .dropdown-item.active, .dropdown-item:active {
       background-color: var(--primary);
       color: white;
+    }
+    
+    /* Password validation styling */
+    .password-requirements {
+      font-size: 13px;
+      color: var(--gray);
+      background-color: rgba(240, 242, 245, 0.8);
+      padding: 10px 15px;
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+
+    .requirement {
+      margin-bottom: 5px;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+    }
+
+    .requirement i {
+      margin-right: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .requirement.text-success {
+      color: var(--primary) !important;
+    }
+
+    .requirement i.bi-check-circle {
+      animation: fadeInScale 0.3s ease;
+    }
+
+    @keyframes fadeInScale {
+      0% {
+        transform: scale(0);
+        opacity: 0;
+      }
+      50% {
+        transform: scale(1.2);
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
     }
   </style>
 </head>
@@ -764,7 +819,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
   </div>
 </div>
 
-<!-- Change Password Modal -->
+<!-- Updated Change Password Modal with Validation -->
 <div id="change-password-modal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -779,14 +834,43 @@ $masked_password = str_repeat('*', strlen($actual_password));
       <div class="form-group">
         <label for="new_password" class="form-label">New Password</label>
         <input type="password" class="form-control" id="new_password" name="new_password" required>
+        <div class="password-requirements mt-2">
+          <div class="requirement" id="length-check">
+            <i class="bi bi-x-circle text-danger"></i>
+            <i class="bi bi-check-circle text-success d-none"></i>
+            <span>At least 8 characters</span>
+          </div>
+          <div class="requirement" id="uppercase-check">
+            <i class="bi bi-x-circle text-danger"></i>
+            <i class="bi bi-check-circle text-success d-none"></i>
+            <span>At least 1 uppercase letter</span>
+          </div>
+          <div class="requirement" id="number-check">
+            <i class="bi bi-x-circle text-danger"></i>
+            <i class="bi bi-check-circle text-success d-none"></i>
+            <span>At least 1 number</span>
+          </div>
+          <div class="requirement" id="symbol-check">
+            <i class="bi bi-x-circle text-danger"></i>
+            <i class="bi bi-check-circle text-success d-none"></i>
+            <span>At least 1 special character</span>
+          </div>
+        </div>
       </div>
       <div class="form-group">
         <label for="confirm_password" class="form-label">Confirm New Password</label>
         <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+        <div id="password-match-indicator" class="mt-2" style="display: none;">
+          <div class="requirement" id="match-check">
+            <i class="bi bi-x-circle text-danger"></i>
+            <i class="bi bi-check-circle text-success d-none"></i>
+            <span>Passwords match</span>
+          </div>
+        </div>
       </div>
       <div class="text-end">
         <button type="button" class="btn btn-secondary me-2 close-modal-btn">Cancel</button>
-        <button type="submit" name="change_password" class="btn btn-primary">Change Password</button>
+        <button type="submit" name="change_password" class="btn btn-primary" id="change-password-submit" disabled>Change Password</button>
       </div>
     </form>
   </div>
@@ -900,6 +984,17 @@ document.addEventListener('DOMContentLoaded', function() {
   const profileImageInput = document.getElementById('profile_image');
   const imagePreview = document.getElementById('image-preview');
 
+  // Password validation variables
+  const newPasswordInput = document.getElementById('new_password');
+  const confirmPasswordInput = document.getElementById('confirm_password');
+  const lengthCheck = document.getElementById('length-check');
+  const uppercaseCheck = document.getElementById('uppercase-check');
+  const numberCheck = document.getElementById('number-check');
+  const symbolCheck = document.getElementById('symbol-check');
+  const matchCheck = document.getElementById('match-check');
+  const passwordMatchIndicator = document.getElementById('password-match-indicator');
+  const changePasswordSubmit = document.getElementById('change-password-submit');
+
   // Open edit profile modal
   editProfileBtn.addEventListener('click', function() {
     editProfileModal.style.display = 'block';
@@ -943,6 +1038,85 @@ document.addEventListener('DOMContentLoaded', function() {
         reader.readAsDataURL(this.files[0]);
       }
     });
+  }
+
+  // Password validation functions
+  function checkPasswordLength(password) {
+    return password.length >= 8;
+  }
+  
+  function checkPasswordUppercase(password) {
+    return /[A-Z]/.test(password);
+  }
+  
+  function checkPasswordNumber(password) {
+    return /[0-9]/.test(password);
+  }
+  
+  function checkPasswordSymbol(password) {
+    return /[^A-Za-z0-9]/.test(password);
+  }
+  
+  function checkPasswordMatch(password, confirmPassword) {
+    return password === confirmPassword && password.length > 0;
+  }
+  
+  // Toggle icon visibility
+  function toggleIconVisibility(element, isValid) {
+    const crossIcon = element.querySelector('.bi-x-circle');
+    const checkIcon = element.querySelector('.bi-check-circle');
+    
+    if (isValid) {
+      crossIcon.classList.add('d-none');
+      checkIcon.classList.remove('d-none');
+      element.classList.add('text-success');
+      element.classList.remove('text-danger');
+    } else {
+      crossIcon.classList.remove('d-none');
+      checkIcon.classList.add('d-none');
+      element.classList.add('text-danger');
+      element.classList.remove('text-success');
+    }
+  }
+  
+  // Validate all password requirements
+  function validatePassword() {
+    const password = newPasswordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
+    
+    const lengthValid = checkPasswordLength(password);
+    const uppercaseValid = checkPasswordUppercase(password);
+    const numberValid = checkPasswordNumber(password);
+    const symbolValid = checkPasswordSymbol(password);
+    const matchValid = checkPasswordMatch(password, confirmPassword);
+    
+    toggleIconVisibility(lengthCheck, lengthValid);
+    toggleIconVisibility(uppercaseCheck, uppercaseValid);
+    toggleIconVisibility(numberCheck, numberValid);
+    toggleIconVisibility(symbolCheck, symbolValid);
+    
+    // Show/hide password match indicator
+    if (confirmPassword.length > 0) {
+      passwordMatchIndicator.style.display = 'block';
+      toggleIconVisibility(matchCheck, matchValid);
+    } else {
+      passwordMatchIndicator.style.display = 'none';
+    }
+    
+    // Enable/disable submit button
+    const allValid = lengthValid && uppercaseValid && numberValid && symbolValid && matchValid;
+    changePasswordSubmit.disabled = !allValid;
+    
+    return allValid;
+  }
+  
+  // Add event listeners for password validation
+  if (newPasswordInput) {
+    newPasswordInput.addEventListener('input', validatePassword);
+  }
+  
+  if (confirmPasswordInput) {
+    confirmPasswordInput.addEventListener('input', validatePassword);
   }
 
   // Handle close buttons

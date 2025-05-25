@@ -454,89 +454,164 @@ if (!empty($search)) {
 
   // Updated Add to Cart Functionality
   const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
-  addToCartButtons.forEach(button => {
-    button.addEventListener('click', function(e) {
-      e.preventDefault();
-      const productId = this.getAttribute('data-product-id');
-      const productName = this.getAttribute('data-product-name');
+addToCartButtons.forEach(button => {
+  button.addEventListener('click', function(e) {
+    e.preventDefault();
+    const productId = this.getAttribute('data-product-id');
+    const productName = this.getAttribute('data-product-name');
+    
+    this.disabled = true;
+    const originalText = this.innerHTML;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+    
+    fetch('add_to_cart.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `product_id=${productId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+      this.disabled = false;
+      this.innerHTML = originalText;
       
-      this.disabled = true;
-      const originalText = this.innerHTML;
-      this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
-      
-      fetch('add_to_cart.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `product_id=${productId}`
-      })
-      .then(response => response.json())
-      .then(data => {
-        this.disabled = false;
-        this.innerHTML = originalText;
+      if (data.success) {
+        // Success notification (existing code)
+        const toastContainer = document.createElement('div');
+        toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
+        toastContainer.style.zIndex = '9999';
         
-        if (data.success) {
-          const toastContainer = document.createElement('div');
-          toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
-          toastContainer.style.zIndex = '9999';
-          
-          const toastElement = document.createElement('div');
-          toastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
-          toastElement.style.backgroundColor = '#4e9f3d';
-          toastElement.setAttribute('role', 'alert');
-          toastElement.setAttribute('aria-live', 'assertive');
-          toastElement.setAttribute('aria-atomic', 'true');
-          
-          toastElement.innerHTML = `
-            <div class="d-flex">
-              <div class="toast-body">
-                <i class="bi bi-check-circle me-2"></i> ${productName} added to cart!
-              </div>
-              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        const toastElement = document.createElement('div');
+        toastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
+        toastElement.style.backgroundColor = '#4e9f3d';
+        toastElement.setAttribute('role', 'alert');
+        toastElement.setAttribute('aria-live', 'assertive');
+        toastElement.setAttribute('aria-atomic', 'true');
+        
+        toastElement.innerHTML = `
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="bi bi-check-circle me-2"></i> ${productName} added to cart!
             </div>
-          `;
-          
-          toastContainer.appendChild(toastElement);
-          document.body.appendChild(toastContainer);
-          
-          const toast = new bootstrap.Toast(toastElement, {
-            autohide: true,
-            delay: 3000
-          });
-          toast.show();
-          
-          const cartLink = document.querySelector('.nav-link[href="cart.php"]');
-          let cartBadge = cartLink.querySelector('.badge');
-          
-          if (data.cart_count > 0) {
-            if (!cartBadge) {
-              cartBadge = document.createElement('span');
-              cartBadge.classList.add('position-absolute', 'top-0', 'start-100', 'translate-middle', 'badge', 'rounded-pill', 'bg-primary');
-              cartLink.appendChild(cartBadge);
-            }
-            cartBadge.textContent = data.cart_count;
-          } else if (cartBadge) {
-            cartBadge.remove();
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        `;
+        
+        toastContainer.appendChild(toastElement);
+        document.body.appendChild(toastContainer);
+        
+        const toast = new bootstrap.Toast(toastElement, {
+          autohide: true,
+          delay: 3000
+        });
+        toast.show();
+        
+        // Update cart badge
+        const cartLink = document.querySelector('.nav-link[href="cart.php"]');
+        let cartBadge = cartLink.querySelector('.badge');
+        
+        if (data.cart_count > 0) {
+          if (!cartBadge) {
+            cartBadge = document.createElement('span');
+            cartBadge.classList.add('position-absolute', 'top-0', 'start-100', 'translate-middle', 'badge', 'rounded-pill', 'bg-primary');
+            cartLink.appendChild(cartBadge);
           }
-          
-          toastElement.addEventListener('hidden.bs.toast', function () {
-            document.body.removeChild(toastContainer);
-          });
-        } else if (data.require_login) {
-          window.location.href = 'login.php';
-        } else {
-          alert(data.message || 'Failed to add item to cart');
-          console.error('Failed to add item to cart:', data.message);
+          cartBadge.textContent = data.cart_count;
+        } else if (cartBadge) {
+          cartBadge.remove();
         }
-      })
-      .catch(error => {
-        this.disabled = false;
-        this.innerHTML = originalText;
-        console.error('Error:', error);
+        
+        toastElement.addEventListener('hidden.bs.toast', function () {
+          document.body.removeChild(toastContainer);
+        });
+      } else if (data.require_login) {
+        // NEW: Show login required notification before redirecting
+        const loginToastContainer = document.createElement('div');
+        loginToastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
+        loginToastContainer.style.zIndex = '9999';
+        
+        const loginToastElement = document.createElement('div');
+        loginToastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
+        loginToastElement.style.backgroundColor = '#dc3545'; // Red color for warning
+        loginToastElement.setAttribute('role', 'alert');
+        loginToastElement.setAttribute('aria-live', 'assertive');
+        loginToastElement.setAttribute('aria-atomic', 'true');
+        
+        loginToastElement.innerHTML = `
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="bi bi-exclamation-triangle me-2"></i> Please login to add items to cart. Redirecting to login page...
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        `;
+        
+        loginToastContainer.appendChild(loginToastElement);
+        document.body.appendChild(loginToastContainer);
+        
+        const loginToast = new bootstrap.Toast(loginToastElement, {
+          autohide: true,
+          delay: 3000 // Show for 3 seconds
+        });
+        loginToast.show();
+        
+        // Redirect to login page after 3 seconds
+        setTimeout(() => {
+          window.location.href = 'login.php';
+        }, 3000);
+        
+        // Clean up toast container after it's hidden
+        loginToastElement.addEventListener('hidden.bs.toast', function () {
+          document.body.removeChild(loginToastContainer);
+        });
+      } else {
+        // Error notification
+        alert(data.message || 'Failed to add item to cart');
+        console.error('Failed to add item to cart:', data.message);
+      }
+    })
+    .catch(error => {
+      this.disabled = false;
+      this.innerHTML = originalText;
+      console.error('Error:', error);
+      
+      // Show error notification
+      const errorToastContainer = document.createElement('div');
+      errorToastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
+      errorToastContainer.style.zIndex = '9999';
+      
+      const errorToastElement = document.createElement('div');
+      errorToastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
+      errorToastElement.style.backgroundColor = '#dc3545';
+      errorToastElement.setAttribute('role', 'alert');
+      errorToastElement.setAttribute('aria-live', 'assertive');
+      errorToastElement.setAttribute('aria-atomic', 'true');
+      
+      errorToastElement.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            <i class="bi bi-exclamation-circle me-2"></i> Something went wrong. Please try again.
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+      
+      errorToastContainer.appendChild(errorToastElement);
+      document.body.appendChild(errorToastContainer);
+      
+      const errorToast = new bootstrap.Toast(errorToastElement, {
+        autohide: true,
+        delay: 3000
+      });
+      errorToast.show();
+      
+      errorToastElement.addEventListener('hidden.bs.toast', function () {
+        document.body.removeChild(errorToastContainer);
       });
     });
   });
+});
 </script>
 </body>
 </html>
