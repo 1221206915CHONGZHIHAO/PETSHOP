@@ -86,13 +86,13 @@ $conn->close();
 echo json_encode($response);
 exit;
 
-// Function to handle database cart for logged-in users - updated to handle cart count correctly
+// Function to handle database cart for logged-in users - updated to use Product_ID
 function handleDatabaseCart($product, $quantity, $customer_id, $conn, &$response) {
     $product_id = $product['product_id'];
     $price = $product['price'];
     
-    // Check if product already in cart
-    $check_cart = $conn->prepare("SELECT Cart_ID, Quantity FROM cart WHERE Customer_ID = ? AND Inventory_ID = ?");
+    // Check if product already in cart - Updated to use Product_ID
+    $check_cart = $conn->prepare("SELECT Cart_ID, Quantity FROM cart WHERE Customer_ID = ? AND Product_ID = ?");
     $check_cart->bind_param("ii", $customer_id, $product_id);
     $check_cart->execute();
     $cart_result = $check_cart->get_result();
@@ -101,6 +101,13 @@ function handleDatabaseCart($product, $quantity, $customer_id, $conn, &$response
         // Update existing cart item
         $cart_item = $cart_result->fetch_assoc();
         $new_quantity = $cart_item['Quantity'] + $quantity;
+        
+        // Check if new quantity exceeds stock
+        if ($new_quantity > $product['stock_quantity']) {
+            $response['message'] = 'Cannot add more items. Only ' . $product['stock_quantity'] . ' items available in stock and you already have ' . $cart_item['Quantity'] . ' in your cart.';
+            $check_cart->close();
+            return;
+        }
         
         $update_cart = $conn->prepare("UPDATE cart SET Quantity = ? WHERE Cart_ID = ?");
         $update_cart->bind_param("ii", $new_quantity, $cart_item['Cart_ID']);
@@ -128,9 +135,9 @@ function handleDatabaseCart($product, $quantity, $customer_id, $conn, &$response
             ];
         }
     } else {
-        // Add new cart item
-        $insert_cart = $conn->prepare("INSERT INTO cart (Customer_ID, Inventory_ID, Price, Quantity) VALUES (?, ?, ?, ?)");
-        $insert_cart->bind_param("iddi", $customer_id, $product_id, $price, $quantity);
+        // Add new cart item - Updated to use Product_ID
+        $insert_cart = $conn->prepare("INSERT INTO cart (Customer_ID, Product_ID, Price, Quantity) VALUES (?, ?, ?, ?)");
+        $insert_cart->bind_param("iidi", $customer_id, $product_id, $price, $quantity);
         $insert_cart->execute();
         
         if ($insert_cart->affected_rows <= 0 && $conn->error) {
@@ -154,7 +161,7 @@ function handleDatabaseCart($product, $quantity, $customer_id, $conn, &$response
     
     $check_cart->close();
     
-    // Get total cart count (sum of all quantities)
+    // Get total cart count (count distinct products)
     $count_cart = $conn->prepare("SELECT COUNT(*) AS cart_count FROM cart WHERE Customer_ID = ?");
     $count_cart->bind_param("i", $customer_id);
     $count_cart->execute();

@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Update cart in database if user is logged in
             if (isset($_SESSION['customer_id'])) {
                 // First check if this item already exists in the cart
-                $check_stmt = $conn->prepare("SELECT Cart_ID FROM cart WHERE Customer_ID = ? AND Inventory_ID = ?");
+                $check_stmt = $conn->prepare("SELECT Cart_ID FROM cart WHERE Customer_ID = ? AND Product_ID = ?");
                 $check_stmt->bind_param("ii", $_SESSION['customer_id'], $product_id);
                 $check_stmt->execute();
                 $check_result = $check_stmt->get_result();
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $update_stmt->close();
                 } else {
                     // Insert new cart item
-                    $insert_stmt = $conn->prepare("INSERT INTO cart (Customer_ID, Inventory_ID, Price, Quantity) VALUES (?, ?, ?, ?)");
+                    $insert_stmt = $conn->prepare("INSERT INTO cart (Customer_ID, Product_ID, Price, Quantity) VALUES (?, ?, ?, ?)");
                     $insert_stmt->bind_param("iidi", $_SESSION['customer_id'], $product_id, $product['price'], $quantity);
                     $insert_stmt->execute();
                     $insert_stmt->close();
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 
                 // Remove from database if user is logged in
                 if (isset($_SESSION['customer_id'])) {
-                    $stmt = $conn->prepare("DELETE FROM cart WHERE Customer_ID = ? AND Inventory_ID = ?");
+                    $stmt = $conn->prepare("DELETE FROM cart WHERE Customer_ID = ? AND Product_ID = ?");
                     $stmt->bind_param("ii", $_SESSION['customer_id'], $product_id);
                     $stmt->execute();
                     if ($stmt->affected_rows === 0) {
@@ -166,10 +166,10 @@ try {
     if (isset($_SESSION['customer_id'])) {
         // Get cart items from database
         $stmt = $conn->prepare("
-            SELECT c.Inventory_ID as product_id, c.Quantity as quantity, c.Price as price,
+            SELECT c.Product_ID as product_id, c.Quantity as quantity, c.Price as price,
                   p.product_name as name, p.stock_quantity as stock, p.image_url as image 
             FROM cart c
-            JOIN products p ON c.Inventory_ID = p.product_id
+            JOIN products p ON c.Product_ID = p.product_id
             WHERE c.Customer_ID = ?
         ");
         $stmt->bind_param("i", $_SESSION['customer_id']);

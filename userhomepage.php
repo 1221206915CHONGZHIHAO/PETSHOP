@@ -47,9 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
         $_SESSION['customer_id'] = $row['customer_id'];
         $_SESSION['customer_name'] = $row['customer_name'];
         
-        // Sync cart data from database
+        // Sync cart data from database - Updated to use Product_ID
         $cart_stmt = $conn->prepare("
-            SELECT COUNT(DISTINCT Inventory_ID) AS cart_count 
+            SELECT COUNT(DISTINCT Product_ID) AS cart_count 
             FROM cart 
             WHERE Customer_ID = ?
         ");
@@ -78,7 +78,7 @@ if (isset($_SESSION['customer_id'])) {
     // Only query if cart_count isn't set or needs refresh
     if (!isset($_SESSION['cart_count'])) {
         $stmt = $conn->prepare("
-            SELECT COUNT(DISTINCT Inventory_ID) AS cart_count 
+            SELECT COUNT(DISTINCT Product_ID) AS cart_count 
             FROM cart 
             WHERE Customer_ID = ?
         ");
