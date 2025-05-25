@@ -22,10 +22,11 @@ if ($conn->connect_error) {
 
 // Get order items with product details
 $stmt = $conn->prepare("
-    SELECT o.Order_ID, o.order_date, o.Total, o.PaymentMethod as payment_method, 
+    SELECT o.Order_ID, o.order_date, o.PaymentMethod as payment_method, 
            o.status, o.Address as shipping_address,
            oi.quantity, oi.unit_price, oi.subtotal,
-           p.product_id, p.product_name, p.image_url
+           p.product_id, p.product_name, p.image_url,
+           (SELECT SUM(subtotal) FROM Order_Items WHERE order_id = o.Order_ID) as Total
     FROM Orders o
     JOIN Order_Items oi ON o.Order_ID = oi.order_id
     JOIN products p ON oi.product_id = p.product_id
@@ -119,6 +120,23 @@ $conn->close();
       border-radius: 5px;
       border: 1px solid #dee2e6;
     }
+    
+    /* PDF Button Styles */
+    .btn-pdf {
+      background-color: #dc3545;
+      color: white;
+    }
+    .btn-pdf:hover {
+      background-color: #bb2d3b;
+      color: white;
+    }
+    
+    /* Hide elements during PDF generation */
+    body.pdf-generation .action-buttons,
+    body.pdf-generation nav,
+    body.pdf-generation footer {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -183,7 +201,7 @@ $conn->close();
 <!-- Page Content -->
 <div class="page-content">
   <main class="container py-5">
-    <div class="success-container text-center">
+    <div class="success-container text-center" id="pdf-content">
       <i class="bi bi-check-circle-fill success-icon"></i>
       <h1 class="mb-3">Thank You for Your Order!</h1>
       <p class="lead mb-4">Your order #<?php echo $order['Order_ID']; ?> has been confirmed.</p>
@@ -252,7 +270,7 @@ $conn->close();
       
       <div class="delivery-info alert alert-info">
         <i class="bi bi-truck me-2"></i>
-        <p class="mb-0">We're preparing your order for shipment. You'll receive a confirmation email at <strong><?php echo isset($_SESSION['customer_email']) ? htmlspecialchars($_SESSION['customer_email']) : 'your registered email'; ?></strong> when it's on its way.</p>
+        <p class="mb-0">We're preparing your order for shipment.</p>
       </div>
       
       <div class="action-buttons mt-5">
@@ -262,6 +280,9 @@ $conn->close();
         <a href="my_orders.php?order_id=<?php echo $order['Order_ID']; ?>" class="btn btn-outline-secondary btn-success-page">
           <i class="bi bi-list-check me-2"></i>View Order History
         </a>
+        <button id="downloadPdf" class="btn btn-pdf btn-success-page">
+          <i class="bi bi-file-earmark-pdf me-2"></i>Download PDF
+        </button>
       </div>
     </div>
   </main>
@@ -327,5 +348,78 @@ $conn->close();
 
 <!-- Bootstrap JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- PDF Export Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- PDF Export Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize jsPDF
+    const { jsPDF } = window.jspdf;
+    
+    document.getElementById('downloadPdf').addEventListener('click', function() {
+        // Show loading indicator
+        const button = this;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass me-2"></i>Generating PDF...';
+        button.disabled = true;
+        
+        // Add PDF generation class to body
+        document.body.classList.add('pdf-generation');
+        
+        // Options for PDF generation
+        const options = {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            logging: true,
+            backgroundColor: '#FFFFFF',
+            onclone: function(clonedDoc) {
+                // This ensures buttons are hidden in the cloned version used for PDF
+                clonedDoc.body.classList.add('pdf-generation');
+            }
+        };
+        
+        // Generate PDF from the content div
+        html2canvas(document.getElementById('pdf-content'), options).then(canvas => {
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgData = canvas.toDataURL('image/png', 1.0);
+            const pdfWidth = pdf.internal.pageSize.getWidth() - 20;
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            
+            // Add image to PDF
+            pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight);
+            
+            // Set document properties
+            pdf.setProperties({
+                title: 'Order Confirmation #<?php echo $order['Order_ID']; ?>',
+                subject: 'Order Details from Hachi Pet Shop',
+                author: 'Hachi Pet Shop',
+                keywords: 'order, confirmation, receipt',
+                creator: 'Hachi Pet Shop'
+            });
+            
+            // Save the PDF
+            pdf.save('Hachi_Order_<?php echo $order['Order_ID']; ?>.pdf');
+            
+            // Remove PDF generation class
+            document.body.classList.remove('pdf-generation');
+            
+            // Restore button
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }).catch(error => {
+            console.error('Error generating PDF:', error);
+            // Remove PDF generation class on error
+            document.body.classList.remove('pdf-generation');
+            button.innerHTML = originalText;
+            button.disabled = false;
+            alert('Error generating PDF. Please try again.');
+        });
+    });
+});
+</script>
 </body>
 </html>

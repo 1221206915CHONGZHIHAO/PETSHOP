@@ -102,6 +102,7 @@ $conn->close();
     <title><?php echo $show_disabled ? 'Disabled Orders' : 'Order Management'; ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
     <style>
         .action-modal .modal-header {
@@ -135,19 +136,41 @@ $conn->close();
         .nav-tabs .nav-link.active {
             font-weight: bold;
         }
+                                            h1, h2, h3, h4, h5, h6 {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 600;
+    }
+    .section-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--dark);
+        position: relative;
+        display: inline-block;
+    }
+    .section-title:after {
+        content: '';
+        display: block;
+        height: 4px;
+        width: 70px;
+        background-color: var(--primary);
+        margin-top: 0.5rem;
+    }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-dark px-3">
+<nav class="navbar navbar-dark px-3">
     <div class="d-flex align-items-center">
         <button class="btn btn-dark me-3 d-md-none" id="sidebarToggle">
             <i class="fas fa-bars"></i>
         </button>
-        <a class="navbar-brand" href="#">PetShop Admin</a>
+        <a class="navbar-brand" href="#">
+            <img src="Hachi_Logo.png" alt="PetShop Admin" height="40">
+        </a>
     </div>
     <div>
-        <span class="text-light me-3">Welcome, Admin</span>
+        <span class="text-light me-3"><i class="fas fa-user-circle me-1"></i> Welcome, <?php echo $_SESSION['username'] ?? 'Admin'; ?></span>
         <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
@@ -164,25 +187,30 @@ $conn->close();
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
-                            <i class="fas fa-users me-2"></i>Staff Management
-                        </a>
-                        <div class="collapse" id="staffMenu">
-                            <ul class="nav flex-column ps-4">
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="manage_staff.php">
-                                        <i class="fas fa-list me-2"></i>Staff List
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-light" href="staff_logs.php">
-                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
+            <li class="nav-item">
+                <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
+                    <i class="fas fa-users me-2"></i>Staff Management
+                </a>
+                <div class="collapse" id="staffMenu">
+                    <ul class="nav flex-column ps-4">
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="manage_staff.php">
+                                <i class="fas fa-list me-2"></i>Staff List
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="add_staff.php">
+                                <i class="fas fa-plus me-2"></i>Add Staff
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="staff_logs.php">
+                                <i class="fas fa-history me-2"></i>Login/Logout Logs
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
                     <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
                             <i class="fas fa-user-friends me-2"></i>Customer Management
@@ -224,11 +252,6 @@ $conn->close();
                     <li class="nav-item">
                         <a class="nav-link text-light" href="reports.php">
                             <i class="fas fa-chart-line me-2"></i>Reports
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-light" href="promotion.php">
-                            <i class="fas fa-tag me-2"></i>Promotions
                         </a>
                     </li>
                     <li class="nav-item">
@@ -430,6 +453,70 @@ $conn->close();
         </div>
     </div>
 </div>
+<!-- Footer Section -->
+<footer>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-10 offset-md-2"> <!-- This matches the main content area -->
+                <div class="row">
+                    <!-- Footer About -->
+                    <div class="col-md-5 mb-4 mb-lg-0">
+                        <div class="footer-about">
+                            <div class="footer-logo">
+                                <img src="Hachi_Logo.png" alt="Hachi Pet Shop">
+                            </div>
+                            <p>Your trusted partner in pet products. We're dedicated to providing quality products for pet lovers everywhere.</p>
+                            <div class="social-links">
+                                <a href="https://www.facebook.com/profile.php?id=61575717095389"><i class="fab fa-facebook"></i></a>
+                                <a href="#"><i class="fab fa-instagram"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Info -->
+                    <div class="col-md-7">
+                        <h4 class="text-white mb-3">Contact Us</h4>
+                        <div class="row">
+                            <div class="col-sm-6 mb-3">
+                                <div class="contact-info">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>123 Pet Street, Animal City</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <div class="contact-info">
+                                    <i class="fas fa-phone"></i>
+                                    <span>+1 (555) 123-4567</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <div class="contact-info">
+                                    <i class="fas fa-envelope"></i>
+                                    <span>info@hachipetshop.com</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <div class="contact-info">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Mon-Fri: 9AM - 6PM</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer Bottom -->
+                <div class="footer-bottom">
+                    <div class="row align-items-center">
+                        <div class="col-md-12 text-center">
+                            <p class="mb-0 text-white">© 2025 Hachi Pet Shop. All Rights Reserved.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
