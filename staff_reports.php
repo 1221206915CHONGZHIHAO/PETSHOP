@@ -49,16 +49,17 @@ $chart_data = [];
 switch ($report_type) {
     case 'weekly':
         // Get sales data for the last 8 weeks
-        $result = $conn->query("
-            SELECT 
-                YEARWEEK(order_date) AS week,
-                SUM(Total) AS total_sales,
-                COUNT(Order_ID) AS order_count
-            FROM orders
-            WHERE order_date >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
-            GROUP BY YEARWEEK(order_date)
-            ORDER BY week DESC
-        ");
+$result = $conn->query("
+    SELECT 
+        YEARWEEK(Order_Date) AS week,
+        SUM(Total) AS total_sales,
+        COUNT(Order_ID) AS order_count
+    FROM `Orders`
+    WHERE Order_Date >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
+    AND status != 'Disabled'
+    GROUP BY YEARWEEK(Order_Date)
+    ORDER BY week DESC
+");
         
         while ($row = $result->fetch_assoc()) {
             $year = substr($row['week'], 0, 4);
@@ -75,16 +76,17 @@ switch ($report_type) {
         
     case 'monthly':
         // Get sales data for the last 12 months
-        $result = $conn->query("
-            SELECT 
-                DATE_FORMAT(order_date, '%Y-%m') AS month,
-                SUM(Total) AS total_sales,
-                COUNT(Order_ID) AS order_count
-            FROM orders
-            WHERE order_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-            GROUP BY DATE_FORMAT(order_date, '%Y-%m')
-            ORDER BY month DESC
-        ");
+ $result = $conn->query("
+    SELECT 
+        DATE_FORMAT(Order_Date, '%Y-%m') AS month,
+        SUM(Total) AS total_sales,
+        COUNT(Order_ID) AS order_count
+    FROM `Orders`
+    WHERE Order_Date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+    AND status != 'Disabled'
+    GROUP BY DATE_FORMAT(Order_Date, '%Y-%m')
+    ORDER BY month DESC
+");
         
         while ($row = $result->fetch_assoc()) {
             $report_data[] = [
@@ -99,15 +101,16 @@ switch ($report_type) {
         
     case 'yearly':
         // Get sales data for all years
-        $result = $conn->query("
-            SELECT 
-                YEAR(order_date) AS year,
-                SUM(Total) AS total_sales,
-                COUNT(Order_ID) AS order_count
-            FROM orders
-            GROUP BY YEAR(order_date)
-            ORDER BY year DESC
-        ");
+$result = $conn->query("
+    SELECT 
+        YEAR(Order_Date) AS year,
+        SUM(Total) AS total_sales,
+        COUNT(Order_ID) AS order_count
+    FROM `Orders`
+    WHERE status != 'Disabled'
+    GROUP BY YEAR(Order_Date)
+    ORDER BY year DESC
+");
         
         while ($row = $result->fetch_assoc()) {
             $report_data[] = [

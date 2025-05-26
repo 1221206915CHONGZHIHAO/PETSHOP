@@ -209,11 +209,6 @@ $conn->close();
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-light" href="add_staff.php">
-                                <i class="fas fa-plus me-2"></i>Add Staff
-                            </a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link text-light" href="staff_logs.php">
                                 <i class="fas fa-history me-2"></i>Login/Logout Logs
                             </a>
@@ -324,7 +319,7 @@ $conn->close();
                                             <td>#<?php echo htmlspecialchars($order['Order_ID']); ?></td>
                                             <td><?php echo htmlspecialchars($order['Customer_name']); ?></td>
                                             <td><?php echo htmlspecialchars($order['products']); ?></td>
-                                            <td>$<?php echo number_format($order['Total'], 2); ?></td>
+                                            <td>RM<?php echo number_format($order['Total'], 2); ?></td>
                                             <td><?php echo htmlspecialchars($order['Order_Date']); ?></td>
                                             <td>
                                                 <span class="badge bg-<?php 

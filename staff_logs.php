@@ -124,11 +124,6 @@ $result = $conn->query($sql);
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-light" href="add_staff.php">
-                                <i class="fas fa-plus me-2"></i>Add Staff
-                            </a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link text-light active" href="staff_logs.php">
                                 <i class="fas fa-history me-2"></i>Login/Logout Logs
                             </a>

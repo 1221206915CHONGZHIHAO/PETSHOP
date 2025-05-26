@@ -19,22 +19,30 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
+// Handle date filtering
+$dateCondition = "";
+if (isset($_GET['logDate'])) {
+    $logDate = $conn->real_escape_string($_GET['logDate']);
+    $dateCondition = "WHERE DATE(timestamp) = '$logDate'";
+}
+
 // Get logs from database
-$result = $conn->query("SELECT username, email, status, timestamp 
-                       FROM customer_login_logs 
-                       ORDER BY timestamp DESC");
+$logsQuery = "SELECT username, email, status, timestamp 
+              FROM customer_login_logs 
+              $dateCondition
+              ORDER BY timestamp DESC";
+$logsResult = $conn->query($logsQuery);
 
-
+// Get shop settings
 $shopSettings = [];
 $settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
 $settingsQuery->execute();
-$result = $settingsQuery->get_result();
+$settingsResult = $settingsQuery->get_result();
 
-if ($result->num_rows > 0) {
-    $shopSettings = $result->fetch_assoc();
+if ($settingsResult->num_rows > 0) {
+    $shopSettings = $settingsResult->fetch_assoc();
 }
 
-// Close connection (we'll reopen if needed for filtering)
 $conn->close();
 ?>
 
@@ -53,46 +61,26 @@ $conn->close();
         .status-logout { color: #dc3545; }
         .status-failed { color: #ffc107; }
         .table-responsive { max-height: 600px; overflow-y: auto; }
-                    h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
-                            h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -124,30 +112,25 @@ $conn->close();
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
                     </li>
-            <li class="nav-item">
-                <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
-                    <i class="fas fa-users me-2"></i>Staff Management
-                </a>
-                <div class="collapse" id="staffMenu">
-                    <ul class="nav flex-column ps-4">
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="manage_staff.php">
-                                <i class="fas fa-list me-2"></i>Staff List
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="add_staff.php">
-                                <i class="fas fa-plus me-2"></i>Add Staff
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="staff_logs.php">
-                                <i class="fas fa-history me-2"></i>Login/Logout Logs
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
+                            <i class="fas fa-users me-2"></i>Staff Management
+                        </a>
+                        <div class="collapse" id="staffMenu">
+                            <ul class="nav flex-column ps-4">
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="manage_staff.php">
+                                        <i class="fas fa-list me-2"></i>Staff List
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_logs.php">
+                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
                             <i class="fas fa-user-friends me-2"></i>Customer Management
@@ -219,7 +202,7 @@ $conn->close();
             <!-- Date Filter Form -->
             <form method="GET" action="" class="row mb-3">
                 <div class="col-md-4">
-                    <input type="date" name="logDate" class="form-control" value="<?php echo isset($_GET['logDate']) ? $_GET['logDate'] : date('Y-m-d'); ?>">
+                    <input type="date" name="logDate" class="form-control" value="<?php echo isset($_GET['logDate']) ? htmlspecialchars($_GET['logDate']) : date('Y-m-d'); ?>">
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-primary">Filter</button>
@@ -229,7 +212,7 @@ $conn->close();
                 </div>
             </form>
 
-            <!-- Logs Table - Now showing real data -->
+            <!-- Logs Table -->
             <div class="card">
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -243,8 +226,8 @@ $conn->close();
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if ($result->num_rows > 0): ?>
-                                    <?php while($row = $result->fetch_assoc()): ?>
+                                <?php if ($logsResult->num_rows > 0): ?>
+                                    <?php while($row = $logsResult->fetch_assoc()): ?>
                                         <tr>
                                             <td><?php echo htmlspecialchars($row['username']); ?></td>
                                             <td><?php echo htmlspecialchars($row['email']); ?></td>
@@ -273,11 +256,12 @@ $conn->close();
         </main>
     </div>
 </div>
+
 <!-- Footer Section -->
 <footer>
     <div class="container-fluid">
         <div class="row">
-            <div class="col-md-10 offset-md-2"> <!-- This matches the main content area -->
+            <div class="col-md-10 offset-md-2">
                 <div class="row">
                     <!-- Footer About -->
                     <div class="col-md-5 mb-4 mb-lg-0">

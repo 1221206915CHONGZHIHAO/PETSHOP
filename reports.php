@@ -30,15 +30,16 @@ switch ($report_type) {
     case 'weekly':
         // Get sales data for the last 8 weeks
         $result = $conn->query("
-            SELECT 
-                YEARWEEK(Order_Date) AS week,
-                SUM(Total) AS total_sales,
-                COUNT(Order_ID) AS order_count
-            FROM `Orders`
-            WHERE Order_Date >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
-            GROUP BY YEARWEEK(Order_Date)
-            ORDER BY week DESC
-        ");
+    SELECT 
+        YEARWEEK(Order_Date) AS week,
+        SUM(Total) AS total_sales,
+        COUNT(Order_ID) AS order_count
+    FROM `Orders`
+    WHERE Order_Date >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
+    AND status != 'Disabled'
+    GROUP BY YEARWEEK(Order_Date)
+    ORDER BY week DESC
+");
         
         while ($row = $result->fetch_assoc()) {
             $year = substr($row['week'], 0, 4);
@@ -55,16 +56,17 @@ switch ($report_type) {
         
     case 'monthly':
         // Get sales data for the last 12 months
-        $result = $conn->query("
-            SELECT 
-                DATE_FORMAT(Order_Date, '%Y-%m') AS month,
-                SUM(Total) AS total_sales,
-                COUNT(Order_ID) AS order_count
-            FROM `Orders`
-            WHERE Order_Date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-            GROUP BY DATE_FORMAT(Order_Date, '%Y-%m')
-            ORDER BY month DESC
-        ");
+       $result = $conn->query("
+    SELECT 
+        DATE_FORMAT(Order_Date, '%Y-%m') AS month,
+        SUM(Total) AS total_sales,
+        COUNT(Order_ID) AS order_count
+    FROM `Orders`
+    WHERE Order_Date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+    AND status != 'Disabled'
+    GROUP BY DATE_FORMAT(Order_Date, '%Y-%m')
+    ORDER BY month DESC
+");
         
         while ($row = $result->fetch_assoc()) {
             $report_data[] = [
@@ -79,15 +81,16 @@ switch ($report_type) {
         
     case 'yearly':
         // Get sales data for all years
-        $result = $conn->query("
-            SELECT 
-                YEAR(Order_Date) AS year,
-                SUM(Total) AS total_sales,
-                COUNT(Order_ID) AS order_count
-            FROM `Orders`
-            GROUP BY YEAR(Order_Date)
-            ORDER BY year DESC
-        ");
+       $result = $conn->query("
+    SELECT 
+        YEAR(Order_Date) AS year,
+        SUM(Total) AS total_sales,
+        COUNT(Order_ID) AS order_count
+    FROM `Orders`
+    WHERE status != 'Disabled'
+    GROUP BY YEAR(Order_Date)
+    ORDER BY year DESC
+");
         
         while ($row = $result->fetch_assoc()) {
             $report_data[] = [
@@ -233,11 +236,6 @@ $conn->close();
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-light" href="add_staff.php">
-                                <i class="fas fa-plus me-2"></i>Add Staff
-                            </a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link text-light" href="staff_logs.php">
                                 <i class="fas fa-history me-2"></i>Login/Logout Logs
                             </a>
@@ -346,7 +344,7 @@ $conn->close();
                                 <div>
                                     <h6 class="card-title">TOTAL SALES</h6>
                                     <h2 class="mb-0">
-                                        $<?php 
+                                        RM<?php 
                                             $total_sales = array_sum(array_column($report_data, 'sales'));
                                             echo number_format($total_sales, 2); 
                                         ?>
@@ -382,7 +380,7 @@ $conn->close();
                                 <div>
                                     <h6 class="card-title">AVG. ORDER VALUE</h6>
                                     <h2 class="mb-0">
-                                        $<?php 
+                                        RM<?php 
                                             $avg_order = $total_orders > 0 ? $total_sales / $total_orders : 0;
                                             echo number_format($avg_order, 2); 
                                         ?>
@@ -428,9 +426,9 @@ $conn->close();
                                     <?php foreach ($report_data as $row): ?>
                                         <tr>
                                             <td><?php echo htmlspecialchars($row['period']); ?></td>
-                                            <td>$<?php echo number_format($row['sales'], 2); ?></td>
+                                            <td>RM<?php echo number_format($row['sales'], 2); ?></td>
                                             <td><?php echo number_format($row['orders']); ?></td>
-                                            <td>$<?php echo number_format($row['orders'] > 0 ? $row['sales'] / $row['orders'] : 0, 2); ?></td>
+                                            <td>RM<?php echo number_format($row['orders'] > 0 ? $row['sales'] / $row['orders'] : 0, 2); ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
@@ -528,7 +526,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data: {
             labels: <?php echo json_encode(array_reverse($chart_labels)); ?>,
             datasets: [{
-                label: 'Sales ($)',
+                label: 'Sales (RM)',
                 data: <?php echo json_encode(array_reverse($chart_data)); ?>,
                 backgroundColor: 'rgba(78, 115, 223, 0.8)',
                 borderColor: 'rgba(78, 115, 223, 1)',
@@ -545,7 +543,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return '$' + context.raw.toLocaleString();
+                            return 'RM' + context.raw.toLocaleString();
                         }
                     }
                 }
@@ -555,7 +553,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return '$' + value.toLocaleString();
+                            return 'RM' + value.toLocaleString();
                         }
                     }
                 }

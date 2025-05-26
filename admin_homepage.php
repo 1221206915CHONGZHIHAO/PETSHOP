@@ -114,7 +114,6 @@ $result = $conn->query("SELECT
     SUM(Total) as amount 
     FROM orders 
     WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND status != 'Disabled'
-    $summaryWhere
     GROUP BY MONTH(order_date)
     ORDER BY order_date ASC");
 while ($row = $result->fetch_assoc()) {
@@ -251,11 +250,6 @@ $conn->close();
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-light" href="add_staff.php">
-                                <i class="fas fa-plus me-2"></i>Add Staff
-                            </a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link text-light" href="staff_logs.php">
                                 <i class="fas fa-history me-2"></i>Login/Logout Logs
                             </a>
@@ -379,7 +373,7 @@ $conn->close();
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="card-title">TOTAL REVENUE</h6>
-                                    <h2 class="mb-0">$<?php echo number_format($summaryData['total_revenue'], 2); ?></h2>
+                                    <h2 class="mb-0">RM<?php echo number_format($summaryData['total_revenue'], 2); ?></h2>
                                 </div>
                                 <i class="fas fa-dollar-sign fa-3x"></i>
                             </div>
@@ -452,7 +446,7 @@ $conn->close();
                                     <td>#<?php echo $order['order_id']; ?></td>
                                     <td><?php echo htmlspecialchars($order['customer_name']); ?></td>
                                     <td><?php echo htmlspecialchars($order['products']); ?></td>
-                                    <td>$<?php echo number_format($order['Total'], 2); ?></td>
+                                    <td>RM<?php echo number_format($order['Total'], 2); ?></td>
                                     <td><?php echo date('Y-m-d', strtotime($order['order_date'])); ?></td>
                                     <td>
                                         <?php 
@@ -589,7 +583,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     intersect: false,
                     callbacks: {
                         label: function(context) {
-                            return '$' + context.raw.toLocaleString();
+                            return 'RM' + context.raw.toLocaleString();
                         }
                     }
                 }
@@ -600,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     grid: { color: 'rgba(0, 0, 0, 0.05)' },
                     ticks: { 
                         callback: function(value) {
-                            return '$' + value.toLocaleString();
+                            return 'RM' + value.toLocaleString();
                         }
                     }
                 },

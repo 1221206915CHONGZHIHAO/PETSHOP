@@ -47,7 +47,7 @@ if (!$product) {
     <div class="col-md-6 mb-3">
         <label class="form-label">Price*</label>
         <div class="input-group">
-            <span class="input-group-text">$</span>
+            <span class="input-group-text">RM</span>
             <input type="number" name="price" step="0.01" min="0" class="form-control" 
                    value="<?= htmlspecialchars($product['price']) ?>" required>
         </div>

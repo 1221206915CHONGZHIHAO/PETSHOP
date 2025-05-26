@@ -28,14 +28,13 @@ $result = $stmt->get_result();
 $staff = $result->fetch_assoc();
 
 $shopSettings = [];
-$settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
+$settingsQuery = $db->prepare("SELECT * FROM shop_settings WHERE id = 1");
 $settingsQuery->execute();
 $result = $settingsQuery->get_result();
 
 if ($result->num_rows > 0) {
     $shopSettings = $result->fetch_assoc();
 }
-
 
 if (!$staff) {
     session_unset();

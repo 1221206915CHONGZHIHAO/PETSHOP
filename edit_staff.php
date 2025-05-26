@@ -17,6 +17,9 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $result = $stmt->get_result()->fetch_assoc();
+$update_sql = "UPDATE Staff SET position=?, status=? WHERE Staff_ID=?";
+$stmt = $conn->prepare($update_sql);
+$stmt->bind_param("ssi", $position, $status, $id);
 
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -161,6 +164,15 @@ if ($resetPassword && empty($newPassword)) {
 .requirement.text-success {
     color: var(--primary) !important;
 }
+
+.disabled-field {
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
+    cursor: not-allowed;
+}
+.disabled-label {
+    color: #6c757d;
+}
     </style>
 </head>
 <body>
@@ -193,19 +205,14 @@ if ($resetPassword && empty($newPassword)) {
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-light active" data-bs-toggle="collapse" href="#staffMenu">
+                <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
                     <i class="fas fa-users me-2"></i>Staff Management
                 </a>
-                <div class="collapse show" id="staffMenu">
+                <div class="collapse" id="staffMenu">
                     <ul class="nav flex-column ps-4">
                         <li class="nav-item">
-                            <a class="nav-link text-light active" href="manage_staff.php">
+                            <a class="nav-link text-light" href="manage_staff.php">
                                 <i class="fas fa-list me-2"></i>Staff List
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="add_staff.php">
-                                <i class="fas fa-plus me-2"></i>Add Staff
                             </a>
                         </li>
                         <li class="nav-item">
@@ -305,59 +312,34 @@ if ($resetPassword && empty($newPassword)) {
                 <div class="card-body">
                     <form method="POST" class="needs-validation" novalidate>
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="Staff_name" class="form-label">Full Name</label>
-                                <input type="text" class="form-control" id="Staff_name" name="Staff_name" 
-                                       value="<?php echo htmlspecialchars($result['Staff_name']); ?>" required>
-                                <div class="invalid-feedback">
-                                    Please provide a valid name.
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="Staff_Username" class="form-label">Username</label>
-                                <input type="text" class="form-control" id="Staff_Username" name="Staff_Username" 
-                                       value="<?php echo htmlspecialchars($result['Staff_Username']); ?>" required>
-                                <div class="invalid-feedback">
-                                    Please choose a username.
-                                </div>
-                            </div>
-                        </div>
+<div class="row mb-3">
+    <div class="col-md-6">
+        <label for="Staff_name" class="form-label disabled-label">Full Name</label>
+        <input type="text" class="form-control disabled-field" id="Staff_name" name="Staff_name" 
+               value="<?php echo htmlspecialchars($result['Staff_name']); ?>" readonly disabled>
+    </div>
+    <div class="col-md-6">
+        <label for="Staff_Username" class="form-label disabled-label">Username</label>
+        <input type="text" class="form-control disabled-field" id="Staff_Username" name="Staff_Username" 
+               value="<?php echo htmlspecialchars($result['Staff_Username']); ?>" readonly disabled>
+    </div>
+</div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="Staff_Email" class="form-label">Email Address</label>
-                                <input type="email" class="form-control" id="Staff_Email" name="Staff_Email" 
-                                       value="<?php echo htmlspecialchars($result['Staff_Email']); ?>" required>
-                                <div class="invalid-feedback">
-                                    Please provide a valid email.
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="position" class="form-label">Position</label>
-                                <select class="form-select" id="position" name="position" required>
-                                    <option value="Manager" <?= ($result['position'] == 'Manager') ? 'selected' : '' ?>>Manager</option>
-                                    <option value="Sales Associate" <?= ($result['position'] == 'Sales Associate') ? 'selected' : '' ?>>Sales Associate</option>
-                                    <option value="Inventory Specialist" <?= ($result['position'] == 'Inventory Specialist') ? 'selected' : '' ?>>Inventory Specialist</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="status" class="form-label">Status</label>
-                                <select class="form-select" id="status" name="status" required>
-                                    <option value="Active" <?= ($result['status'] == 'Active') ? 'selected' : '' ?>>Active</option>
-                                    <option value="Inactive" <?= ($result['status'] == 'Inactive') ? 'selected' : '' ?>>Inactive</option>
-                                    <option value="On Leave" <?= ($result['status'] == 'On Leave') ? 'selected' : '' ?>>On Leave</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 d-flex align-items-end">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="resetPassword" name="resetPassword">
-                                    <label class="form-check-label" for="resetPassword">Reset Password</label>
-                                </div>
-                            </div>
-                        </div>
+<div class="row mb-3">
+    <div class="col-md-6">
+        <label for="Staff_Email" class="form-label disabled-label">Email Address</label>
+        <input type="email" class="form-control disabled-field" id="Staff_Email" name="Staff_Email" 
+               value="<?php echo htmlspecialchars($result['Staff_Email']); ?>" readonly disabled>
+    </div>
+    <div class="col-md-6">
+        <label for="position" class="form-label">Position</label>
+        <select class="form-select" id="position" name="position" required>
+            <option value="Manager" <?= ($result['position'] == 'Manager') ? 'selected' : '' ?>>Manager</option>
+            <option value="Sales Associate" <?= ($result['position'] == 'Sales Associate') ? 'selected' : '' ?>>Sales Associate</option>
+            <option value="Inventory Specialist" <?= ($result['position'] == 'Inventory Specialist') ? 'selected' : '' ?>>Inventory Specialist</option>
+        </select>
+    </div>
+</div>
 
                         <!-- Password field (hidden by default) -->
 <div class="row mb-3" id="passwordField" style="display: none;">

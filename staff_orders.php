@@ -495,7 +495,7 @@ echo strtoupper(substr($username, 0, 1));
                                                 }
                                                 ?>
                                             </td>
-                                            <td>$<?php echo number_format($order['Total'], 2); ?></td>
+                                            <td>RM<?php echo number_format($order['Total'], 2); ?></td>
                                             <td><?php echo date('M j, Y', strtotime($order['Order_Date'])); ?></td>
                                             <td>
                                                 <span class="badge bg-<?php 
@@ -634,7 +634,8 @@ echo strtoupper(substr($username, 0, 1));
                     <p><strong>Status:</strong> <span id="detailsStatus"></span></p>
                     <p><strong>Delivery Address:</strong> <span id="detailsAddress"></span></p>
                     <p><strong>Payment Method:</strong> <span id="detailsPayment"></span></p>
-                    <p><strong>Total Amount:</strong> $<span id="detailsTotal"></span></p>
+                    <p><strong>Total Amount:</strong> RM<span id="detailsTotal"></span></p>
+
                     
                     <h6 class="mt-4 mb-3"><strong>Order Items:</strong></h6>
                     <ul class="product-list" id="orderItemsList">

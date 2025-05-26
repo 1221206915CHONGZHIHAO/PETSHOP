@@ -176,11 +176,6 @@ if ($result->num_rows > 0) {
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-light" href="add_staff.php">
-                                <i class="fas fa-plus me-2"></i>Add Staff
-                            </a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link text-light" href="staff_logs.php">
                                 <i class="fas fa-history me-2"></i>Login/Logout Logs
                             </a>
@@ -299,7 +294,7 @@ if ($result->num_rows > 0) {
                                 }
                                 ?>
                             </td>
-                            <td>$<?= number_format($product['price'], 2) ?></td>
+                            <td>RM<?= number_format($product['price'], 2) ?></td>
                             <td class="<?= $product['stock_quantity'] < 5 ? 'low-stock' : '' ?>">
                                 <?= htmlspecialchars($product['stock_quantity']) ?>
                             </td>
@@ -368,7 +363,7 @@ if ($result->num_rows > 0) {
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Price*</label>
                             <div class="input-group">
-                                <span class="input-group-text">$</span>
+                                <span class="input-group-text">RM</span>
                                 <input type="number" name="price" step="0.01" min="1" class="form-control" required>
                             </div>
                         </div>

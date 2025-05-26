@@ -342,7 +342,7 @@ if (file_exists($avatar_path)): ?>
                                 <tr>
                                     <td>#<?php echo $order['order_id']; ?></td>
                                     <td><?php echo htmlspecialchars($order['customer_name']); ?></td>
-                                    <td>$<?php echo number_format($order['Total'], 2); ?></td>
+                                    <td>RM<?php echo number_format($order['Total'], 2); ?></td>
                                     <td><?php echo date('Y-m-d', strtotime($order['order_date'])); ?></td>
                                     <td>
                                         <?php 

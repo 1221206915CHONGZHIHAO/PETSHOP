@@ -139,13 +139,8 @@ if ($result->num_rows > 0) {
                 <div class="collapse show" id="staffMenu">
                     <ul class="nav flex-column ps-4">
                         <li class="nav-item">
-                            <a class="nav-link text-light" href="manage_staff.php">
+                            <a class="nav-link text-light active" href="manage_staff.php">
                                 <i class="fas fa-list me-2"></i>Staff List
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light active" href="add_staff.php">
-                                <i class="fas fa-plus me-2"></i>Add Staff
                             </a>
                         </li>
                         <li class="nav-item">
