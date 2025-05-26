@@ -27,6 +27,16 @@ $stmt->execute();
 $staff_result = $stmt->get_result();
 $staff = $staff_result->fetch_assoc();
 
+$shopSettings = [];
+$settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
+$settingsQuery->execute();
+$result = $settingsQuery->get_result();
+
+if ($result->num_rows > 0) {
+    $shopSettings = $result->fetch_assoc();
+}
+
+
 // Handle deactivate/reactivate action
 if (isset($_GET['action']) && isset($_GET['id'])) {
     $customer_id = $conn->real_escape_string($_GET['id']);
@@ -382,7 +392,7 @@ $conn->close();
 <footer>
     <div class="container-fluid">
         <div class="row">
-            <div class="col-md-10 offset-md-2">
+            <div class="col-md-10 offset-md-2"> <!-- This matches the main content area -->
                 <div class="row">
                     <!-- Footer About -->
                     <div class="col-md-5 mb-4 mb-lg-0">
@@ -400,30 +410,30 @@ $conn->close();
                     
                     <!-- Contact Info -->
                     <div class="col-md-7">
-                        <h4 class="text-white mb-3">Contact Us</h4>
+                        <h4 class="footer-title">Contact Us</h4>
                         <div class="row">
                             <div class="col-sm-6 mb-3">
                                 <div class="contact-info">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    <span>123 Pet Street, Animal City</span>
+                                    <i class="bi bi-geo-alt"></i>
+                                    <span><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></span>
                                 </div>
                             </div>
                             <div class="col-sm-6 mb-3">
                                 <div class="contact-info">
-                                    <i class="fas fa-phone"></i>
-                                    <span>+1 (555) 123-4567</span>
+                                    <i class="bi bi-telephone"></i>
+                                    <span><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></span>
                                 </div>
                             </div>
                             <div class="col-sm-6 mb-3">
                                 <div class="contact-info">
-                                    <i class="fas fa-envelope"></i>
-                                    <span>info@hachipetshop.com</span>
+                                    <i class="bi bi-envelope"></i>
+                                    <span><?php echo !empty($shopSettings['contact_email']) ? htmlspecialchars($shopSettings['contact_email']) : 'Email not available'; ?></span>
                                 </div>
                             </div>
                             <div class="col-sm-6 mb-3">
                                 <div class="contact-info">
-                                    <i class="fas fa-clock"></i>
-                                    <span>Mon-Fri: 9AM - 6PM</span>
+                                    <i class="bi bi-clock"></i>
+                                    <span><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></span>
                                 </div>
                             </div>
                         </div>

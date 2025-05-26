@@ -19,25 +19,32 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
-// Get logs from database
-$sql = "SELECT username, email, status, timestamp 
-       FROM staff_login_logs 
-       ORDER BY timestamp DESC";
+// Fetch shop settings
+$shopSettings = [];
+$settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
+$settingsQuery->execute();
+$settingsResult = $settingsQuery->get_result();
+
+if ($settingsResult->num_rows > 0) {
+    $shopSettings = $settingsResult->fetch_assoc();
+}
+
+// Get login logs
+$sql = "SELECT username, email, status, timestamp FROM staff_login_logs ORDER BY timestamp DESC";
 
 // Apply date filter if set
 if (isset($_GET['logDate']) && !empty($_GET['logDate'])) {
     $date = $conn->real_escape_string($_GET['logDate']);
     $sql = "SELECT username, email, status, timestamp 
-           FROM staff_login_logs 
-           WHERE DATE(timestamp) = '$date'
-           ORDER BY timestamp DESC";
+            FROM staff_login_logs 
+            WHERE DATE(timestamp) = '$date' 
+            ORDER BY timestamp DESC";
 }
 
 $result = $conn->query($sql);
 
-// Close connection
-$conn->close();
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -276,30 +283,30 @@ $conn->close();
                     
                     <!-- Contact Info -->
                     <div class="col-md-7">
-                        <h4 class="text-white mb-3">Contact Us</h4>
+                        <h4 class="footer-title">Contact Us</h4>
                         <div class="row">
                             <div class="col-sm-6 mb-3">
                                 <div class="contact-info">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    <span>123 Pet Street, Animal City</span>
+                                    <i class="bi bi-geo-alt"></i>
+                                    <span><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></span>
                                 </div>
                             </div>
                             <div class="col-sm-6 mb-3">
                                 <div class="contact-info">
-                                    <i class="fas fa-phone"></i>
-                                    <span>+1 (555) 123-4567</span>
+                                    <i class="bi bi-telephone"></i>
+                                    <span><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></span>
                                 </div>
                             </div>
                             <div class="col-sm-6 mb-3">
                                 <div class="contact-info">
-                                    <i class="fas fa-envelope"></i>
-                                    <span>info@hachipetshop.com</span>
+                                    <i class="bi bi-envelope"></i>
+                                    <span><?php echo !empty($shopSettings['contact_email']) ? htmlspecialchars($shopSettings['contact_email']) : 'Email not available'; ?></span>
                                 </div>
                             </div>
                             <div class="col-sm-6 mb-3">
                                 <div class="contact-info">
-                                    <i class="fas fa-clock"></i>
-                                    <span>Mon-Fri: 9AM - 6PM</span>
+                                    <i class="bi bi-clock"></i>
+                                    <span><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></span>
                                 </div>
                             </div>
                         </div>
