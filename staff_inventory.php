@@ -314,12 +314,6 @@ $conn->close();
                     <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addItemModal">
                         <i class="fas fa-plus me-1"></i>Add Product
                     </button>
-                    <div class="input-group search-box">
-                        <input type="text" class="form-control form-control-sm" placeholder="Search..." id="inventorySearch">
-                        <button class="btn btn-sm btn-outline-secondary" type="button">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -488,15 +482,8 @@ $conn->close();
                             <label class="form-label">Category*</label>
                             <select name="category" class="form-select" required>
                                 <option value="">Select Category</option>
-                                <optgroup label="Dogs">
-                                    <option value="Dogs">Dogs (General)</option>
-                                    <option value="Dog > Dry Food">Dog Dry Food</option>
-                                    <option value="Dog > Treats">Dog Treats</option>
-                                    <option value="Dog > Wet Food">Dog Wet Food</option>
-                                </optgroup>
+                                <option value="Dogs">Dogs</option>
                                 <option value="Cats">Cats</option>
-                                <option value="Birds">Birds</option>
-                                <option value="Fish">Fish</option>
                             </select>
                         </div>
                     </div>
@@ -505,7 +492,7 @@ $conn->close();
                             <label class="form-label">Price*</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" name="price" step="0.01" min="0" class="form-control" required>
+                                <input type="number" name="price" step="0.01" min="1" class="form-control" required>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -648,6 +635,16 @@ function previewImage(event, previewId) {
     }
     reader.readAsDataURL(event.target.files[0]);
 }
+
+document.querySelector('#addItemModal form').addEventListener('submit', function(e) {
+    const priceInput = this.querySelector('input[name="price"]');
+    const price = parseFloat(priceInput.value);
+    if (isNaN(price) || price < 1) {
+        alert('Price must be at least 1.');
+        priceInput.focus();
+        e.preventDefault();
+    }
+});
 </script>
 </body>
 </html>

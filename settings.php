@@ -245,26 +245,26 @@ $db->close();
         <!-- Sidebar -->
         <nav id="sidebar" class="col-lg-2 d-lg-block bg-dark sidebar">
             <div class="position-sticky pt-3">
-                <div class="text-center mb-4">
-                    <?php
-                    // Use img_URL from database if available, otherwise fall back to legacy path
-                    $avatar_path = !empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
-                    
-                    if (file_exists($avatar_path)): ?>
-                        <img src="<?php echo $avatar_path; ?>" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
-                    <?php else: ?>
-                        <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                            <span class="text-white" style="font-size: 24px;">
-                                <?php 
-                                $username = $staff['Staff_username'] ?? $_SESSION['staff_name'];
-                                echo strtoupper(substr($username, 0, 1)); 
-                                ?>
-                            </span>
-                        </div>
-                    <?php endif; ?>
-                    <h5 class="text-white mb-1"><?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?></h5>
-                    <small class="text-muted"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
-                </div>
+<div class="text-center mb-4">
+    <?php
+    // Use img_URL from database if available, otherwise fall back to legacy path
+    $avatar_path = !empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
+    
+    if (file_exists($avatar_path)): ?>
+        <img src="<?php echo $avatar_path; ?>" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
+    <?php else: ?>
+        <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center mx-auto" style="width: 80px; height: 80px;">
+            <span class="text-white" style="font-size: 24px;">
+                <?php 
+                $username = $staff['Staff_username'] ?? $_SESSION['staff_name'];
+                echo strtoupper(substr($username, 0, 1)); 
+                ?>
+            </span>
+        </div>
+    <?php endif; ?>
+    <h5 class="text-white mb-1"><?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?></h5>
+    <small class="text-muted"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
+</div>
 
                 <!-- Sidebar Menu -->
                 <ul class="nav flex-column">
@@ -517,37 +517,37 @@ $db->close();
                         </div>
                     </div>
                     
-                    <!-- Contact Info -->
-                    <div class="col-md-7">
-                        <h4 class="text-white mb-3">Contact Us</h4>
-                        <div class="row">
-                            <div class="col-sm-6 mb-3">
-                                <div class="contact-info">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    <span>123 Pet Street, Animal City</span>
-                                </div>
+        <!-- Contact Info -->
+        <div class="col-md-7">
+                    <h4 class="footer-title">Contact Us</h4>
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-geo-alt"></i>
+                                <span><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></span>
                             </div>
-                            <div class="col-sm-6 mb-3">
-                                <div class="contact-info">
-                                    <i class="fas fa-phone"></i>
-                                    <span>+1 (555) 123-4567</span>
-                                </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-telephone"></i>
+                                <span><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></span>
                             </div>
-                            <div class="col-sm-6 mb-3">
-                                <div class="contact-info">
-                                    <i class="fas fa-envelope"></i>
-                                    <span>info@hachipetshop.com</span>
-                                </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-envelope"></i>
+                                <span><?php echo !empty($shopSettings['contact_email']) ? htmlspecialchars($shopSettings['contact_email']) : 'Email not available'; ?></span>
                             </div>
-                            <div class="col-sm-6 mb-3">
-                                <div class="contact-info">
-                                    <i class="fas fa-clock"></i>
-                                    <span>Mon-Fri: 9AM - 6PM</span>
-                                </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-clock"></i>
+                                <span><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></span>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
                 
                 <!-- Footer Bottom -->
                 <div class="footer-bottom">

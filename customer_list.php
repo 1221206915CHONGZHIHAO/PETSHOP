@@ -18,8 +18,30 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
-// Fetch customers with their addresses
-$sql = "SELECT c.Customer_id, c.Customer_name, c.Customer_email, 
+// Handle deactivate/reactivate action
+if (isset($_GET['action']) && isset($_GET['id'])) {
+    $customer_id = $conn->real_escape_string($_GET['id']);
+    $action = $conn->real_escape_string($_GET['action']);
+    
+    if ($action === 'deactivate') {
+        $sql = "UPDATE customer SET is_active = 0 WHERE Customer_id = '$customer_id'";
+    } elseif ($action === 'reactivate') {
+        $sql = "UPDATE customer SET is_active = 1 WHERE Customer_id = '$customer_id'";
+    }
+    
+    if (isset($sql)) {
+        if ($conn->query($sql) === TRUE) {
+            $_SESSION['message'] = "Customer account updated successfully";
+            header("Location: customer_list.php");
+            exit;
+        } else {
+            $_SESSION['error'] = "Error updating customer: " . $conn->error;
+        }
+    }
+}
+
+// Fetch customers with their addresses and status
+$sql = "SELECT c.Customer_id, c.Customer_name, c.Customer_email, c.is_active,
                a.Address_line1, a.Address_line2, a.City, a.State, a.Postal_Code, a.Country
         FROM customer c
         LEFT JOIN customer_address a ON c.Customer_id = a.Customer_id AND a.Is_Default = 1";
@@ -85,6 +107,20 @@ $conn->close();
             font-weight: 500;
         }
         
+        /* Status styling */
+        .status-active {
+            color: #28a745;
+            font-weight: 500;
+        }
+        .status-inactive {
+            color: #dc3545;
+            font-weight: 500;
+        }
+        .action-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        
         /* Responsive adjustments */
         @media (max-width: 768px) {
             #sidebar {
@@ -101,26 +137,26 @@ $conn->close();
                 margin-left: 0 !important;
             }
         }
-                    h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -151,30 +187,30 @@ $conn->close();
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
                     </li>
-            <li class="nav-item">
-                <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
-                    <i class="fas fa-users me-2"></i>Staff Management
-                </a>
-                <div class="collapse" id="staffMenu">
-                    <ul class="nav flex-column ps-4">
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="manage_staff.php">
-                                <i class="fas fa-list me-2"></i>Staff List
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="add_staff.php">
-                                <i class="fas fa-plus me-2"></i>Add Staff
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="staff_logs.php">
-                                <i class="fas fa-history me-2"></i>Login/Logout Logs
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
+                            <i class="fas fa-users me-2"></i>Staff Management
+                        </a>
+                        <div class="collapse" id="staffMenu">
+                            <ul class="nav flex-column ps-4">
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="manage_staff.php">
+                                        <i class="fas fa-list me-2"></i>Staff List
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="add_staff.php">
+                                        <i class="fas fa-plus me-2"></i>Add Staff
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_logs.php">
+                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link text-light active" data-bs-toggle="collapse" href="#customerMenu">
                             <i class="fas fa-user-friends me-2"></i>Customer Management
@@ -240,6 +276,20 @@ $conn->close();
                 </div>
             </div>
 
+            <!-- Display messages -->
+            <?php if (isset($_SESSION['message'])): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <?php echo $_SESSION['message']; unset($_SESSION['message']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+            <?php if (isset($_SESSION['error'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
             <div class="card mb-4">
                 <div class="card-header">
                     <i class="fas fa-table me-2"></i>Registered Customers
@@ -251,7 +301,9 @@ $conn->close();
                                 <tr>
                                     <th>Username</th>
                                     <th>Email</th>
+                                    <th>Status</th>
                                     <th>Address</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -260,6 +312,13 @@ $conn->close();
                                     <tr>
                                         <td><?php echo htmlspecialchars($customer['Customer_name'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($customer['Customer_email'] ?? ''); ?></td>
+                                        <td>
+                                            <?php if ($customer['is_active'] == 1): ?>
+                                                <span class="status-active">Active</span>
+                                            <?php else: ?>
+                                                <span class="status-inactive">Inactive</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <?php if (!empty($customer['Address_line1'])): ?>
                                                 <div class="address-line"><?php echo htmlspecialchars($customer['Address_line1']); ?></div>
@@ -276,11 +335,26 @@ $conn->close();
                                                 No address found
                                             <?php endif; ?>
                                         </td>
+                                        <td>
+                                            <?php if ($customer['is_active'] == 1): ?>
+                                                <a href="customer_list.php?action=deactivate&id=<?php echo $customer['Customer_id']; ?>" 
+                                                   class="btn btn-sm btn-danger action-btn" 
+                                                   onclick="return confirm('Are you sure you want to deactivate this customer?')">
+                                                    <i class="fas fa-ban"></i> Deactivate
+                                                </a>
+                                            <?php else: ?>
+                                                <a href="customer_list.php?action=reactivate&id=<?php echo $customer['Customer_id']; ?>" 
+                                                   class="btn btn-sm btn-success action-btn" 
+                                                   onclick="return confirm('Are you sure you want to reactivate this customer?')">
+                                                    <i class="fas fa-check"></i> Reactivate
+                                                </a>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="3" class="text-center">No registered customers found</td>
+                                        <td colspan="5" class="text-center">No registered customers found</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
@@ -295,7 +369,7 @@ $conn->close();
 <footer>
     <div class="container-fluid">
         <div class="row">
-            <div class="col-md-10 offset-md-2"> <!-- This matches the main content area -->
+            <div class="col-md-10 offset-md-2">
                 <div class="row">
                     <!-- Footer About -->
                     <div class="col-md-5 mb-4 mb-lg-0">

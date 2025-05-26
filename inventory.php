@@ -351,8 +351,6 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
                                 <option value="">Select Category</option>
                                 <option value="Dogs">Dogs</option>
                                 <option value="Cats">Cats</option>
-                                <option value="Birds">Birds</option>
-                                <option value="Fish">Fish</option>
                             </select>
                         </div>
                     </div>
@@ -361,7 +359,7 @@ $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fet
                             <label class="form-label">Price*</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" name="price" step="0.01" min="0" class="form-control" required>
+                                <input type="number" name="price" step="0.01" min="1" class="form-control" required>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -504,6 +502,16 @@ function previewImage(event, previewId) {
     }
     reader.readAsDataURL(event.target.files[0]);
 }
+
+document.querySelector('#addItemModal form').addEventListener('submit', function(e) {
+    const priceInput = this.querySelector('input[name="price"]');
+    const price = parseFloat(priceInput.value);
+    if (isNaN(price) || price < 1) {
+        alert('Price must be at least 1.');
+        priceInput.focus();
+        e.preventDefault();
+    }
+});
 </script>
 </body>
 </html>

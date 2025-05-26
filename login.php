@@ -55,7 +55,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         FROM Staff 
                         WHERE Staff_Username = ?";
             } elseif ($role === "customer") {
-                $sql = "SELECT Customer_id, Customer_name, Customer_email, Customer_password 
+                $sql = "SELECT Customer_id, Customer_name, Customer_email, Customer_password, is_active 
                         FROM Customer 
                         WHERE Customer_name = ?";
             } else {
@@ -75,13 +75,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         if ($role === "staff") {
                             $stmt->bind_result($db_staff_id, $db_username, $db_email, $db_password, $db_status, $db_reset_token, $db_img_url);
                         } elseif ($role === "customer") {
-                            $stmt->bind_result($db_customer_id, $db_username, $db_email, $db_password);
+                            $stmt->bind_result($db_customer_id, $db_username, $db_email, $db_password, $db_is_active);
                         }
                         $stmt->fetch();
 
                         if ($role === "staff" && $db_status !== 'Active') {
                             $error_message = "Account is inactive. Please contact administrator.";
                         } 
+                        elseif ($role === "customer" && $db_is_active != 1) {
+                            $error_message = "Account is deactivated. Please contact administrator.";
+                        }
                         elseif ($role === "staff" && !empty($db_reset_token)) {
                             if ($password === $db_password) {
                                 $_SESSION['reset_token'] = $db_reset_token;
