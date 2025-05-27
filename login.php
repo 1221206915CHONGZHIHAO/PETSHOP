@@ -51,23 +51,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         else {
             if ($role === "staff") {
-                $sql = "SELECT Staff_id, Staff_Username, Staff_Email, Staff_Password, status, password_reset_token, img_URL 
-                        FROM Staff 
-                        WHERE Staff_Username = ?";
-            } elseif ($role === "customer") {
-                $sql = "SELECT Customer_id, Customer_name, Customer_email, Customer_password, is_active 
-                        FROM Customer 
-                        WHERE Customer_name = ?";
-            } else {
-                $error_message = "Invalid role selected.";
-            }
+    $sql = "SELECT Staff_id, Staff_Username, Staff_Email, Staff_Password, status, password_reset_token, img_URL 
+            FROM Staff 
+            WHERE Staff_Username = ? OR Staff_Email = ?";
+} elseif ($role === "customer") {
+    $sql = "SELECT Customer_id, Customer_name, Customer_email, Customer_password, is_active 
+            FROM Customer 
+            WHERE Customer_name = ? OR Customer_email = ?";
+}
 
-            if (empty($error_message)) {
-                $stmt = $conn->prepare($sql);
-                if (!$stmt) {
-                    $error_message = "Database error. Please try again later.";
-                } else {
-                    $stmt->bind_param("s", $login_input);
+// Then update the parameter binding (replace this part):
+if (empty($error_message)) {
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $error_message = "Database error. Please try again later.";
+    } else {
+        $stmt->bind_param("ss", $login_input, $login_input);
                     $stmt->execute();
                     $stmt->store_result();
 
@@ -140,7 +139,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             }
                         }
                     } else {
-                        $error_message = "Username not found.";
+                        $error_message = "Username or email not found.";
                         // Record failed login attempt if customer
                         if ($role === "customer") {
                             $conn->query("INSERT INTO customer_login_logs (username, email, status) 
@@ -327,12 +326,12 @@ $conn->close();
             </div>
 
             <div class="mb-4">
-                <label class="form-label">
-                    <i class="bi bi-person me-2" style="color: var(--primary);"></i>
-                    Username
-                </label>
-                <input type="text" name="login_input" class="form-control" required placeholder="Enter your username">
-            </div>
+    <label class="form-label">
+        <i class="bi bi-person me-2" style="color: var(--primary);"></i>
+        Username or Email
+    </label>
+    <input type="text" name="login_input" class="form-control" required placeholder="Enter your username or email">
+</div>
 
             <div class="mb-4 position-relative">
                 <label class="form-label">
