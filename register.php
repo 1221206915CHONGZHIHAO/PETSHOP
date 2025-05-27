@@ -513,6 +513,15 @@ $conn->close();
             color: var(--primary);
             margin-right: 8px;
         }
+
+         .input-group-text i {
+        cursor: pointer;
+        transition: color 0.3s ease;
+    }
+
+    .input-group-text:hover i {
+        color: green;
+    }
     </style>
 </head>
 <body>
@@ -552,43 +561,56 @@ $conn->close();
                 <input type="email" name="email" class="form-control" placeholder="name@example.com" required value="<?php echo isset($_SESSION['reg_email']) ? htmlspecialchars($_SESSION['reg_email']) : ''; ?>">
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">
-                    <i class="bi bi-lock me-2" style="color: var(--primary);"></i>
-                    Password
-                </label>
-                <input type="password" name="password" id="password" class="form-control" placeholder="Create a password" required>
-                <div class="password-requirements mt-2">
-                    <div class="requirement" id="length-check">
-                        <i class="bi bi-x-circle text-danger"></i>
-                        <i class="bi bi-check-circle text-success d-none"></i>
-                        <span>At least 8 characters</span>
-                    </div>
-                    <div class="requirement" id="uppercase-check">
-                        <i class="bi bi-x-circle text-danger"></i>
-                        <i class="bi bi-check-circle text-success d-none"></i>
-                        <span>At least 1 uppercase letter</span>
-                    </div>
-                    <div class="requirement" id="number-check">
-                        <i class="bi bi-x-circle text-danger"></i>
-                        <i class="bi bi-check-circle text-success d-none"></i>
-                        <span>At least 1 number</span>
-                    </div>
-                    <div class="requirement" id="symbol-check">
-                        <i class="bi bi-x-circle text-danger"></i>
-                        <i class="bi bi-check-circle text-success d-none"></i>
-                        <span>At least 1 special character</span>
-                    </div>
-                </div>
-            </div>
+<!-- Password Field -->
+<div class="mb-3 position-relative">
+    <label class="form-label">
+        <i class="bi bi-lock me-2" style="color: var(--primary);"></i>
+        Password
+    </label>
+    <div class="input-group">
+        <input type="password" name="password" id="password" class="form-control" placeholder="Create a password" required>
+        <span class="input-group-text" onclick="togglePassword('password', this)">
+            <i class="bi bi-eye-slash" id="togglePasswordIcon"></i>
+        </span>
+    </div>
+    <div class="password-requirements mt-2">
+        <div class="requirement" id="length-check">
+            <i class="bi bi-x-circle text-danger"></i>
+            <i class="bi bi-check-circle text-success d-none"></i>
+            <span>At least 8 characters</span>
+        </div>
+        <div class="requirement" id="uppercase-check">
+            <i class="bi bi-x-circle text-danger"></i>
+            <i class="bi bi-check-circle text-success d-none"></i>
+            <span>At least 1 uppercase letter</span>
+        </div>
+        <div class="requirement" id="number-check">
+            <i class="bi bi-x-circle text-danger"></i>
+            <i class="bi bi-check-circle text-success d-none"></i>
+            <span>At least 1 number</span>
+        </div>
+        <div class="requirement" id="symbol-check">
+            <i class="bi bi-x-circle text-danger"></i>
+            <i class="bi bi-check-circle text-success d-none"></i>
+            <span>At least 1 special character</span>
+        </div>
+    </div>
+</div>
 
-            <div class="mb-4">
-                <label class="form-label">
-                    <i class="bi bi-shield-lock me-2" style="color: var(--primary);"></i>
-                    Confirm Password
-                </label>
-                <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your password" required>
-            </div>
+<!-- Confirm Password Field -->
+<div class="mb-4 position-relative">
+    <label class="form-label">
+        <i class="bi bi-shield-lock me-2" style="color: var(--primary);"></i>
+        Confirm Password
+    </label>
+    <div class="input-group">
+        <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirm your password" required>
+        <span class="input-group-text" onclick="togglePassword('confirm_password', this)">
+            <i class="bi bi-eye-slash"></i>
+        </span>
+    </div>
+</div>
+
 
             <button type="submit" class="btn btn-primary w-100">
                 <i class="bi bi-person-plus me-2"></i>
@@ -739,6 +761,21 @@ function resendOTP() {
         resendLink.innerHTML = 'Resend OTP';
         resendLink.style.pointerEvents = 'auto';
     });
+}
+
+function togglePassword(inputId, element) {
+    const input = document.getElementById(inputId);
+    const icon = element.querySelector('i');
+
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.remove("bi-eye-slash");
+        icon.classList.add("bi-eye");
+    } else {
+        input.type = "password";
+        icon.classList.remove("bi-eye");
+        icon.classList.add("bi-eye-slash");
+    }
 }
 </script>
 </body>
