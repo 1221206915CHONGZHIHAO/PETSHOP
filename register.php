@@ -156,7 +156,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $mail->Encoding = 'base64';
                     
                     // From address must match your Gmail address
-                    $mail->setFrom('yourgmail@gmail.com', 'Pet Shop Registration');
+                    $mail->setFrom('zheya1810@gmail.com', 'Pet Shop Registration');
                     $mail->addAddress($email);
                     $mail->addReplyTo('support@petshop.com', 'Pet Shop Support');
                     
