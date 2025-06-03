@@ -22,6 +22,7 @@ $redirect = isset($_GET['redirect']) ? $_GET['redirect'] : '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $captcha_verified = isset($_POST['captcha_verified']) && $_POST['captcha_verified'] === 'true';
+    $role = $_POST['role']; 
     $login_input = trim($_POST['login_input']); 
     $password = $_POST['password'];
     $redirect = isset($_POST['redirect']) ? $_POST['redirect'] : '';
@@ -29,47 +30,73 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($login_input) || empty($password)) {
         $error_message = "All fields are required.";
     } else {
-        $sql = "SELECT Customer_id, Customer_name, Customer_email, Customer_password, is_active 
-                FROM Customer 
-                WHERE Customer_name = ? OR Customer_email = ?";
+        // Admin login
+        if ($role === "admin" && $login_input === "ADMIN" && $password === "PETSHOP1") {
+            $_SESSION['role'] = "admin";
+            $_SESSION['admin_logged_in'] = true; 
+            $_SESSION['username'] = "ADMIN";
+            $_SESSION['email'] = "admin@petshop.com";
+            $success_message = "Login successful! Redirecting...";
+            $redirect_url = !empty($redirect) ? $redirect : 'admin_homepage.php';
+        }
+        else {
+            $sql = "SELECT Staff_id, Staff_Username, Staff_Email, Staff_Password, status, password_reset_token, img_URL 
+                    FROM Staff 
+                    WHERE Staff_Username = ? OR Staff_Email = ?";
 
-        $stmt = $conn->prepare($sql);
-        if (!$stmt) {
-            $error_message = "Database error. Please try again later.";
-        } else {
-            $stmt->bind_param("ss", $login_input, $login_input);
-            $stmt->execute();
-            $stmt->store_result();
-
-            if ($stmt->num_rows > 0) {
-                $stmt->bind_result($db_customer_id, $db_username, $db_email, $db_password, $db_is_active);
-                $stmt->fetch();
-
-                if ($db_is_active != 1) {
-                    $error_message = "Account is deactivated. Please contact administrator.";
-                }
-                elseif ($password === $db_password) {
-                    $_SESSION['role'] = "customer";
-                    $_SESSION['customer_id'] = $db_customer_id;
-                    $_SESSION['customer_name'] = $db_username;
-                    $_SESSION['email'] = $db_email;
-                    $redirect_url = !empty($redirect) ? $redirect : 'userhomepage.php';
-                    
-                    $conn->query("INSERT INTO customer_login_logs (username, email, status) 
-                                VALUES ('$db_username', '$db_email', 'login')");
-                    
-                    $success_message = "Login successful! Redirecting...";
-                } else {
-                    $error_message = "Invalid password.";
-                    $conn->query("INSERT INTO customer_login_logs (username, email, status) 
-                                VALUES ('', '$login_input', 'failed')");
-                }
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                $error_message = "Database error. Please try again later.";
             } else {
-                $error_message = "Username or email not found.";
-                $conn->query("INSERT INTO customer_login_logs (username, email, status) 
-                            VALUES ('', '$login_input', 'failed')");
+                $stmt->bind_param("ss", $login_input, $login_input);
+                $stmt->execute();
+                $stmt->store_result();
+
+                if ($stmt->num_rows > 0) {
+                    $stmt->bind_result($db_staff_id, $db_username, $db_email, $db_password, $db_status, $db_reset_token, $db_img_url);
+                    $stmt->fetch();
+
+                    if ($db_status !== 'Active') {
+                        $error_message = "Account is inactive. Please contact administrator.";
+                    }
+                    elseif (!empty($db_reset_token)) {
+                        if ($password === $db_password) {
+                            $_SESSION['reset_token'] = $db_reset_token;
+                            $_SESSION['staff_id'] = $db_staff_id;
+                            $redirect_url = "force_password_reset.php";
+                            $success_message = "Please set a new password.";
+                        } else {
+                            $error_message = "Invalid temporary password.";
+                        }
+                    }
+                    elseif ($password === $db_password) {
+                        $_SESSION['role'] = "staff";
+                        $_SESSION['staff_id'] = $db_staff_id;
+                        $_SESSION['username'] = $db_username;
+                        $_SESSION['email'] = $db_email;
+                        $_SESSION['avatar_path'] = $db_img_url;
+                        $conn->query("UPDATE Staff SET password_reset_token = NULL WHERE Staff_id = $db_staff_id");
+                        
+                        $conn->query("INSERT INTO staff_login_logs (staff_id, username, email, status) 
+                                    VALUES ($db_staff_id, '$db_username', '$db_email', 'login')");
+                        
+                        $redirect_url = !empty($redirect) ? $redirect : 'staff_homepage.php';
+                        $success_message = "Login successful! Redirecting...";
+                    } else {
+                        $error_message = "Invalid password.";
+                        $conn->query("UPDATE Staff SET 
+                            login_attempts = login_attempts + 1, 
+                            last_failed_login = NOW() 
+                            WHERE Staff_id = $db_staff_id");
+                        
+                        $conn->query("INSERT INTO staff_login_logs (staff_id, username, email, status, ip_address) 
+                                    VALUES ($db_staff_id, '$db_username', '$db_email', 'failed', '{$_SERVER['REMOTE_ADDR']}')");
+                    }
+                } else {
+                    $error_message = "Username or email not found.";
+                }
+                $stmt->close();
             }
-            $stmt->close();
         }
     }
 }
@@ -82,7 +109,7 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Login - Pet Shop</title>
+    <title>Admin/Staff Login - Pet Shop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -93,7 +120,7 @@ $conn->close();
             --primary: #4e9f3d; /* Fresh green */
             --primary-light: #8fd14f;
             --primary-dark: #38761d;
-            --secondary: #4e9f3d; /* Changed to match primary green */
+            --secondary: #1e3a8a; /* Deep navy blue */
             --accent: #ff7e2e; /* Warm orange */
             --light: #f8f9fa;
             --dark: #212529;
@@ -175,8 +202,6 @@ $conn->close();
             font-weight: 500;
             font-size: 14px;
             margin-bottom: 8px;
-            display: flex;
-            align-items: center;
         }
 
         .form-control, .form-select {
@@ -206,25 +231,6 @@ $conn->close();
         .btn-primary:hover, .btn-primary:focus {
             background-color: var(--primary-dark);
             border-color: var(--primary-dark);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(78, 159, 61, 0.4);
-        }
-
-        .btn-guest {
-            background-color: var(--primary-light);
-            border-color: var(--primary-light);
-            padding: 12px 30px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(143, 209, 79, 0.3);
-            border-radius: 8px;
-            color: white;
-        }
-
-        .btn-guest:hover {
-            background-color: var(--primary);
-            border-color: var(--primary);
             transform: translateY(-3px);
             box-shadow: 0 8px 25px rgba(78, 159, 61, 0.4);
         }
@@ -275,6 +281,48 @@ $conn->close();
             transform: translateY(-2px);
         }
 
+        .role-selector {
+            display: flex;
+            margin-bottom: 20px;
+            background-color: transparent;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .role-option {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--dark);
+            font-weight: 500;
+            position: relative;
+            border-radius: 5px;
+        }
+
+        .role-option.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .role-option.active:after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--primary);
+        }
+
+        .role-option i {
+            margin-right: 8px;
+        }
+
+        .role-option input {
+            position: absolute;
+            opacity: 0;
+        }
+
         .paw-print {
             position: absolute;
             width: 80px;
@@ -312,27 +360,19 @@ $conn->close();
             font-size: 14px;
         }
 
-        .login-links {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            margin-top: 1.5rem;
+        .forgot-password-link {
+            display: none;
         }
 
-        .login-links a {
-            color: var(--primary);
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
+        .forgot-password-link.staff-visible {
+            display: block;
         }
 
-        .login-links a:hover {
-            color: var(--primary-dark);
-            transform: translateY(-2px);
+        @media (max-width: 576px) {
+            .login-container {
+                padding: 30px 20px;
+                margin: 20px;
+            }
         }
 
         /* Captcha Styles */
@@ -454,13 +494,6 @@ $conn->close();
         .pulse {
             animation: pulse 1.5s infinite;
         }
-
-        @media (max-width: 576px) {
-            .login-container {
-                padding: 30px 20px;
-                margin: 20px;
-            }
-        }
     </style>
 </head>
 <body>
@@ -471,13 +504,27 @@ $conn->close();
         <div class="paw-print paw-bottom-left"></div>
         
         <div class="login-banner">
-            <h2 class="section-title">Customer Login</h2>
+            <h2 class="section-title">Admin/Staff Login</h2>
         </div>
         
         <div class="alert alert-danger" id="errorAlert" style="display: none;"></div>
         <div class="alert alert-success" id="successAlert" style="display: none;"></div>
         
         <form method="POST" action="" id="loginForm">
+            <!-- Role selector with icons -->
+            <div class="role-selector mb-4">
+                <label class="role-option" id="adminOption">
+                    <input type="radio" name="role" value="admin" required>
+                    <i class="bi bi-shield-lock"></i>
+                    Admin
+                </label>
+                <label class="role-option active" id="staffOption">
+                    <input type="radio" name="role" value="staff" required checked>
+                    <i class="bi bi-person-badge"></i>
+                    Staff
+                </label>
+            </div>
+
             <div class="mb-4">
                 <label class="form-label">
                     <i class="bi bi-person me-2" style="color: var(--primary);"></i>
@@ -504,20 +551,14 @@ $conn->close();
                 <i class="bi bi-box-arrow-in-right me-2"></i>
                 Login
             </button>
-
-            <button type="button" id="guestBtn" class="btn btn-guest w-100 mt-3">
-                <i class="bi bi-person me-2"></i>
-                Continue as Guest
-            </button>
-
-            <div class="login-links">
-                <p class="mb-0 text-center">New pet parent? <a href="register.php">Register here</a></p>
-                <a href="forgot_password.php">
-                    <i class="bi bi-question-circle"></i>
-                    Forgot Password?
-                </a>
-            </div>
         </form>
+
+        <p class="text-center mt-4 forgot-password-link staff-visible">
+            <a href="staff_forgot_password.php" class="mt-2 d-inline-block">
+                <i class="bi bi-question-circle me-1"></i>
+                Forgot Password?
+            </a>
+        </p>
     </div>
 </div>
 
@@ -578,9 +619,23 @@ document.getElementById('togglePassword').addEventListener('click', function () 
     }
 });
 
-// Guest button functionality
-document.getElementById('guestBtn').addEventListener('click', function() {
-    window.location.href = 'userhomepage.php?guest=true';
+// Role selector functionality
+const roleOptions = document.querySelectorAll('.role-option');
+const forgotPasswordLink = document.querySelector('.forgot-password-link');
+
+roleOptions.forEach(option => {
+    option.addEventListener('click', function() {
+        roleOptions.forEach(opt => opt.classList.remove('active'));
+        this.classList.add('active');
+        this.querySelector('input').checked = true;
+        
+        // Show/hide forgot password link based on selected role
+        if (this.querySelector('input').value === 'staff') {
+            forgotPasswordLink.classList.add('staff-visible');
+        } else {
+            forgotPasswordLink.classList.remove('staff-visible');
+        }
+    });
 });
 
 // Display PHP messages via JavaScript

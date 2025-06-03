@@ -2,7 +2,7 @@
 session_start();
 include 'db_connection.php';
 
-if (!isset($_SESSION['verified']) || !$_SESSION['verified']) {
+if (!isset($_SESSION['staff_verified']) || !$_SESSION['staff_verified']) {
     header("Location: staff_forgot_password.php");
     exit();
 }
@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (!preg_match('/[^A-Za-z0-9]/', $new_password)) {
         $error = "Password must contain at least one special character.";
     } else {
-        $email = $_SESSION['email'];
+        $email = $_SESSION['staff_email'];
         $plain_password = $new_password;
 
         $stmt = $conn->prepare("UPDATE staff SET Staff_Password = ? WHERE Staff_Email = ?");
@@ -31,9 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         if ($stmt->execute()) {
             $success = "Password has been reset successfully!";
+            session_unset();
             session_destroy();
         } else {
-            $error = "Error resetting password. Please try again.";
+            $error = "Error resetting password. Please try again. Error: " . $conn->error;
         }
     }
 }
@@ -43,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Password - Pet Shop</title>
+    <title>Reset Password - Pet Shop Staff</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -51,11 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #4e9f3d; /* Fresh green */
+            --primary: #4e9f3d;
             --primary-light: #8fd14f;
             --primary-dark: #38761d;
-            --secondary: #1e3a8a; /* Deep navy blue */
-            --accent: #ff7e2e; /* Warm orange */
+            --secondary: #1e3a8a;
+            --accent: #ff7e2e;
             --light: #f8f9fa;
             --dark: #212529;
             --gray: #6c757d;
@@ -207,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         .text-center a:hover {
             color: var(--primary-dark);
-            transform: translateY(-2px);
+                        transform: translateY(-2px);
             display: inline-block;
         }
         
@@ -310,11 +311,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             color: var(--primary) !important;
         }
         
-        /* Animation for validation icons */
-        .requirement i.bi-check-circle {
-            animation: fadeInScale 0.3s ease;
-        }
-        
         @keyframes fadeInScale {
             0% {
                 transform: scale(0);
@@ -360,7 +356,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         <?php if ($success): ?>
             <div class="alert alert-success">
-                <i class="bi bi-check-circle me-2"></i><?= $success ?> You can now <a href="login.php" class="alert-link">login</a>.
+                <i class="bi bi-check-circle me-2"></i><?= $success ?> You can now <a href="admin_login.php" class="alert-link">login</a>.
             </div>
         <?php else: ?>
             <form method="POST">

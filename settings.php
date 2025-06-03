@@ -3,7 +3,7 @@ session_start();
 
 // Check if staff is logged in
 if (!isset($_SESSION['staff_id'])) {
-    header("Location: login.php");
+    header("Location: admin_login.php");
     exit();
 }
 
@@ -30,7 +30,7 @@ $staff = $result->fetch_assoc();
 if (!$staff) {
     session_unset();
     session_destroy();
-    header("Location: login.php");
+    header("Location: admin_login.php");
     exit();
 }
 

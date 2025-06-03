@@ -24,7 +24,7 @@ if (isset($_SESSION['staff_id'])) {
     $stmt->close();
     
     // Set redirect URL for staff
-    $redirect_url = "login.php";
+    $redirect_url = "admin_login.php";
 }
 
 // If customer is logged in

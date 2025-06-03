@@ -3,7 +3,7 @@ session_start();
 
 // Redirect if not staff
 if (!isset($_SESSION['staff_id'])) {
-    header("Location: login.php");
+    header("Location: admin_login.php");
     exit();
 }
 

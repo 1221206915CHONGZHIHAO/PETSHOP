@@ -3,7 +3,7 @@ session_start();
 
 // Check if staff is logged in
 if (!isset($_SESSION['staff_id'])) {
-    header("Location: login.php?redirect=staff_orders.php");
+    header("Location: admin_login.php?redirect=staff_orders.php");
     exit;
 }
 

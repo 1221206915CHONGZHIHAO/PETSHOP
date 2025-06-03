@@ -9,8 +9,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $position = $_POST['position'];
     $status = $_POST['status'];
 
+    // Check if email already exists in Staff or Customer tables
+    $emailCheckQuery = "SELECT COUNT(*) as count FROM (
+                        SELECT Staff_Email as email FROM Staff WHERE Staff_Email = ?
+                        UNION ALL
+                        SELECT Customer_email as email FROM Customer WHERE Customer_email = ?
+                    ) as combined";
+    $stmt = $conn->prepare($emailCheckQuery);
+    $stmt->bind_param("ss", $email, $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $emailExists = $row['count'] > 0;
+
+    if ($emailExists) {
+        $error = "This email is already registered in our system. Please use a different email.";
+    } 
     // Password validation
-    if (strlen($password) < 8) {
+    elseif (strlen($password) < 8) {
         $error = "Password must be at least 8 characters long.";
     } elseif (!preg_match('/[A-Z]/', $password)) {
         $error = "Password must contain at least one uppercase letter.";
@@ -42,7 +58,6 @@ $result = $settingsQuery->get_result();
 if ($result->num_rows > 0) {
     $shopSettings = $result->fetch_assoc();
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -55,55 +70,65 @@ if ($result->num_rows > 0) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
+    <style>
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
+        }
+        .password-requirements {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--gray);
+            background-color: rgba(240, 242, 245, 0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+        }
+        .requirement {
+            margin-bottom: 5px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+        }
+        .requirement i {
+            margin-right: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .requirement.text-success {
+            color: var(--primary) !important;
+        }
+        .email-feedback {
+            display: none;
+            font-size: 0.875em;
+        }
+        .email-checking {
+            color: #6c757d;
+        }
+        .email-valid {
+            color: #198754;
+        }
+        .email-invalid {
+            color: #dc3545;
+        }
+    </style>
 </head>
 <body>
-    <style>
-            h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
-    .password-requirements {
-    margin-top: 8px;
-    font-size: 13px;
-    color: var(--gray);
-    background-color: rgba(240, 242, 245, 0.8);
-    padding: 10px 15px;
-    border-radius: 8px;
-}
-
-.requirement {
-    margin-bottom: 5px;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-}
-
-.requirement i {
-    margin-right: 8px;
-    font-size: 14px;
-    transition: all 0.3s ease;
-}
-
-.requirement.text-success {
-    color: var(--primary) !important;
-}
-    </style>
 <nav class="navbar navbar-dark px-3">
     <div class="d-flex align-items-center">
         <button class="btn btn-dark me-3 d-md-none" id="sidebarToggle">
@@ -115,23 +140,22 @@ if ($result->num_rows > 0) {
     </div>
     <div>
         <span class="text-light me-3"><i class="fas fa-user-circle me-1"></i> Welcome, <?php echo $_SESSION['username'] ?? 'ADMIN'; ?></span>
-        <a href="login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <a href="admin_login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
-
 
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar -->
-<nav id="sidebar" class="col-md-2 d-md-block bg-dark sidebar">
-    <div class="position-sticky">
-        <h4 class="text-light text-center py-3"><i class="fas fa-paw me-2"></i>Admin Menu</h4>
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link text-light" href="admin_homepage.php">
-                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                </a>
-            </li>
+        <nav id="sidebar" class="col-md-2 d-md-block bg-dark sidebar">
+            <div class="position-sticky">
+                <h4 class="text-light text-center py-3"><i class="fas fa-paw me-2"></i>Admin Menu</h4>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="admin_homepage.php">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                    </li>
             <li class="nav-item">
                 <a class="nav-link text-light active" data-bs-toggle="collapse" href="#staffMenu">
                     <i class="fas fa-users me-2"></i>Staff Management
@@ -208,6 +232,7 @@ if ($result->num_rows > 0) {
             </div>
         </nav>
 
+
         <!-- Main Content -->
         <main class="col-md-10 ms-sm-auto px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
@@ -228,7 +253,7 @@ if ($result->num_rows > 0) {
                     <i class="fas fa-user-edit me-2"></i>Staff Information
                 </div>
                 <div class="card-body">
-                <form method="POST" class="needs-validation" novalidate>
+                    <form method="POST" class="needs-validation" novalidate>
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="Staff_name" class="form-label">Full Name</label>
@@ -253,71 +278,73 @@ if ($result->num_rows > 0) {
                                 <div class="invalid-feedback">
                                     Please provide a valid email.
                                 </div>
+                                <div id="emailFeedback" class="email-feedback"></div>
                             </div>
-                            <div class="row mb-3">
-        <div class="col-md-6">
-            <label for="position" class="form-label">Position</label>
-            <select class="form-select" id="position" name="position" required>
-                <option value="" selected disabled>Select position</option>
-                <option value="Manager">Manager</option>
-                <option value="Sales Associate">Sales Associate</option>
-                <option value="Inventory Specialist">Inventory Specialist</option>
-            </select>
-        </div>
-        <div class="col-md-6">
-            <label for="status" class="form-label">Status</label>
-            <select class="form-select" id="status" name="status" required>
-                <option value="Active" selected>Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="On Leave">On Leave</option>
-            </select>
-        </div>
-    </div>
+                            <div class="col-md-6">
+                                <label for="position" class="form-label">Position</label>
+                                <select class="form-select" id="position" name="position" required>
+                                    <option value="" selected disabled>Select position</option>
+                                    <option value="Manager">Manager</option>
+                                    <option value="Sales Associate">Sales Associate</option>
+                                    <option value="Inventory Specialist">Inventory Specialist</option>
+                                </select>
+                            </div>
                         </div>
 
-<div class="row mb-4">
-    <div class="col-md-6">
-        <label for="Staff_Password" class="form-label">Password</label>
-        <div class="input-group">
-            <input type="password" class="form-control" id="Staff_Password" name="Staff_Password" required>
-            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                <i class="fas fa-eye"></i>
-            </button>
-        </div>
-        <div class="invalid-feedback">
-            Please provide a password.
-        </div>
-        <div class="password-requirements mt-2">
-            <div class="requirement" id="length-check">
-                <i class="fas fa-times-circle text-danger"></i>
-                <i class="fas fa-check-circle text-success d-none"></i>
-                <span>At least 8 characters</span>
-            </div>
-            <div class="requirement" id="uppercase-check">
-                <i class="fas fa-times-circle text-danger"></i>
-                <i class="fas fa-check-circle text-success d-none"></i>
-                <span>At least 1 uppercase letter</span>
-            </div>
-            <div class="requirement" id="number-check">
-                <i class="fas fa-times-circle text-danger"></i>
-                <i class="fas fa-check-circle text-success d-none"></i>
-                <span>At least 1 number</span>
-            </div>
-            <div class="requirement" id="symbol-check">
-                <i class="fas fa-times-circle text-danger"></i>
-                <i class="fas fa-check-circle text-success d-none"></i>
-                <span>At least 1 special character</span>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <label for="confirmPassword" class="form-label">Confirm Password</label>
-        <input type="password" class="form-control" id="confirmPassword" required>
-        <div class="invalid-feedback">
-            Passwords must match.
-        </div>
-    </div>
-</div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="Active" selected>Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                    <option value="On Leave">On Leave</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="Staff_Password" class="form-label">Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="Staff_Password" name="Staff_Password" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="invalid-feedback">
+                                    Please provide a password.
+                                </div>
+                                <div class="password-requirements mt-2">
+                                    <div class="requirement" id="length-check">
+                                        <i class="fas fa-times-circle text-danger"></i>
+                                        <i class="fas fa-check-circle text-success d-none"></i>
+                                        <span>At least 8 characters</span>
+                                    </div>
+                                    <div class="requirement" id="uppercase-check">
+                                        <i class="fas fa-times-circle text-danger"></i>
+                                        <i class="fas fa-check-circle text-success d-none"></i>
+                                        <span>At least 1 uppercase letter</span>
+                                    </div>
+                                    <div class="requirement" id="number-check">
+                                        <i class="fas fa-times-circle text-danger"></i>
+                                        <i class="fas fa-check-circle text-success d-none"></i>
+                                        <span>At least 1 number</span>
+                                    </div>
+                                    <div class="requirement" id="symbol-check">
+                                        <i class="fas fa-times-circle text-danger"></i>
+                                        <i class="fas fa-check-circle text-success d-none"></i>
+                                        <span>At least 1 special character</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                                <input type="password" class="form-control" id="confirmPassword" required>
+                                <div class="invalid-feedback">
+                                    Passwords must match.
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <button type="reset" class="btn btn-secondary me-md-2">
@@ -331,6 +358,9 @@ if ($result->num_rows > 0) {
                 </div>
             </div>
         </main>
+    </div>
+</div>
+
 <!-- Footer Section -->
 <footer>
     <div class="container-fluid">
@@ -396,9 +426,10 @@ if ($result->num_rows > 0) {
     </div>
 </footer>
 
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// 表單驗證
+// Form validation
 (function () {
     'use strict'
     
@@ -407,7 +438,7 @@ if ($result->num_rows > 0) {
     Array.prototype.slice.call(forms)
         .forEach(function (form) {
             form.addEventListener('submit', function (event) {
-                // 檢查密碼是否匹配
+                // Check password match
                 var password = document.getElementById('Staff_Password');
                 var confirmPassword = document.getElementById('confirmPassword');
                 
@@ -427,7 +458,7 @@ if ($result->num_rows > 0) {
         })
 })();
 
-// 切換密碼可見性
+// Toggle password visibility
 document.getElementById('togglePassword').addEventListener('click', function() {
     var passwordInput = document.getElementById('Staff_Password');
     var icon = this.querySelector('i');
@@ -442,6 +473,7 @@ document.getElementById('togglePassword').addEventListener('click', function() {
         icon.classList.add('fa-eye');
     }
 });
+
 // Password validation
 document.getElementById('Staff_Password').addEventListener('input', function() {
     const password = this.value;
@@ -474,6 +506,53 @@ function toggleIconVisibility(element, isValid) {
         element.classList.add('text-danger');
         element.classList.remove('text-success');
     }
+}
+
+// Email availability check
+document.getElementById('Staff_Email').addEventListener('blur', function() {
+    const email = this.value;
+    const emailFeedback = document.getElementById('emailFeedback');
+    
+    if (!email) return;
+    
+    if (!validateEmail(email)) {
+        emailFeedback.textContent = 'Please enter a valid email address';
+        emailFeedback.className = 'email-feedback email-invalid';
+        emailFeedback.style.display = 'block';
+        return;
+    }
+    
+    emailFeedback.textContent = 'Checking email availability...';
+    emailFeedback.className = 'email-feedback email-checking';
+    emailFeedback.style.display = 'block';
+    
+    // AJAX check for email availability
+    fetch('check_email.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'email=' + encodeURIComponent(email)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.exists) {
+            emailFeedback.textContent = 'This email is already registered';
+            emailFeedback.className = 'email-feedback email-invalid';
+        } else {
+            emailFeedback.textContent = 'Email is available';
+            emailFeedback.className = 'email-feedback email-valid';
+        }
+    })
+    .catch(error => {
+        emailFeedback.textContent = 'Error checking email availability';
+        emailFeedback.className = 'email-feedback email-invalid';
+    });
+});
+
+function validateEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
 }
 </script>
 </body>

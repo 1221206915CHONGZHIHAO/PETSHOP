@@ -20,8 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if ($result->num_rows === 1) {
         $otp = rand(100000, 999999);
-        $_SESSION['otp'] = $otp;
-        $_SESSION['email'] = $email;
+        $_SESSION['staff_otp'] = $otp;
+        $_SESSION['staff_email'] = $email;
 
         $mail = new PHPMailer(true);
         try {
@@ -29,27 +29,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $mail->Host = 'smtp.gmail.com';
             $mail->SMTPAuth = true;
             $mail->Username = 'zheya1810@gmail.com';
-            $mail->Password = 'rbzs duxv qmho ywlv'; // Use App Password
+            $mail->Password = 'rbzs duxv qmho ywlv';
             $mail->SMTPSecure = 'tls';
             $mail->Port = 587;
         
             $mail->setFrom('zheya1810@gmail.com', 'Petshop OTP System');
             $mail->addAddress($email); 
-            $mail->addReplyTo('zheya1810@gmail.com', 'Petshop Support'); 
-            
+            $mail->addReplyTo('zheya1810@gmail.com', 'Petshop Support');
         
             $mail->isHTML(true);
             $mail->Subject = 'Your OTP Code';
             $mail->Body = "Hi! Your OTP is <b>$otp</b>. Please use this code to verify your account. Thanks!";
-            
         
-            // Set to 0 for production
             $mail->SMTPDebug = 0; 
             $mail->Debugoutput = 'html';
           
-            $mail->send();
-            header("Location: verify_code.php");
-            exit();
+            if($mail->send()) {
+                header("Location: staff_verify_code.php");
+                exit();
+            } else {
+                $error = "Failed to send OTP. Please try again.";
+            }
         } catch (Exception $e) {
             $error = "Email could not be sent. Error: " . $mail->ErrorInfo;
         }
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password - Pet Shop</title>
+    <title>Forgot Password - Pet Shop Staff</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -71,11 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #4e9f3d; /* Fresh green */
+            --primary: #4e9f3d;
             --primary-light: #8fd14f;
             --primary-dark: #38761d;
-            --secondary: #1e3a8a; /* Deep navy blue */
-            --accent: #ff7e2e; /* Warm orange */
+            --secondary: #1e3a8a;
+            --accent: #ff7e2e;
             --light: #f8f9fa;
             --dark: #212529;
             --gray: #6c757d;
@@ -272,7 +272,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
 <div class="container">
     <div class="forgot-container">
-        <!-- Paw print decorations -->
         <div class="paw-print paw-top-right"></div>
         <div class="paw-print paw-bottom-left"></div>
         
@@ -290,7 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
         <?php endif; ?>
         
-        <form method="POST">
+        <form method="POST" id="forgotForm">
             <div class="mb-4">
                 <label class="form-label">
                     <i class="bi bi-envelope me-2" style="color: var(--primary);"></i>
@@ -298,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                    <input type="email" name="email" class="form-control" placeholder="Enter your email address" required>
+                    <input type="email" name="email" id="email" class="form-control" placeholder="Enter your email address" required>
                 </div>
                 <small class="text-muted">
                     <i class="bi bi-info-circle me-1"></i> 
@@ -306,16 +305,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </small>
             </div>
 
-            <button type="submit" class="btn btn-primary w-100">
+            <button type="submit" class="btn btn-primary w-100" id="submitBtn">
                 <i class="bi bi-send me-2"></i> Send Verification Code
             </button>
         </form>
 
         <p class="text-center mt-4">
-            Remembered your password? <a href="login.php" class="d-inline-block">Login here</a>
+            Remembered your password? <a href="admin_login.php" class="d-inline-block">Login here</a>
         </p>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById('forgotForm').addEventListener('submit', function(e) {
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+    });
+
+    // Auto-focus on email input when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('email').focus();
+    });
+</script>
 </body>
 </html>
