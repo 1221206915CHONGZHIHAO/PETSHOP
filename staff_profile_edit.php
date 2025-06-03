@@ -337,22 +337,18 @@ $db->close();
             <div class="position-sticky pt-3">
                 <div class="d-flex flex-column align-items-center mb-4">
                     <?php
-                    // Check for avatar in this order: 1. Session avatar_path, 2. staff_avatars folder, 3. Default initials
-// Replace the avatar display section with:
-$avatar_path = isset($_SESSION['avatar_path']) ? $_SESSION['avatar_path'] : 
-              (!empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg");
+                    $avatar_path = isset($_SESSION['avatar_path']) ? $_SESSION['avatar_path'] : 
+                                  (!empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg");
 
-if (file_exists($avatar_path)): ?>
-    <img src="<?php echo $avatar_path; ?>" id="avatarPreview" alt="Profile Image">
-<?php else: ?>
-    <!-- Initials display -->
-<?php endif; ?>
+                    if (file_exists($avatar_path)): ?>
+                        <img src="<?php echo $avatar_path; ?>" id="avatarPreview" alt="Profile Image" class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;">
+                    <?php else: ?>
                         <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
                             <span class="text-white" style="font-size: 24px;">
                             <?php 
-$username = $staff['Staff_username'] ?? $_SESSION['staff_name'];
-echo strtoupper(substr($username, 0, 1)); 
-?>
+                            $username = $staff['Staff_username'] ?? $_SESSION['staff_name'];
+                            echo strtoupper(substr($username, 0, 1)); 
+                            ?>
                             </span>
                         </div>
                     <?php endif; ?>
@@ -756,6 +752,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+function togglePassword(id, button) {
+    const input = document.getElementById(id);
+    const icon = button.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+}
 
 // Function to update initials display from username
 function updateInitials(name) {

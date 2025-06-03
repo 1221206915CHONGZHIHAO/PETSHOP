@@ -51,22 +51,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         else {
             if ($role === "staff") {
-    $sql = "SELECT Staff_id, Staff_Username, Staff_Email, Staff_Password, status, password_reset_token, img_URL 
-            FROM Staff 
-            WHERE Staff_Username = ? OR Staff_Email = ?";
-} elseif ($role === "customer") {
-    $sql = "SELECT Customer_id, Customer_name, Customer_email, Customer_password, is_active 
-            FROM Customer 
-            WHERE Customer_name = ? OR Customer_email = ?";
-}
+                $sql = "SELECT Staff_id, Staff_Username, Staff_Email, Staff_Password, status, password_reset_token, img_URL 
+                        FROM Staff 
+                        WHERE Staff_Username = ? OR Staff_Email = ?";
+            } elseif ($role === "customer") {
+                $sql = "SELECT Customer_id, Customer_name, Customer_email, Customer_password, is_active 
+                        FROM Customer 
+                        WHERE Customer_name = ? OR Customer_email = ?";
+            }
 
-// Then update the parameter binding (replace this part):
-if (empty($error_message)) {
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        $error_message = "Database error. Please try again later.";
-    } else {
-        $stmt->bind_param("ss", $login_input, $login_input);
+            if (empty($error_message)) {
+                $stmt = $conn->prepare($sql);
+                if (!$stmt) {
+                    $error_message = "Database error. Please try again later.";
+                } else {
+                    $stmt->bind_param("ss", $login_input, $login_input);
                     $stmt->execute();
                     $stmt->store_result();
 
@@ -288,6 +287,18 @@ $conn->close();
         .pulse {
             animation: pulse 1.5s infinite;
         }
+
+        /* Guest button style */
+        .guest-btn {
+            background-color: #4CAF50; 
+            border-color: #4CAF50;
+            margin-top: 10px;
+            color: white;
+        }
+        .guest-btn:hover {
+            background-color: #3e8e41; 
+            border-color: #3e8e41;
+        }
     </style>
 </head>
 <body>
@@ -326,12 +337,12 @@ $conn->close();
             </div>
 
             <div class="mb-4">
-    <label class="form-label">
-        <i class="bi bi-person me-2" style="color: var(--primary);"></i>
-        Username or Email
-    </label>
-    <input type="text" name="login_input" class="form-control" required placeholder="Enter your username or email">
-</div>
+                <label class="form-label">
+                    <i class="bi bi-person me-2" style="color: var(--primary);"></i>
+                    Username or Email
+                </label>
+                <input type="text" name="login_input" class="form-control" required placeholder="Enter your username or email">
+            </div>
 
             <div class="mb-4 position-relative">
                 <label class="form-label">
@@ -351,15 +362,36 @@ $conn->close();
                 <i class="bi bi-box-arrow-in-right me-2"></i>
                 Login
             </button>
+
+            <!-- Guest button - only shown for customer role -->
+            <button type="button" id="guestBtn" class="btn guest-btn w-100 mt-2">
+                <i class="bi bi-person me-2"></i>
+                Continue as Guest
+            </button>
         </form>
 
-        <p class="text-center mt-4">
-            New pet parent? <a href="register.php" class="d-inline-block">Register here</a><br>
-            <a href="forgot_password.php" class="mt-2 d-inline-block">
-                <i class="bi bi-question-circle me-1"></i>
-                Forgot Password?
-            </a>
-        </p>
+        <!-- Links container - only shown for customer role -->
+        <div id="customerLinks" class="text-center mt-4">
+            <p class="mb-2">
+                New pet parent? <a href="register.php" class="d-inline-block">Register here</a>
+            </p>
+            <p>
+                <a href="forgot_password.php" class="d-inline-block">
+                    <i class="bi bi-question-circle me-1"></i>
+                    Forgot Password?
+                </a>
+            </p>
+        </div>
+
+        <!-- Staff forgot password link - only shown for staff role -->
+        <div id="staffLinks" class="text-center mt-4" style="display: none;">
+            <p>
+                <a href="staff_forgot_password.php" class="d-inline-block">
+                    <i class="bi bi-question-circle me-1"></i>
+                    Forgot Password?
+                </a>
+            </p>
+        </div>
     </div>
 </div>
 
@@ -421,12 +453,45 @@ document.getElementById('togglePassword').addEventListener('click', function () 
 
 // Role selector functionality
 const roleOptions = document.querySelectorAll('.role-option');
+const customerLinks = document.getElementById('customerLinks');
+const staffLinks = document.getElementById('staffLinks');
+const guestBtn = document.getElementById('guestBtn');
+
+function updateUIForRole(role) {
+    if (role === 'customer') {
+        customerLinks.style.display = 'block';
+        staffLinks.style.display = 'none';
+        guestBtn.style.display = 'block';
+    } else if (role === 'staff') {
+        customerLinks.style.display = 'none';
+        staffLinks.style.display = 'block';
+        guestBtn.style.display = 'none';
+    } else { // admin
+        customerLinks.style.display = 'none';
+        staffLinks.style.display = 'none';
+        guestBtn.style.display = 'none';
+    }
+}
+
 roleOptions.forEach(option => {
     option.addEventListener('click', function() {
         roleOptions.forEach(opt => opt.classList.remove('active'));
         this.classList.add('active');
         this.querySelector('input').checked = true;
+        
+        // Update UI based on selected role
+        const selectedRole = this.querySelector('input').value;
+        updateUIForRole(selectedRole);
     });
+});
+
+// Initialize UI based on default selected role (customer)
+updateUIForRole('customer');
+
+// Guest button functionality
+document.getElementById('guestBtn').addEventListener('click', function() {
+    // Set guest session or redirect
+    window.location.href = 'userhomepage.php?guest=true';
 });
 
 // Display PHP messages via JavaScript
