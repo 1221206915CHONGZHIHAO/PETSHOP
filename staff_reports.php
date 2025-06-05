@@ -363,7 +363,7 @@ $conn->close();
                                 <div>
                                     <h6 class="card-title">TOTAL SALES</h6>
                                     <h2 class="mb-0">
-                                        $<?php 
+                                        RM<?php 
                                             $total_sales = array_sum(array_column($report_data, 'sales'));
                                             echo number_format($total_sales, 2); 
                                         ?>
@@ -399,7 +399,7 @@ $conn->close();
                                 <div>
                                     <h6 class="card-title">AVG. ORDER VALUE</h6>
                                     <h2 class="mb-0">
-                                        $<?php 
+                                        RM<?php 
                                             $avg_order = $total_orders > 0 ? $total_sales / $total_orders : 0;
                                             echo number_format($avg_order, 2); 
                                         ?>
@@ -445,9 +445,9 @@ $conn->close();
                                     <?php foreach ($report_data as $row): ?>
                                         <tr>
                                             <td><?php echo htmlspecialchars($row['period']); ?></td>
-                                            <td>$<?php echo number_format($row['sales'], 2); ?></td>
+                                            <td>RM<?php echo number_format($row['sales'], 2); ?></td>
                                             <td><?php echo number_format($row['orders']); ?></td>
-                                            <td>$<?php echo number_format($row['orders'] > 0 ? $row['sales'] / $row['orders'] : 0, 2); ?></td>
+                                            <td>RM<?php echo number_format($row['orders'] > 0 ? $row['sales'] / $row['orders'] : 0, 2); ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
@@ -543,7 +543,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data: {
             labels: <?php echo json_encode(array_reverse($chart_labels)); ?>,
             datasets: [{
-                label: 'Sales ($)',
+                label: 'Sales (RM)',
                 data: <?php echo json_encode(array_reverse($chart_data)); ?>,
                 backgroundColor: 'rgba(78, 115, 223, 0.8)',
                 borderColor: 'rgba(78, 115, 223, 1)',
@@ -560,7 +560,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return '$' + context.raw.toLocaleString();
+                            return 'RM' + context.raw.toLocaleString();
                         }
                     }
                 }
@@ -570,7 +570,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return '$' + value.toLocaleString();
+                            return 'RM' + value.toLocaleString();
                         }
                     }
                 }

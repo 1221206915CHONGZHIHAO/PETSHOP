@@ -594,9 +594,6 @@ $db->close();
                                     </span>
                                 </div>
                             <?php endif; ?>
-                            <div class="user-avatar-edit" onclick="document.getElementById('avatar').click()">
-                                <i class="fas fa-camera me-1"></i> Change
-                            </div>
                         </div>
                         <h4 id="namePreview"><?php echo htmlspecialchars($staff['Staff_username'] ?? $staff['Staff_name']); ?></h4>
                         <p class="text-muted mb-1" id="emailPreview"><?php echo htmlspecialchars($staff['Staff_Email']); ?></p>

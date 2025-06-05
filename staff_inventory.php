@@ -434,7 +434,7 @@ $conn->close();
                                 }
                                 ?>
                             </td>
-                            <td>$<?= number_format($product['price'], 2) ?></td>
+                            <td>RM<?= number_format($product['price'], 2) ?></td>
                             <td class="<?= $product['stock_quantity'] < 5 ? 'low-stock' : '' ?>">
                                 <?= htmlspecialchars($product['stock_quantity']) ?>
                             </td>
@@ -502,7 +502,7 @@ $conn->close();
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Price*</label>
                             <div class="input-group">
-                                <span class="input-group-text">$</span>
+                                <span class="input-group-text">RM</span>
                                 <input type="number" name="price" step="0.01" min="1" class="form-control" required>
                             </div>
                         </div>
