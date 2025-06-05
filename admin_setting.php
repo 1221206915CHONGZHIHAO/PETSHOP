@@ -237,7 +237,6 @@ if ($result->num_rows > 0) {
                                     <label class="form-label">Opening Hours</label>
                                     <input type="text" name="opening_hours" class="form-control"
                                         value="<?php echo htmlspecialchars($settings['opening_hours']); ?>" required>
-                                    <small class="text-muted">Example: "Monday-Friday: 9AM-6PM, Saturday: 10AM-4PM, Sunday: Closed"</small>
                                 </div>
                             </div>
                         </div>
