@@ -31,17 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $error_message = "All fields are required.";
     } else {
         // Admin login
-if ($role === "admin" && $login_input === "ADMIN" && $password === "PETSHOP1") {
-    $_SESSION['role'] = "admin";
-    $_SESSION['admin_logged_in'] = true; 
-    $_SESSION['username'] = "ADMIN";
-    $_SESSION['email'] = "admin@petshop.com";
-    $success_message = "Login successful! Redirecting...";
-    $redirect_url = !empty($redirect) ? $redirect : 'admin_homepage.php';
-}
-
-//Admin
-if ($role === "admin") {
+        if ($role === "admin") {
     $sql = "SELECT Admin_Username, Admin_Email, Admin_Password 
             FROM Admin 
             WHERE Admin_Username = ? OR Admin_Email = ?";
@@ -74,7 +64,66 @@ if ($role === "admin") {
         $stmt->close();
     }
 }
-}
+        else {
+            $sql = "SELECT Staff_id, Staff_Username, Staff_Email, Staff_Password, status, password_reset_token, img_URL 
+                    FROM Staff 
+                    WHERE Staff_Username = ? OR Staff_Email = ?";
+
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                $error_message = "Database error. Please try again later.";
+            } else {
+                $stmt->bind_param("ss", $login_input, $login_input);
+                $stmt->execute();
+                $stmt->store_result();
+
+                if ($stmt->num_rows > 0) {
+                    $stmt->bind_result($db_staff_id, $db_username, $db_email, $db_password, $db_status, $db_reset_token, $db_img_url);
+                    $stmt->fetch();
+
+                    if ($db_status !== 'Active') {
+                        $error_message = "Account is inactive. Please contact administrator.";
+                    }
+                    elseif (!empty($db_reset_token)) {
+                        if ($password === $db_password) {
+                            $_SESSION['reset_token'] = $db_reset_token;
+                            $_SESSION['staff_id'] = $db_staff_id;
+                            $redirect_url = "force_password_reset.php";
+                            $success_message = "Please set a new password.";
+                        } else {
+                            $error_message = "Invalid temporary password.";
+                        }
+                    }
+                    elseif ($password === $db_password) {
+                        $_SESSION['role'] = "staff";
+                        $_SESSION['staff_id'] = $db_staff_id;
+                        $_SESSION['username'] = $db_username;
+                        $_SESSION['email'] = $db_email;
+                        $_SESSION['avatar_path'] = $db_img_url;
+                        $conn->query("UPDATE Staff SET password_reset_token = NULL WHERE Staff_id = $db_staff_id");
+                        
+                        $conn->query("INSERT INTO staff_login_logs (staff_id, username, email, status) 
+                                    VALUES ($db_staff_id, '$db_username', '$db_email', 'login')");
+                        
+                        $redirect_url = !empty($redirect) ? $redirect : 'staff_homepage.php';
+                        $success_message = "Login successful! Redirecting...";
+                    } else {
+                        $error_message = "Invalid password.";
+                        $conn->query("UPDATE Staff SET 
+                            login_attempts = login_attempts + 1, 
+                            last_failed_login = NOW() 
+                            WHERE Staff_id = $db_staff_id");
+                        
+                        $conn->query("INSERT INTO staff_login_logs (staff_id, username, email, status, ip_address) 
+                                    VALUES ($db_staff_id, '$db_username', '$db_email', 'failed', '{$_SERVER['REMOTE_ADDR']}')");
+                    }
+                } else {
+                    $error_message = "Username or email not found.";
+                }
+                $stmt->close();
+            }
+        }
+    }
 }
 
 $conn->close();

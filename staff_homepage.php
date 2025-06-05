@@ -15,7 +15,7 @@ if ($db->connect_error) {
 
 // Fetch staff details
 $staff_id = $_SESSION['staff_id'];
-$query = "SELECT Staff_name, Staff_username, position, Staff_Email FROM staff WHERE Staff_ID = ?";
+$query = "SELECT Staff_name, Staff_username, position, Staff_Email, img_URL FROM staff WHERE Staff_ID = ?";
 $stmt = $db->prepare($query);
 $stmt->bind_param("i", $staff_id);
 $stmt->execute();
@@ -34,48 +34,132 @@ $_SESSION['staff_name'] = $staff['Staff_name'];
 $_SESSION['staff_username'] = $staff['Staff_username'];
 $_SESSION['position'] = $staff['position'];
 $_SESSION['staff_email'] = $staff['Staff_Email'];
+$_SESSION['avatar_path'] = $staff['img_URL'];
+
+// Handle order status toggle (disable/enable)
+if (isset($_GET['toggle_status'])) {
+    $order_id = intval($_GET['order_id']);
+    $action = $_GET['action'];
+    
+    // Validate action
+    if (!in_array($action, ['disable', 'enable'])) {
+        $_SESSION['error_message'] = "Invalid action";
+        header("Location: staff_homepage.php");
+        exit();
+    }
+    
+    // Prepare the new status
+    $new_status = ($action === 'disable') ? 'Disabled' : 'Pending';
+    
+    // Update the order status
+    $stmt = $db->prepare("UPDATE orders SET status = ? WHERE Order_ID = ?");
+    $stmt->bind_param("si", $new_status, $order_id);
+    
+    if ($stmt->execute()) {
+        $_SESSION['success_message'] = "Order #$order_id has been " . ($action === 'disable' ? 'disabled' : 'enabled');
+    } else {
+        $_SESSION['error_message'] = "Error updating order status: " . $db->error;
+    }
+    
+    $stmt->close();
+    header("Location: staff_homepage.php");
+    exit();
+}
+
+// Handle export functionality
+if (isset($_GET['export'])) {
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="orders_export.csv"');
+    
+    $output = fopen('php://output', 'w');
+    fputcsv($output, array('Order ID', 'Customer', 'Products', 'Total', 'Date', 'Status'));
+    
+    $dateFilter = isset($_GET['week_filter']) ? "WHERE orders.order_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK) AND orders.status != 'Disabled'" : "WHERE orders.status != 'Disabled'";
+    
+    $result = $db->query("SELECT 
+        orders.Order_ID as order_id, 
+        c.customer_name, 
+        orders.Total, 
+        orders.order_date, 
+        orders.status,
+        GROUP_CONCAT(CONCAT(p.product_name, ' (', oi.quantity, ')')) as products
+        FROM orders
+        JOIN customer c ON orders.Customer_ID = c.customer_id
+        JOIN order_items oi ON orders.Order_ID = oi.order_id
+        JOIN products p ON oi.product_id = p.product_id
+        $dateFilter
+        GROUP BY orders.Order_ID
+        ORDER BY orders.order_date DESC
+        LIMIT 5");
+    
+    while ($row = $result->fetch_assoc()) {
+        fputcsv($output, array(
+            $row['order_id'],
+            $row['customer_name'],
+            $row['products'],
+            $row['Total'],
+            $row['order_date'],
+            $row['status']
+        ));
+    }
+    
+    fclose($output);
+    exit();
+}
+
+// Handle week filter
+$dateFilter = isset($_GET['week_filter']) ? "WHERE orders.order_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK) AND orders.status != 'Disabled'" : "WHERE orders.status != 'Disabled'";
+$summaryWhere = isset($_GET['week_filter']) ? "AND order_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK) AND status != 'Disabled'" : "AND status != 'Disabled'";
 
 // Fetch data for summary cards
 $summaryData = [];
-$result = $db->query("SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending'");
+$result = $db->query("SELECT COUNT(*) as total_orders FROM orders $dateFilter");
+$summaryData['total_orders'] = $result->fetch_assoc()['total_orders'];
+
+$result = $db->query("SELECT SUM(Total) as total_revenue FROM orders WHERE status = 'completed' $summaryWhere");
+$summaryData['total_revenue'] = $result->fetch_assoc()['total_revenue'] ?? 0;
+
+$result = $db->query("SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending' $summaryWhere");
 $summaryData['pending_orders'] = $result->fetch_assoc()['pending_orders'];
 
 $result = $db->query("SELECT COUNT(*) as low_stock FROM products WHERE stock_quantity < 10");
 $summaryData['low_stock'] = $result->fetch_assoc()['low_stock'];
 
-// Fetch recent orders (limit to 5) with order items
+// Fetch data for sales chart (last 6 months, exclude disabled)
+$salesData = [];
+$result = $db->query("SELECT 
+    DATE_FORMAT(order_date, '%b') as month,
+    SUM(Total) as amount 
+    FROM orders 
+    WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND status != 'Disabled'
+    GROUP BY MONTH(order_date)
+    ORDER BY order_date ASC");
+while ($row = $result->fetch_assoc()) {
+    $salesData['labels'][] = $row['month'];
+    $salesData['data'][] = $row['amount'];
+}
+
+// Fetch recent orders (always limit to 5, exclude disabled)
 $recentOrders = [];
 $result = $db->query("SELECT 
-    o.order_id, 
+    orders.Order_ID as order_id, 
     c.customer_name, 
-    o.Total, 
-    o.order_date, 
-    o.status,
-    o.address,
-    o.paymentMethod
-    FROM orders o
-    JOIN customer c ON o.customer_id = c.customer_id
-    ORDER BY o.order_date DESC
+    orders.Total, 
+    orders.order_date, 
+    orders.status,
+    GROUP_CONCAT(CONCAT(p.product_name, ' (', oi.quantity, ')')) as products
+    FROM orders
+    JOIN customer c ON orders.Customer_ID = c.customer_id
+    JOIN order_items oi ON orders.Order_ID = oi.order_id
+    JOIN products p ON oi.product_id = p.product_id
+    WHERE orders.status != 'Disabled'
+    GROUP BY orders.Order_ID
+    ORDER BY orders.order_date DESC
     LIMIT 5");
 while ($row = $result->fetch_assoc()) {
-    // Fetch order items for each order
-    $order_id = $row['order_id'];
-    $item_query = "SELECT p.product_name, oi.quantity, oi.unit_price 
-                  FROM order_items oi
-                  JOIN products p ON oi.product_id = p.product_id
-                  WHERE oi.order_id = $order_id";
-    $item_result = $db->query($item_query);
-    $items = [];
-    while($item = $item_result->fetch_assoc()) {
-        $items[] = [
-            'name' => $item['product_name'],
-            'quantity' => $item['quantity'],
-            'price' => $item['unit_price']
-        ];
-    }
-    $row['items'] = $items;
     $recentOrders[] = $row;
 }
+
 // Fetch shop settings
 $shopSettings = [];
 $settingsQuery = $db->prepare("SELECT * FROM shop_settings WHERE id = 1");
@@ -85,6 +169,7 @@ $result = $settingsQuery->get_result();
 if ($result->num_rows > 0) {
     $shopSettings = $result->fetch_assoc();
 }
+
 $db->close();
 ?>
 <!DOCTYPE html>
@@ -97,68 +182,63 @@ $db->close();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
-<style>
-    .chart-container {
-        position: relative;
-        height: 300px;
-        width: 100%;
-    }
-    canvas {
-        display: block;
-        height: 300px !important;
-        width: 100% !important;
-    }
-    .badge {
-        font-size: 0.85em;
-        padding: 0.35em 0.65em;
-    }
-    .dropdown-toggle::after {
-        display: none;
-    }
-    #sidebar {
-        background-color: var(--dark);
-        min-height: 100vh;
-        transition: transform 0.3s ease;
-    }
-    @media (max-width: 992px) {
+    <style>
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        canvas {
+            display: block;
+            height: 300px !important;
+            width: 100% !important;
+        }
+        .badge {
+            font-size: 0.85em;
+            padding: 0.35em 0.65em;
+        }
+        .dropdown-toggle::after {
+            display: none;
+        }
         #sidebar {
-            position: fixed;
-            z-index: 1000;
-            transform: translateX(-100%);
+            background-color: var(--dark);
+            min-height: 100vh;
+            transition: transform 0.3s ease;
         }
-        #sidebar.show {
-            transform: translateX(0);
+        @media (max-width: 992px) {
+            #sidebar {
+                position: fixed;
+                z-index: 1000;
+                transform: translateX(-100%);
+            }
+            #sidebar.show {
+                transform: translateX(0);
+            }
         }
-    }
-    .product-list {
-        list-style-type: none;
-        padding-left: 0;
-    }
-    .product-list li {
-        padding: 5px 0;
-        border-bottom: 1px solid #eee;
-    }
-    h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
-</style>
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
+        }
+        .badge-disabled {
+            background-color: var(--gray);
+        }
+    </style>
 </head>
 <body>
 
@@ -187,55 +267,53 @@ $db->close();
             <div class="position-sticky pt-3">
                 <div class="d-flex flex-column align-items-center mb-4">
                     <?php
-                    // Check for avatar in this order: 1. Session avatar_path, 2. staff_avatars folder, 3. Default initials
-// Replace the avatar display section in staff_homepage.php with:
-$avatar_path = isset($_SESSION['avatar_path']) ? $_SESSION['avatar_path'] : 
-              (!empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg");
+                    $avatar_path = isset($_SESSION['avatar_path']) ? $_SESSION['avatar_path'] : 
+                                  (!empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg");
 
-if (file_exists($avatar_path)): ?>
-    <img src="<?php echo $avatar_path; ?>" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
-<?php else: ?>
-    <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-        <span class="text-white" style="font-size: 24px;">
-            <?php 
-            $username = $staff['Staff_username'] ?? $_SESSION['staff_name'];
-            echo strtoupper(substr($username, 0, 1)); 
-            ?>
-        </span>
-    </div>
-<?php endif; ?>
+                    if (file_exists($avatar_path)): ?>
+                        <img src="<?php echo $avatar_path; ?>" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
+                    <?php else: ?>
+                        <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                            <span class="text-white" style="font-size: 24px;">
+                                <?php 
+                                $username = $staff['Staff_username'] ?? $_SESSION['staff_name'];
+                                echo strtoupper(substr($username, 0, 1)); 
+                                ?>
+                            </span>
+                        </div>
+                    <?php endif; ?>
                     <h5 class="text-white mb-1"><?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?></h5>
                     <small class="text-muted text-center"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
                 </div>
-        <!-- Sidebar Menu -->
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link text-light active" href="staff_homepage.php">
-                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                </a>
-            </li>
+                <!-- Sidebar Menu -->
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link text-light active" href="staff_homepage.php">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                    </li>
 
-            <li class="nav-item">
-                <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
-                    <i class="fas fa-user-friends me-2"></i>Customer Management
-                </a>
-                <div class="collapse" id="customerMenu">
-                    <ul class="nav flex-column ps-4">
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="staff_customer_list.php">
-                                <i class="fas fa-list me-2"></i>Customer List
-                            </a>
-                        </li>
-                        <li class="nav-item">
+                    <li class="nav-item">
+                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
+                            <i class="fas fa-user-friends me-2"></i>Customer Management
+                        </a>
+                        <div class="collapse" id="customerMenu">
+                            <ul class="nav flex-column ps-4">
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_customer_list.php">
+                                        <i class="fas fa-list me-2"></i>Customer List
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a class="nav-link text-light" href="staff_customer_logs.php">
                                         <i class="fas fa-history me-2"></i>Login/Logout Logs
                                     </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
 
-            <li class="nav-item">
+                    <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
                             <i class="fas fa-shopping-cart me-2"></i>Order Management
                         </a>
@@ -255,43 +333,94 @@ if (file_exists($avatar_path)): ?>
                         </div>
                     </li>
 
-            <li class="nav-item">
+                    <li class="nav-item">
                         <a class="nav-link text-light" href="staff_reports.php">
                             <i class="fas fa-chart-line me-2"></i>Reports
                         </a>
                     </li>
 
-            <li class="nav-item">
-                <a class="nav-link text-light" href="staff_inventory.php">
-                    <i class="fas fa-boxes me-2"></i>Inventory
-                </a>
-            </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="staff_inventory.php">
+                            <i class="fas fa-boxes me-2"></i>Inventory
+                        </a>
+                    </li>
 
-            <li class="nav-item mt-3">
-                <a class="nav-link text-light" href="settings.php">
-                    <i class="fas fa-cog me-2"></i>Settings
-                </a>
-            </li>
-        </ul>
-    </div>
-</nav>
+                    <li class="nav-item mt-3">
+                        <a class="nav-link text-light" href="settings.php">
+                            <i class="fas fa-cog me-2"></i>Settings
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
 
         <!-- Main Content -->
-        <main class="col-lg-10 ms-sm-auto p-4">
+        <main class="col-lg-10 ms-sm-auto px-md-4">
+            <?php if (isset($_SESSION['success_message'])): ?>
+                <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+                    <?php echo $_SESSION['success_message']; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php unset($_SESSION['success_message']); ?>
+            <?php endif; ?>
+            
+            <?php if (isset($_SESSION['error_message'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                    <?php echo $_SESSION['error_message']; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php unset($_SESSION['error_message']); ?>
+            <?php endif; ?>
+
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
-                            <i class="fas fa-sync-alt me-1"></i> Refresh
+                        <a href="?export=1<?php echo isset($_GET['week_filter']) ? '&week_filter=1' : ''; ?>" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-download me-1"></i> Export
+                        </a>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="weekDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-calendar me-1"></i><?php echo isset($_GET['week_filter']) ? 'This Week' : 'All Time'; ?>
                         </button>
+                        <ul class="dropdown-menu" aria-labelledby="weekDropdown">
+                            <li><a class="dropdown-item <?php echo isset($_GET['week_filter']) ? 'active' : ''; ?>" href="?week_filter=1">This Week</a></li>
+                            <li><a class="dropdown-item <?php echo !isset($_GET['week_filter']) ? 'active' : ''; ?>" href="staff_homepage.php">All Time</a></li>
+                        </ul>
                     </div>
                 </div>
             </div>
 
             <!-- Summary Cards -->
             <div class="row mb-4">
-                <div class="col-xl-3 col-md-6 mb-4">
+                <div class="col-md-3">
+                    <div class="card text-white bg-primary h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">TOTAL ORDERS</h6>
+                                    <h2 class="mb-0"><?php echo $summaryData['total_orders']; ?></h2>
+                                </div>
+                                <i class="fas fa-shopping-cart fa-3x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-success h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">TOTAL REVENUE</h6>
+                                    <h2 class="mb-0">RM<?php echo number_format($summaryData['total_revenue'], 2); ?></h2>
+                                </div>
+                                <i class="fas fa-dollar-sign fa-3x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <div class="card text-white bg-warning h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
@@ -304,13 +433,12 @@ if (file_exists($avatar_path)): ?>
                         </div>
                     </div>
                 </div>
-                
-                <div class="col-xl-3 col-md-6 mb-4">
+                <div class="col-md-3">
                     <div class="card text-white bg-danger h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">LOW STOCK ITEMS</h6>
+                                    <h6 class="card-title">LOW STOCK</h6>
                                     <h2 class="mb-0"><?php echo $summaryData['low_stock']; ?></h2>
                                 </div>
                                 <i class="fas fa-exclamation-triangle fa-3x"></i>
@@ -320,7 +448,20 @@ if (file_exists($avatar_path)): ?>
                 </div>
             </div>
 
-            <!-- Recent Orders -->
+            <!-- Charts and Tables -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="fas fa-chart-line me-2"></i>Sales Overview
+                        </div>
+                        <div class="card-body chart-container">
+                            <canvas id="salesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header">
                     <i class="fas fa-table me-2"></i>Recent Orders (Last 5)
@@ -332,9 +473,11 @@ if (file_exists($avatar_path)): ?>
                                 <tr>
                                     <th>Order ID</th>
                                     <th>Customer</th>
+                                    <th>Products</th>
                                     <th>Total</th>
                                     <th>Date</th>
                                     <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -342,6 +485,7 @@ if (file_exists($avatar_path)): ?>
                                 <tr>
                                     <td>#<?php echo $order['order_id']; ?></td>
                                     <td><?php echo htmlspecialchars($order['customer_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($order['products']); ?></td>
                                     <td>RM<?php echo number_format($order['Total'], 2); ?></td>
                                     <td><?php echo date('Y-m-d', strtotime($order['order_date'])); ?></td>
                                     <td>
@@ -349,8 +493,10 @@ if (file_exists($avatar_path)): ?>
                                         $badgeClass = [
                                             'completed' => 'bg-success',
                                             'pending' => 'bg-warning text-dark',
-                                            'shipping' => 'bg-info',
-                                            'cancelled' => 'bg-danger'
+                                            'shipped' => 'bg-info',
+                                            'processing' => 'bg-primary',
+                                            'cancelled' => 'bg-danger',
+                                            'disabled' => 'bg-secondary'
                                         ];
                                         $status = strtolower($order['status']);
                                         ?>
@@ -359,6 +505,9 @@ if (file_exists($avatar_path)): ?>
                                         </span>
                                     </td>
                                     <td>
+                                        <a href="?toggle_status=1&order_id=<?php echo $order['order_id']; ?>&action=disable" class="btn btn-sm btn-secondary" onclick="return confirm('Are you sure you want to disable this order?')">
+                                            <i class="fas fa-ban"></i>
+                                        </a>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -370,6 +519,7 @@ if (file_exists($avatar_path)): ?>
         </main>
     </div>
 </div>
+
 <!-- Footer Section -->
 <footer>
     <div class="container-fluid">
@@ -434,39 +584,9 @@ if (file_exists($avatar_path)): ?>
         </div>
     </div>
 </footer>
-<!-- Order Details Modal -->
-<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="orderDetailsModalLabel"><i class="fas fa-info-circle me-2"></i>Order Details</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="order-details">
-                    <p><strong>Order ID:</strong> <span id="detailsOrderId"></span></p>
-                    <p><strong>Customer Name:</strong> <span id="detailsCustomer"></span></p>
-                    <p><strong>Order Date:</strong> <span id="detailsOrderDate"></span></p>
-                    <p><strong>Status:</strong> <span id="detailsStatus"></span></p>
-                    <p><strong>Delivery Address:</strong> <span id="detailsAddress"></span></p>
-                    <p><strong>Payment Method:</strong> <span id="detailsPayment"></span></p>
-                    <p><strong>Total Amount:</strong> $<span id="detailsTotal"></span></p>
-                    
-                    <h6 class="mt-4 mb-3"><strong>Order Items:</strong></h6>
-                    <ul class="product-list" id="orderItemsList">
-                        <!-- Items will be populated by JavaScript -->
-                    </ul>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 
 <!-- JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -485,39 +605,55 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Order Details Modal Handler
-    const detailsModal = document.getElementById('orderDetailsModal');
-    if (detailsModal) {
-        detailsModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            const orderDetails = JSON.parse(button.getAttribute('data-order-details'));
-            
-            // Populate the modal with order details
-            document.getElementById('detailsOrderId').textContent = orderDetails.order_id;
-            document.getElementById('detailsCustomer').textContent = orderDetails.customer_name;
-            document.getElementById('detailsOrderDate').textContent = new Date(orderDetails.order_date).toLocaleString();
-            document.getElementById('detailsStatus').innerHTML = `<span class="badge bg-${
-                orderDetails.status.toLowerCase() === 'completed' ? 'success' : 
-                orderDetails.status.toLowerCase() === 'pending' ? 'warning' : 
-                orderDetails.status.toLowerCase() === 'shipping' ? 'info' : 
-                orderDetails.status.toLowerCase() === 'cancelled' ? 'danger' : 'secondary'
-            }">${orderDetails.status}</span>`;
-            document.getElementById('detailsAddress').textContent = orderDetails.address;
-            document.getElementById('detailsPayment').textContent = orderDetails.paymentMethod;
-            document.getElementById('detailsTotal').textContent = orderDetails.Total.toFixed(2);
-            
-            // Populate order items
-            const itemsList = document.getElementById('orderItemsList');
-            itemsList.innerHTML = '';
-            orderDetails.items.forEach(item => {
-                const li = document.createElement('li');
-                li.innerHTML = `<strong>${item.name}</strong> - ${item.quantity} x $${item.price.toFixed(2)} = $${(item.quantity * item.price).toFixed(2)}`;
-                itemsList.appendChild(li);
-            });
-        });
-    }
+    // Sales Chart
+    const salesCtx = document.getElementById('salesChart').getContext('2d');
+    new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: <?php echo json_encode($salesData['labels'] ?? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']); ?>,
+            datasets: [{
+                label: 'Sales',
+                data: <?php echo json_encode($salesData['data'] ?? [5000, 8000, 12000, 9000, 15000, 18000]); ?>,
+                backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                borderColor: 'rgba(78, 115, 223, 1)',
+                pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+                borderWidth: 2,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { 
+                    mode: 'index', 
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return 'RM' + context.raw.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                    ticks: { 
+                        callback: function(value) {
+                            return 'RM' + value.toLocaleString();
+                        }
+                    }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
 });
 </script>
-
 </body>
 </html>
