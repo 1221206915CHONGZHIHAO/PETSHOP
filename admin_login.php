@@ -32,38 +32,44 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         // Admin login
         if ($role === "admin") {
-    $sql = "SELECT Admin_Username, Admin_Email, Admin_Password 
-            FROM Admin 
-            WHERE Admin_Username = ? OR Admin_Email = ?";
-    
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        $error_message = "Database error. Please try again later.";
-    } else {
-        $stmt->bind_param("ss", $login_input, $login_input);
-        $stmt->execute();
-        $stmt->store_result();
-        
-        if ($stmt->num_rows > 0) {
-            $stmt->bind_result($db_username, $db_email, $db_password);
-            $stmt->fetch();
+            $sql = "SELECT Admin_Username, Admin_Email, Admin_Password 
+                    FROM Admin 
+                    WHERE Admin_Username = ? OR Admin_Email = ?";
             
-            if ($password === $db_password) {
-                $_SESSION['role'] = "admin";
-                $_SESSION['admin_logged_in'] = true;
-                $_SESSION['username'] = $db_username;
-                $_SESSION['email'] = $db_email;
-                $success_message = "Login successful! Redirecting...";
-                $redirect_url = !empty($redirect) ? $redirect : 'admin_homepage.php';
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                $error_message = "Database error. Please try again later.";
             } else {
-                $error_message = "Invalid password.";
+                $stmt->bind_param("ss", $login_input, $login_input);
+                $stmt->execute();
+                $stmt->store_result();
+                
+                if ($stmt->num_rows > 0) {
+                    $stmt->bind_result($db_username, $db_email, $db_password);
+                    $stmt->fetch();
+                    
+                    if ($password === $db_password) {
+                        $_SESSION['role'] = "admin";
+                        $_SESSION['admin_logged_in'] = true;
+                        $_SESSION['username'] = $db_username;
+                        $_SESSION['email'] = $db_email;
+                        $success_message = "Login successful! Redirecting...";
+                        
+                        // Ensure redirect URL is within admin system
+                        $redirect_url = !empty($redirect) ? $redirect : 'admin_homepage.php';
+                        if (strpos($redirect_url, 'login.php') !== false) {
+                            $redirect_url = 'admin_homepage.php';
+                        }
+                    } else {
+                        $error_message = "Invalid password.";
+                    }
+                } else {
+                    $error_message = "Admin username or email not found.";
+                }
+                $stmt->close();
             }
-        } else {
-            $error_message = "Admin username or email not found.";
         }
-        $stmt->close();
-    }
-}
+        // Staff login
         else {
             $sql = "SELECT Staff_id, Staff_Username, Staff_Email, Staff_Password, status, password_reset_token, img_URL 
                     FROM Staff 
@@ -105,7 +111,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         $conn->query("INSERT INTO staff_login_logs (staff_id, username, email, status) 
                                     VALUES ($db_staff_id, '$db_username', '$db_email', 'login')");
                         
+                        // Ensure redirect URL is within staff system
                         $redirect_url = !empty($redirect) ? $redirect : 'staff_homepage.php';
+                        if (strpos($redirect_url, 'login.php') !== false || strpos($redirect_url, 'admin') !== false) {
+                            $redirect_url = 'staff_homepage.php';
+                        }
                         $success_message = "Login successful! Redirecting...";
                     } else {
                         $error_message = "Invalid password.";
@@ -115,7 +125,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             WHERE Staff_id = $db_staff_id");
                         
                         $conn->query("INSERT INTO staff_login_logs (staff_id, username, email, status, ip_address) 
-                                    VALUES ($db_staff_id, '$db_username', '$db_email', 'failed', '{$_SERVER['REMOTE_ADDR']}')");
+                                    VALUES ($db_staff_id, '$db_username', '', 'failed', '{$_SERVER['REMOTE_ADDR']}')");
                     }
                 } else {
                     $error_message = "Username or email not found.";

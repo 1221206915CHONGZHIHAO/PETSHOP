@@ -62,12 +62,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 } else {
                     $error_message = "Invalid password.";
                     $conn->query("INSERT INTO customer_login_logs (username, email, status) 
-                                VALUES ('', '$login_input', 'failed')");
+            VALUES ('$login_input', '', 'failed')");
                 }
             } else {
                 $error_message = "Username or email not found.";
                 $conn->query("INSERT INTO customer_login_logs (username, email, status) 
-                            VALUES ('', '$login_input', 'failed')");
+            VALUES ('$login_input', '', 'failed')");
             }
             $stmt->close();
         }
