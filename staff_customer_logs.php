@@ -338,7 +338,7 @@ echo strtoupper(substr($username, 0, 1));
                             <p>Your trusted partner in pet products. We're dedicated to providing quality products for pet lovers everywhere.</p>
                             <div class="social-links">
                                 <a href="https://www.facebook.com/profile.php?id=61575717095389"><i class="fab fa-facebook"></i></a>
-                                <a href="#"><i class="fab fa-instagram"></i></a>
+                                <a href="https://www.instagram.com/smal.l7018/"><i class="fab fa-instagram"></i></a>
                             </div>
                         </div>
                     </div>

@@ -356,7 +356,7 @@ if (!empty($search)) {
           <p>Your trusted partner in pet care since 2015. We're dedicated to providing quality products and exceptional service for pet lovers everywhere.</p>
           <div class="social-links">
             <a href="https://www.facebook.com/profile.php?id=61575717095389"><i class="bi bi-facebook"></i></a>
-            <a href="#"><i class="bi bi-instagram"></i></a>
+            <a href="https://www.instagram.com/smal.l7018/"><i class="bi bi-instagram"></i></a>
           </div>
         </div>
       </div>

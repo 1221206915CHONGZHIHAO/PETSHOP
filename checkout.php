@@ -494,7 +494,63 @@ $conn->close();
 
 <!-- Footer -->
 <footer>
-    <!-- Your footer code here -->
+  <div class="container">
+    <div class="row">
+      <!-- Footer About -->
+      <div class="col-md-5 mb-4 mb-lg-0">
+        <div class="footer-about">
+          <div class="footer-logo">
+            <img src="Hachi_Logo.png" alt="Hachi Pet Shop">
+          </div>
+          <p>Your trusted partner in pet care since 2015. We're dedicated to providing quality products and exceptional service for pet lovers everywhere.</p>
+          <div class="social-links">
+            <a href="https://www.facebook.com/profile.php?id=61575717095389"><i class="bi bi-facebook"></i></a>
+            <a href="https://www.instagram.com/smal.l7018/"><i class="bi bi-instagram"></i></a>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Contact Info -->
+      <div class="col-md-7">
+                    <h4 class="footer-title">Contact Us</h4>
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-geo-alt"></i>
+                                <span><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-telephone"></i>
+                                <span><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-envelope"></i>
+                                <span><?php echo !empty($shopSettings['contact_email']) ? htmlspecialchars($shopSettings['contact_email']) : 'Email not available'; ?></span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="contact-info">
+                                <i class="bi bi-clock"></i>
+                                <span><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
+    <!-- Footer Bottom -->
+    <div class="footer-bottom" style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 40px; padding-top: 20px;">
+      <div class="row align-items-center">
+        <div class="col-md-6 text-center text-md-start">
+          <p class="mb-md-0">© 2025 Hachi Pet Shop. All Rights Reserved.</p>
+        </div>
+      </div>
+    </div>
+  </div>
 </footer>
 
 <!-- Custom Alert Modal -->

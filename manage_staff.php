@@ -34,6 +34,17 @@ if ($result->num_rows > 0) {
             color: #ffc107;
             font-weight: 600;
         }
+        .reactivate-modal .modal-header {
+            background-color: #198754;
+            color: #fff;
+        }
+        .reactivate-modal .modal-title i {
+            margin-right: 8px;
+        }
+        .reactivate-modal .staff-name {
+            color: #198754;
+            font-weight: 600;
+        }
         .nav-tabs .nav-link.active {
             font-weight: bold;
             border-bottom: 3px solid #0d6efd;
@@ -41,26 +52,26 @@ if ($result->num_rows > 0) {
         .tab-pane {
             padding-top: 20px;
         }
-                                    h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -271,12 +282,13 @@ if ($result->num_rows > 0) {
                                             <a href="edit_staff.php?id=<?php echo $row['Staff_ID']; ?>" class="btn btn-sm btn-primary">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <a href="activate_staff.php?id=<?php echo $row['Staff_ID']; ?>" 
-                                                class="btn btn-sm btn-success"
-                                                onclick="return confirm('Are you sure you want to reactivate this account?')">
+                                            <button class="btn btn-sm btn-success reactivate-btn"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#reactivateModal"
+                                                    data-staff-id="<?php echo $row['Staff_ID']; ?>"
+                                                    data-staff-name="<?php echo htmlspecialchars($row['Staff_name']); ?>">
                                                 <i class="fas fa-user-check"></i> Reactivate
-                                            </a>
-
+                                            </button>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
@@ -316,6 +328,35 @@ if ($result->num_rows > 0) {
         </div>
     </div>
 </div>
+
+<!-- Reactivate Confirmation Modal -->
+<div class="modal fade reactivate-modal" id="reactivateModal" tabindex="-1" aria-labelledby="reactivateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="reactivateModalLabel">
+                    <i class="fas fa-user-check me-2"></i> Confirm Reactivation
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to reactivate the following staff member?</p>
+                <p><strong>ID:</strong> <span id="modalReactivateStaffId"></span></p>
+                <p><strong>Name:</strong> <span class="staff-name" id="modalReactivateStaffName"></span></p>
+                <p class="text-success"><small>This staff member will regain access to the system!</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <a id="confirmReactivateBtn" href="#" class="btn btn-success">
+                    <i class="fas fa-user-check"></i> Confirm Reactivate
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Footer Section -->
 <footer>
     <div class="container-fluid">
@@ -331,7 +372,7 @@ if ($result->num_rows > 0) {
                             <p>Your trusted partner in pet products. We're dedicated to providing quality products for pet lovers everywhere.</p>
                             <div class="social-links">
                                 <a href="https://www.facebook.com/profile.php?id=61575717095389"><i class="fab fa-facebook"></i></a>
-                                <a href="#"><i class="fab fa-instagram"></i></a>
+                                <a href="https://www.instagram.com/smal.l7018/"><i class="fab fa-instagram"></i></a>
                             </div>
                         </div>
                     </div>
@@ -381,10 +422,10 @@ if ($result->num_rows > 0) {
     </div>
 </footer>
 
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Deactivate modal handler
     var deactivateModal = document.getElementById('deactivateModal');
     deactivateModal.addEventListener('show.bs.modal', function(event) {
         var button = event.relatedTarget;
@@ -394,6 +435,18 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modalStaffId').textContent = staffId;
         document.getElementById('modalStaffName').textContent = staffName;
         document.getElementById('confirmDeactivateBtn').href = 'deactivate_staff.php?id=' + staffId;
+    });
+
+    // Reactivate modal handler
+    var reactivateModal = document.getElementById('reactivateModal');
+    reactivateModal.addEventListener('show.bs.modal', function(event) {
+        var button = event.relatedTarget;
+        var staffId = button.getAttribute('data-staff-id');
+        var staffName = button.getAttribute('data-staff-name');
+        
+        document.getElementById('modalReactivateStaffId').textContent = staffId;
+        document.getElementById('modalReactivateStaffName').textContent = staffName;
+        document.getElementById('confirmReactivateBtn').href = 'activate_staff.php?id=' + staffId;
     });
 });
 </script>
