@@ -29,39 +29,36 @@ $shipping_address = '';
 
 // Get customer details if logged in
 if (isset($_SESSION['customer_id'])) {
-  // Get basic customer info
-  $stmt = $conn->prepare("SELECT * FROM Customer WHERE Customer_ID = ?");
-  $stmt->bind_param("i", $_SESSION['customer_id']);
-  $stmt->execute();
-  $result = $stmt->get_result();
-  $customer_details = $result->fetch_assoc();
-  $stmt->close();
-  
-  // Get default address if available
-  $stmt = $conn->prepare("SELECT * FROM customer_address WHERE Customer_ID = ? AND Is_Default = 1");
-  $stmt->bind_param("i", $_SESSION['customer_id']);
-  $stmt->execute();
-  $address_result = $stmt->get_result();
-  
-  if ($address_result->num_rows > 0) {
-    $default_address = $address_result->fetch_assoc();
-    // Format the address more clearly
-    $shipping_address = "Recipient: " . $default_address['Full_Name'] . "\n";
-    $shipping_address .= "Address Line 1: " . $default_address['Address_Line1'] . "\n";
-    if (!empty($default_address['Address_Line2'])) {
-        $shipping_address .= "Address Line 2: " . $default_address['Address_Line2'] . "\n";
-    }
-    $shipping_address .= "City: " . $default_address['City'] . "\n";
-    if (!empty($default_address['State'])) {
-        $shipping_address .= "State: " . $default_address['State'] . "\n";
-    }
-    $shipping_address .= "Postal Code: " . $default_address['Postal_Code'] . "\n";
-    $shipping_address .= "Country: " . $default_address['Country'] . "\n";
-    $shipping_address .= "Phone: " . $default_address['Phone_Number'];
+    // Get basic customer info
+    $stmt = $conn->prepare("SELECT * FROM Customer WHERE Customer_ID = ?");
+    $stmt->bind_param("i", $_SESSION['customer_id']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $customer_details = $result->fetch_assoc();
+    $stmt->close();
     
-    // Debug output - verify the formatted address
-    error_log("Formatted shipping address: \n" . $shipping_address);
-  }
+    // Get default address if available
+    $stmt = $conn->prepare("SELECT * FROM customer_address WHERE Customer_ID = ? AND Is_Default = 1");
+    $stmt->bind_param("i", $_SESSION['customer_id']);
+    $stmt->execute();
+    $address_result = $stmt->get_result();
+    
+    if ($address_result->num_rows > 0) {
+        $default_address = $address_result->fetch_assoc();
+        // Format the address more clearly
+        $shipping_address = "Recipient: " . $default_address['Full_Name'] . "\n";
+        $shipping_address .= "Address Line 1: " . $default_address['Address_Line1'] . "\n";
+        if (!empty($default_address['Address_Line2'])) {
+            $shipping_address .= "Address Line 2: " . $default_address['Address_Line2'] . "\n";
+        }
+        $shipping_address .= "City: " . $default_address['City'] . "\n";
+        if (!empty($default_address['State'])) {
+            $shipping_address .= "State: " . $default_address['State'] . "\n";
+        }
+        $shipping_address .= "Postal Code: " . $default_address['Postal_Code'] . "\n";
+        $shipping_address .= "Country: " . $default_address['Country'] . "\n";
+        $shipping_address .= "Phone: " . $default_address['Phone_Number'];
+    }
 }
 
 // Process checkout form submission
@@ -102,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->begin_transaction();
         
         try {
-            // Create order - updated to match your table structure
+            // Create order
             $stmt = $conn->prepare("
                 INSERT INTO Orders 
                 (Customer_ID, Address, PaymentMethod, Total, order_date, status) 
@@ -113,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($_SESSION['cart'] as $item) {
                 $total_amount += $item['price'] * $item['quantity'];
             }
+            $total_amount += 4.90; // Add shipping fee
             
             $address = $_POST['shipping_address'];
             $payment_method = $_POST['payment_method'];
@@ -129,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $order_id = $conn->insert_id;
             $stmt->close();
             
-            // Add order items (assuming you have an Order_Items table)
+            // Add order items
             foreach ($_SESSION['cart'] as $product_id => $item) {
                 $stmt = $conn->prepare("
                     INSERT INTO Order_Items 
@@ -160,7 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute();
                 $stmt->close();
             }
-            // After inserting order items
+            
+            // Verify order total
             $verify_stmt = $conn->prepare("
                 SELECT SUM(subtotal) as calculated_total 
                 FROM Order_Items 
@@ -171,11 +170,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $verify_result = $verify_stmt->get_result();
             $calculated_total = $verify_result->fetch_assoc()['calculated_total'];
 
-            if (abs($calculated_total - $total_amount) > 0.01) {
-                // Handle the discrepancy
+            if (abs($calculated_total - ($total_amount - 4.90)) > 0.01) {
                 $conn->rollback();
                 throw new Exception("Order total verification failed");
             }
+            
             // Clear cart
             if (isset($_SESSION['customer_id'])) {
                 $stmt = $conn->prepare("DELETE FROM Cart WHERE Customer_ID = ?");
@@ -261,31 +260,83 @@ $conn->close();
       margin-right: 10px;
     }
     .order-summary table {
-    font-size: 0.9rem;
-}
+      font-size: 0.9rem;
+    }
     .order-summary th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-}
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
     .order-summary .total-row th {
-    background-color: #e9ecef;
-    font-size: 1.1rem;
-}
+      background-color: #e9ecef;
+      font-size: 1.1rem;
+    }
     .order-summary tfoot tr:not(.total-row) th {
-    border-top: 1px dashed #dee2e6;
-}
+      border-top: 1px dashed #dee2e6;
+    }
     .card-element {
       background: white;
       padding: 1rem;
       border-radius: 8px;
       border: 1px solid #dee2e6;
     }
+    .no-refund-alert {
+      border-left: 4px solid #ffc107;
+    }
+    /* Custom Alert Modal Styles */
+    .custom-alert-modal {
+      font-family: 'Poppins', sans-serif;
+      border-radius: 12px;
+      border: none;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+    .custom-alert-modal .modal-header {
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      border-radius: 12px 12px 0 0;
+      padding: 1rem 1.5rem;
+    }
+    .custom-alert-modal .modal-title {
+      font-weight: 600;
+      color: #333;
+    }
+    .custom-alert-modal .modal-body {
+      padding: 1.5rem;
+      color: #555;
+    }
+    .custom-alert-modal .modal-footer {
+      border-top: 1px solid #dee2e6;
+      border-radius: 0 0 12px 12px;
+      padding: 1rem;
+      justify-content: center;
+    }
+    .custom-alert-modal .btn-cancel {
+      background-color: #f8f9fa;
+      color: #333;
+      border: 1px solid #dee2e6;
+      margin-right: 10px;
+    }
+    .custom-alert-modal .btn-confirm {
+      background-color: #007bff;
+      color: white;
+      border: none;
+    }
+    .custom-alert-modal .btn-cancel:hover {
+      background-color: #e9ecef;
+    }
+    .custom-alert-modal .btn-confirm:hover {
+      background-color: #0069d9;
+    }
+    .custom-alert-modal .bi-exclamation-triangle {
+      color: #ffc107;
+      margin-right: 8px;
+      font-size: 1.2rem;
+    }
   </style>
 </head>
 <body>
-<!-- Navigation (same as cart.php) -->
+<!-- Navigation -->
 <nav class="navbar navbar-expand-lg custom-nav fixed-top">
-    <!-- Your existing navigation code from cart.php -->
+    <!-- Your navigation code here -->
 </nav>
 
 <!-- Page Content -->
@@ -294,12 +345,11 @@ $conn->close();
     <h1 class="section-title mb-4">Checkout</h1>
     
     <?php if (!empty($error_message)): ?>
-  <div class="alert alert-danger" id="server-error">
-    <?php echo htmlspecialchars($error_message); ?>
-  </div>
-<?php endif; ?>
-<div class="alert alert-danger d-none" id="client-error"></div>
-
+      <div class="alert alert-danger" id="server-error">
+        <?php echo htmlspecialchars($error_message); ?>
+      </div>
+    <?php endif; ?>
+    <div class="alert alert-danger d-none" id="client-error"></div>
     
     <form method="post" id="checkout-form">
       <div class="row">
@@ -307,7 +357,6 @@ $conn->close();
           <div class="checkout-container mb-4">
             <h3 class="mb-4">Shipping Information</h3>
             
-            <!-- Replace the shipping address textarea section with this code -->
             <div class="mb-3">
                 <label for="shipping_address" class="form-label">Shipping Address</label>
                 <?php if (!empty($shipping_address)): ?>
@@ -348,16 +397,15 @@ $conn->close();
               <div class="form-check">
                 <input class="form-check-input" type="radio" name="payment_method" id="credit_card" value="Credit Card" checked>
                 <label class="form-check-label" for="credit_card">
-                  <img src="https://cdn-icons-png.flaticon.com/512/179/179457.png" alt="Visa">
                   <img src="https://cdn-icons-png.flaticon.com/512/196/196578.png" alt="Mastercard">
                   Credit Card
                 </label>
               </div>
               <div class="form-check">
-                <input class="form-check-input" type="radio" name="payment_method" id="paypal" value="PayPal">
-                <label class="form-check-label" for="paypal">
-                  <img src="https://cdn-icons-png.flaticon.com/512/174/174861.png" alt="PayPal">
-                  PayPal
+                <input class="form-check-input" type="radio" name="payment_method" id="debit_card" value="Debit Card">
+                <label class="form-check-label" for="debit_card">
+                  <img src="https://cdn-icons-png.flaticon.com/512/196/196578.png" alt="Debit Card">
+                  Debit Card
                 </label>
               </div>
             </div>
@@ -387,64 +435,92 @@ $conn->close();
           </div>
         </div>
         
-        <!-- Replace the existing order summary section with this code -->
-<div class="col-lg-4">
-    <div class="order-summary">
-        <h3 class="mb-4">Order Summary</h3>
-        
-        <div class="table-responsive mb-3">
-            <table class="table table-bordered">
+        <div class="col-lg-4">
+          <div class="order-summary">
+            <h3 class="mb-4">Order Summary</h3>
+            
+            <div class="table-responsive mb-3">
+              <table class="table table-bordered">
                 <thead>
-                    <tr>
-                        <th>Item</th>
-                        <th>Qty</th>
-                        <th>Price</th>
-                    </tr>
+                  <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                  </tr>
                 </thead>
                 <tbody>
-                    <?php foreach($cart_items as $item): ?>
-                    <tr>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <img src="<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" class="img-thumbnail me-2" style="width: 50px; height: 50px; object-fit: cover;">
-                                <div><?php echo htmlspecialchars($item['name']); ?></div>
-                            </div>
-                        </td>
-                        <td class="text-center"><?php echo $item['quantity']; ?></td>
-                        <td class="text-end">RM<?php echo number_format($item['price'], 2); ?></td>
-                    </tr>
-                    <?php endforeach; ?>
+                  <?php foreach($cart_items as $item): ?>
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <img src="<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" class="img-thumbnail me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                        <div><?php echo htmlspecialchars($item['name']); ?></div>
+                      </div>
+                    </td>
+                    <td class="text-center"><?php echo $item['quantity']; ?></td>
+                    <td class="text-end">RM<?php echo number_format($item['price'], 2); ?></td>
+                  </tr>
+                  <?php endforeach; ?>
                 </tbody>
                 <tfoot>
-                    <tr>
-                        <th colspan="2" class="text-end">Subtotal:</th>
-                        <th class="text-end">RM<?php echo number_format($cart_total, 2); ?></th>
-                    </tr>
-                    <tr>
-                        <th colspan="2" class="text-end">Shipping:</th>
-                        <th class="text-end">Free</th>
-                    </tr>
-                    <tr class="total-row">
-                        <th colspan="2" class="text-end">Total:</th>
-                        <th class="text-end">RM<?php echo number_format($cart_total, 2); ?></th>
-                    </tr>
+                  <tr>
+                    <th colspan="2" class="text-end">Subtotal:</th>
+                    <th class="text-end">RM<?php echo number_format($cart_total, 2); ?></th>
+                  </tr>
+                  <tr>
+                    <th colspan="2" class="text-end">Shipping:</th>
+                    <th class="text-end">RM4.90</th>
+                  </tr>
+                  <tr class="total-row">
+                    <th colspan="2" class="text-end">Total:</th>
+                    <th class="text-end">RM<?php echo number_format($cart_total + 4.90, 2); ?></th>
+                  </tr>
                 </tfoot>
-            </table>
-        </div>
-        
-        <button type="submit" class="btn btn-primary w-100 py-2">Place Order</button>
-    </div>
-</div>
+              </table>
+            </div>
+            
+            <div class="alert alert-warning no-refund-alert mb-3">
+              <h6><i class="bi bi-exclamation-triangle-fill me-2"></i>No Refund Policy</h6>
+              <p class="small mb-0">By placing this order, you acknowledge that all sales are final and no refunds will be issued after payment.</p>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100 py-2" id="placeOrderBtn">Place Order</button>
+          </div>
         </div>
       </div>
     </form>
   </main>
 </div>
 
-<!-- Footer (same as cart.php) -->
+<!-- Footer -->
 <footer>
-    <!-- Your existing footer code from cart.php -->
+    <!-- Your footer code here -->
 </footer>
+
+<!-- Custom Alert Modal -->
+<div class="modal fade" id="noRefundAlert" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered custom-alert-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i>Important Notice</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>By placing this order, you acknowledge our <strong>No Refund Policy</strong>:</p>
+                <ul>
+                    <li>All sales are final</li>
+                    <li>No refunds will be issued after payment</li>
+                    <li>No returns or exchanges</li>
+                </ul>
+                <p>Do you wish to proceed with your order?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">No, Cancel</button>
+                <button type="button" class="btn btn-confirm" id="confirmOrderBtn">Yes, Place Order</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Bootstrap JS Bundle (includes Popper) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -459,11 +535,11 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('billing_address').required = !this.checked;
     });
 
-    // Toggle credit card fields
+    // Toggle credit/debit card fields
     document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
         radio.addEventListener('change', function () {
             document.getElementById('credit_card_details').style.display =
-                this.value === 'Credit Card' ? 'block' : 'none';
+                (this.value === 'Credit Card' || this.value === 'Debit Card') ? 'block' : 'none';
         });
     });
 
@@ -485,19 +561,24 @@ document.addEventListener('DOMContentLoaded', function () {
         this.value = this.value.replace(/\D/g, '').substring(0, 4);
     });
 
-    // Form submission validation
-    document.getElementById('checkout-form').addEventListener('submit', function (e) {
+    // Handle form submission with custom modal
+    document.getElementById('placeOrderBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // First validate the form
         const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
-        const cardNumber = cardNumberInput.value.replace(/\s/g, '');
-        const expiry = cardExpiryInput.value;
-        const cvv = cardCvvInput.value;
+        const cardNumber = document.getElementById('card_number').value.replace(/\s/g, '');
+        const expiry = document.getElementById('card_expiry').value;
+        const cvv = document.getElementById('card_cvv').value;
+        let isValid = true;
 
-        if (paymentMethod === 'Credit Card') {
-            let error = '';
-
+        if (paymentMethod === 'Credit Card' || paymentMethod === 'Debit Card') {
             // Validate 16-digit card number
             if (!/^\d{16}$/.test(cardNumber)) {
-                error = 'Card number must be exactly 16 digits.';
+                document.getElementById('client-error').textContent = 'Card number must be exactly 16 digits.';
+                document.getElementById('client-error').classList.remove('d-none');
+                window.scrollTo(0, 0);
+                isValid = false;
             }
 
             // Validate expiry
@@ -507,19 +588,31 @@ document.addEventListener('DOMContentLoaded', function () {
                 Number(expMonth) < 1 || Number(expMonth) > 12 ||
                 Number(`20${expYear}`) < now.getFullYear() ||
                 (Number(`20${expYear}`) === now.getFullYear() && Number(expMonth) < now.getMonth() + 1)) {
-                error = 'Card expiry date is invalid or expired.';
+                document.getElementById('client-error').textContent = 'Card expiry date is invalid or expired.';
+                document.getElementById('client-error').classList.remove('d-none');
+                window.scrollTo(0, 0);
+                isValid = false;
             }
 
             // Validate CVV
             if (!/^\d{3,4}$/.test(cvv)) {
-                error = 'CVV must be 3 or 4 digits.';
-            }
-
-            if (error) {
-                e.preventDefault();
-                alert('Payment failed: ' + error);
+                document.getElementById('client-error').textContent = 'CVV must be 3 or 4 digits.';
+                document.getElementById('client-error').classList.remove('d-none');
+                window.scrollTo(0, 0);
+                isValid = false;
             }
         }
+
+        // If validation passed, show the modal
+        if (isValid) {
+            const modal = new bootstrap.Modal(document.getElementById('noRefundAlert'));
+            modal.show();
+        }
+    });
+
+    // Handle confirm order button
+    document.getElementById('confirmOrderBtn').addEventListener('click', function() {
+        document.getElementById('checkout-form').submit();
     });
 });
 </script>

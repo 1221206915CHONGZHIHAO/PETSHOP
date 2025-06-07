@@ -26,7 +26,7 @@ $stmt = $conn->prepare("
            o.status, o.Address as shipping_address,
            oi.quantity, oi.unit_price, oi.subtotal,
            p.product_id, p.product_name, p.image_url,
-           (SELECT SUM(subtotal) FROM Order_Items WHERE order_id = o.Order_ID) as Total
+           (SELECT SUM(subtotal) FROM Order_Items WHERE order_id = o.Order_ID) as subtotal
     FROM Orders o
     JOIN Order_Items oi ON o.Order_ID = oi.order_id
     JOIN products p ON oi.product_id = p.product_id
@@ -43,7 +43,9 @@ if (!empty($order_items)) {
     $order = [
         'Order_ID' => $order_items[0]['Order_ID'],
         'order_date' => $order_items[0]['order_date'],
-        'Total' => $order_items[0]['Total'],
+        'subtotal' => $order_items[0]['subtotal'],
+        'shipping_fee' => 4.90,
+        'total' => $order_items[0]['subtotal'] + 4.90,
         'payment_method' => $order_items[0]['payment_method'],
         'status' => $order_items[0]['status'],
         'shipping_address' => $order_items[0]['shipping_address'],
@@ -119,6 +121,10 @@ $conn->close();
       padding: 15px;
       border-radius: 5px;
       border: 1px solid #dee2e6;
+    }
+    .total-row {
+      font-weight: bold;
+      background-color: #f8f9fa;
     }
     
     /* PDF Button Styles */
@@ -220,7 +226,9 @@ $conn->close();
             ?>"><?php echo htmlspecialchars($order['status']); ?></span></p>
           </div>
           <div class="col-md-6 mb-3">
-            <p><strong>Total Amount:</strong> RM<?php echo number_format($order['Total'], 2); ?></p>
+            <p><strong>Subtotal:</strong> RM<?php echo number_format($order['subtotal'], 2); ?></p>
+            <p><strong>Shipping Fee:</strong> RM<?php echo number_format($order['shipping_fee'], 2); ?></p>
+            <p><strong>Total Amount:</strong> RM<?php echo number_format($order['total'], 2); ?></p>
             <p><strong>Payment Method:</strong> <?php echo htmlspecialchars($order['payment_method']); ?></p>
             <p><strong>Shipping Address:</strong></p>
             <div class="shipping-address"><?php echo htmlspecialchars($order['shipping_address']); ?></div>
@@ -260,8 +268,16 @@ $conn->close();
               </tr>
               <?php endforeach; ?>
               <tr>
+                <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                <td><strong>RM<?php echo number_format($order['subtotal'], 2); ?></strong></td>
+              </tr>
+              <tr>
+                <td colspan="3" class="text-end"><strong>Shipping:</strong></td>
+                <td><strong>RM<?php echo number_format($order['shipping_fee'], 2); ?></strong></td>
+              </tr>
+              <tr class="total-row">
                 <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                <td><strong>RM<?php echo number_format($order['Total'], 2); ?></strong></td>
+                <td><strong>RM<?php echo number_format($order['total'], 2); ?></strong></td>
               </tr>
             </tbody>
           </table>
