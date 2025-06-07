@@ -29,22 +29,25 @@ if ($settingsResult->num_rows > 0) {
     $shopSettings = $settingsResult->fetch_assoc();
 }
 
-// Get login logs
-$sql = "SELECT username, email, status, timestamp FROM staff_login_logs ORDER BY timestamp DESC";
+// Get login logs with staff usernames
+$sql = "SELECT l.username, l.email, l.status, l.timestamp, s.Staff_username 
+        FROM staff_login_logs l
+        LEFT JOIN staff s ON l.staff_id = s.Staff_ID
+        ORDER BY l.timestamp DESC";
 
 // Apply date filter if set
 if (isset($_GET['logDate']) && !empty($_GET['logDate'])) {
     $date = $conn->real_escape_string($_GET['logDate']);
-    $sql = "SELECT username, email, status, timestamp 
-            FROM staff_login_logs 
-            WHERE DATE(timestamp) = '$date' 
-            ORDER BY timestamp DESC";
+    $sql = "SELECT l.username, l.email, l.status, l.timestamp, s.Staff_username 
+            FROM staff_login_logs l
+            LEFT JOIN staff s ON l.staff_id = s.Staff_ID
+            WHERE DATE(l.timestamp) = '$date' 
+            ORDER BY l.timestamp DESC";
 }
 
 $result = $conn->query($sql);
 
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -54,33 +57,33 @@ $result = $conn->query($sql);
     <title>Staff Login Logs | PetShop Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
     <style>
         .status-login { color: #28a745; }
         .status-logout { color: #dc3545; }
         .status-failed { color: #ffc107; }
         .table-responsive { max-height: 600px; overflow-y: auto; }
-                                                    h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -95,8 +98,8 @@ $result = $conn->query($sql);
         </a>
     </div>
     <div>
-        <span class="text-light me-3"><i class="fas fa-user-circle me-1"></i> Welcome, <?php echo $_SESSION['username'] ?? 'Admin'; ?></span>
-        <a href="admin_login.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <span class="text-light me-3"><i class="fas fa-user-circle me-1"></i> Welcome, <?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin'); ?></span>
+        <a href="logout.php" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 
@@ -112,25 +115,25 @@ $result = $conn->query($sql);
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
                     </li>
-            <li class="nav-item">
-                <a class="nav-link text-light active" data-bs-toggle="collapse" href="#staffMenu">
-                    <i class="fas fa-users me-2"></i>Staff Management
-                </a>
-                <div class="collapse show" id="staffMenu">
-                    <ul class="nav flex-column ps-4">
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="manage_staff.php">
-                                <i class="fas fa-list me-2"></i>Staff List
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light active" href="staff_logs.php">
-                                <i class="fas fa-history me-2"></i>Login/Logout Logs
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-light active" data-bs-toggle="collapse" href="#staffMenu">
+                            <i class="fas fa-users me-2"></i>Staff Management
+                        </a>
+                        <div class="collapse show" id="staffMenu">
+                            <ul class="nav flex-column ps-4">
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="manage_staff.php">
+                                        <i class="fas fa-list me-2"></i>Staff List
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light active" href="staff_logs.php">
+                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
                             <i class="fas fa-user-friends me-2"></i>Customer Management
@@ -202,7 +205,7 @@ $result = $conn->query($sql);
             <!-- Date Filter Form -->
             <form method="GET" action="" class="row mb-3">
                 <div class="col-md-4">
-                    <input type="date" name="logDate" class="form-control" value="<?php echo isset($_GET['logDate']) ? $_GET['logDate'] : date('Y-m-d'); ?>">
+                    <input type="date" name="logDate" class="form-control" value="<?php echo isset($_GET['logDate']) ? htmlspecialchars($_GET['logDate']) : date('Y-m-d'); ?>">
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-primary">Filter</button>
@@ -229,7 +232,7 @@ $result = $conn->query($sql);
                                 <?php if ($result->num_rows > 0): ?>
                                     <?php while($row = $result->fetch_assoc()): ?>
                                         <tr>
-                                            <td><?php echo htmlspecialchars($row['username']); ?></td>
+                                            <td><?php echo htmlspecialchars($row['Staff_username'] ?? $row['username']); ?></td>
                                             <td><?php echo htmlspecialchars($row['email']); ?></td>
                                             <td>
                                                 <?php if ($row['status'] === 'login'): ?>
@@ -256,11 +259,12 @@ $result = $conn->query($sql);
         </main>
     </div>
 </div>
+
 <!-- Footer Section -->
 <footer>
     <div class="container-fluid">
         <div class="row">
-            <div class="col-md-10 offset-md-2"> <!-- This matches the main content area -->
+            <div class="col-md-10 offset-md-2">
                 <div class="row">
                     <!-- Footer About -->
                     <div class="col-md-5 mb-4 mb-lg-0">
@@ -332,3 +336,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+<?php
+$conn->close();
+?>

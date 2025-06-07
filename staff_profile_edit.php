@@ -200,7 +200,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $db->close();
 ?>
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -740,9 +739,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     avatarPreview.src = e.target.result;
                     avatarPreview.alt = 'Profile Image';
                     
-                    // Add it to the avatar container (before the edit button)
-                    const editButton = avatarContainer.querySelector('.user-avatar-edit');
-                    avatarContainer.insertBefore(avatarPreview, editButton);
+                                       // Add it to the avatar container
+                    avatarContainer.appendChild(avatarPreview);
                 }
             };
             reader.readAsDataURL(this.files[0]);
@@ -779,6 +777,55 @@ function updateInitials(name) {
         avatarInitials.textContent = initials;
     }
 }
+
+// Password strength indicator
+function checkPasswordStrength(password) {
+    const strength = {
+        0: "Very Weak",
+        1: "Weak",
+        2: "Moderate",
+        3: "Strong",
+        4: "Very Strong"
+    };
+    
+    let score = 0;
+    
+    // Check length
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    
+    // Check for mixed case
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+    
+    // Check for numbers
+    if (/\d/.test(password)) score++;
+    
+    // Check for special chars
+    if (/[^a-zA-Z0-9]/.test(password)) score++;
+    
+    return strength[Math.min(score, 4)];
+}
+
+// Add password strength indicator
+document.getElementById('new_password').addEventListener('input', function() {
+    const password = this.value;
+    if (password.length > 0) {
+        const strength = checkPasswordStrength(password);
+        const strengthElement = document.getElementById('password-strength');
+        if (!strengthElement) {
+            const div = document.createElement('div');
+            div.id = 'password-strength';
+            div.className = 'mt-2';
+            this.parentNode.appendChild(div);
+        }
+        document.getElementById('password-strength').textContent = `Password Strength: ${strength}`;
+    } else {
+        const strengthElement = document.getElementById('password-strength');
+        if (strengthElement) {
+            strengthElement.remove();
+        }
+    }
+});
 </script>
 </body>
 </html>
