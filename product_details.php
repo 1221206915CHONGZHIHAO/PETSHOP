@@ -64,6 +64,18 @@ if (!$product) {
 
 // Page title
 $page_title = htmlspecialchars($product['product_name']);
+
+// Check if product is in user's favorites (if logged in)
+$is_favorite = false;
+if (isset($_SESSION['customer_id']) && $product_id > 0) {
+    $check_fav_sql = "SELECT * FROM wishlist WHERE customer_id = ? AND product_id = ?";
+    $stmt = $conn->prepare($check_fav_sql);
+    $stmt->bind_param("ii", $_SESSION['customer_id'], $product_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $is_favorite = ($result->num_rows > 0);
+    $stmt->close();
+}
 ?>
 
 <!DOCTYPE html>
@@ -523,8 +535,10 @@ $page_title = htmlspecialchars($product['product_name']);
           </div>
           <!-- Extra Actions -->
           <div class="extra-actions">
-            <a href="#" id="add-to-favorites" title="Add to Favorites" data-product-id="<?php echo $product['product_id']; ?>"><i class="bi bi-heart"></i></a>
-          </div>
+    <a href="#" id="add-to-favorites" title="<?php echo $is_favorite ? 'Remove from Favorites' : 'Add to Favorites'; ?>" data-product-id="<?php echo $product['product_id']; ?>">
+        <i class="bi bi-heart<?php echo $is_favorite ? '-fill' : ''; ?>" <?php echo $is_favorite ? 'style="color: #dc3545;"' : ''; ?>></i>
+    </a>
+</div>
         </div>
       </div>
     </div>
@@ -836,86 +850,119 @@ addToCartButtons.forEach(button => {
 // Add to Favorites Functionality
 const addToFavoritesButton = document.getElementById('add-to-favorites');
 if (addToFavoritesButton) {
-  addToFavoritesButton.addEventListener('click', function(e) {
-    e.preventDefault();
-    const productId = this.getAttribute('data-product-id');
+    // Check initial state
+    const isFavorite = addToFavoritesButton.querySelector('i').classList.contains('bi-heart-fill');
     
-    // Change icon to loading spinner
-    const originalHtml = this.innerHTML;
-    this.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
-    this.style.pointerEvents = 'none';
+    addToFavoritesButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        const productId = this.getAttribute('data-product-id');
+        const isCurrentlyFavorite = this.querySelector('i').classList.contains('bi-heart-fill');
+        const action = isCurrentlyFavorite ? 'remove' : 'add';
+        
+        // Change icon to loading spinner
+        const originalHtml = this.innerHTML;
+        this.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
+        this.style.pointerEvents = 'none';
+        
+        fetch('add_to_favorites.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `product_id=${productId}&action=${action}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Reset button
+            this.style.pointerEvents = 'auto';
+            
+            if (data.success) {
+                // Toggle heart icon
+                const heartIcon = this.querySelector('i');
+                if (action === 'add') {
+                    heartIcon.classList.remove('bi-heart');
+                    heartIcon.classList.add('bi-heart-fill');
+                    heartIcon.style.color = '#dc3545';
+                    this.title = "Remove from Favorites";
+                    
+                    // Show added notification
+                    showFavoriteToast('Product added to favorites!', '#dc3545');
+                } else {
+                    heartIcon.classList.remove('bi-heart-fill');
+                    heartIcon.classList.add('bi-heart');
+                    heartIcon.style.color = '';
+                    this.title = "Add to Favorites";
+                    
+                    // Show removed notification
+                    showFavoriteToast('Product removed from favorites!', '#6c757d');
+                }
+            } else if (data.already_added) {
+                // Product already in favorites - keep it as filled heart
+                this.innerHTML = '<i class="bi bi-heart-fill" style="color: #dc3545;"></i>';
+                this.title = "Remove from Favorites";
+                showFavoriteToast('This product is already in your favorites!', '#ffc107');
+            } else if (data.require_login) {
+                showFavoriteToast('Please login to manage favorites. Redirecting to login page...', '#dc3545');
+                setTimeout(() => {
+                    window.location.href = 'login.php';
+                }, 3000);
+            } else {
+                this.innerHTML = originalHtml;
+                showFavoriteToast(data.message || 'Failed to update favorites', '#dc3545');
+                console.error('Failed to update favorites:', data.message);
+            }
+        })
+        .catch(error => {
+            this.innerHTML = originalHtml;
+            this.style.pointerEvents = 'auto';
+            console.error('Error:', error);
+            showFavoriteToast('Something went wrong. Please try again.', '#dc3545');
+        });
+    });
+}
+
+// Helper function to show favorite toasts
+function showFavoriteToast(message, bgColor) {
+    const toastContainer = document.createElement('div');
+    toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
+    toastContainer.style.zIndex = '9999';
     
-    fetch('add_to_favorites.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: `product_id=${productId}`
-    })
-    .then(response => response.json())
-    .then(data => {
-      // Reset button
-      this.innerHTML = originalHtml;
-      this.style.pointerEvents = 'auto';
-      
-      if (data.success) {
-        // Change heart icon to filled heart
-        this.innerHTML = '<i class="bi bi-heart-fill" style="color: #dc3545;"></i>';
-        this.title = "Added to Favorites";
-        
-        // Show toast notification
-        const toastContainer = document.createElement('div');
-        toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
-        toastContainer.style.zIndex = '9999';
-        
-        const toastElement = document.createElement('div');
-        toastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
-        toastElement.style.backgroundColor = '#dc3545';
-        toastElement.setAttribute('role', 'alert');
-        toastElement.setAttribute('aria-live', 'assertive');
-        toastElement.setAttribute('aria-atomic', 'true');
-        
-        toastElement.innerHTML = `
-          <div class="d-flex">
+    const toastElement = document.createElement('div');
+    toastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
+    toastElement.style.backgroundColor = bgColor;
+    toastElement.setAttribute('role', 'alert');
+    toastElement.setAttribute('aria-live', 'assertive');
+    toastElement.setAttribute('aria-atomic', 'true');
+    
+    // Choose appropriate icon based on message type
+    let iconClass = 'bi-heart-fill';
+    if (bgColor === '#ffc107') {
+        iconClass = 'bi-exclamation-triangle'; // Warning icon for already added
+    } else if (bgColor === '#6c757d') {
+        iconClass = 'bi-heart'; // Empty heart for removal
+    }
+    
+    toastElement.innerHTML = `
+        <div class="d-flex">
             <div class="toast-body">
-              <i class="bi bi-heart-fill me-2"></i> Product added to favorites!
+                <i class="bi ${iconClass} me-2"></i> ${message}
             </div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-          </div>
-        `;
-        
-        toastContainer.appendChild(toastElement);
-        document.body.appendChild(toastContainer);
-        
-        const toast = new bootstrap.Toast(toastElement, {
-          autohide: true,
-          delay: 3000
-        });
-        toast.show();
-        
-        toastElement.addEventListener('hidden.bs.toast', function () {
-          document.body.removeChild(toastContainer);
-        });
-      } else if (data.already_added) {
-        // Product already in favorites
-        this.innerHTML = '<i class="bi bi-heart-fill" style="color: #dc3545;"></i>';
-        this.title = "Already in Favorites";
-        
-        alert('This product is already in your favorites');
-      } else if (data.require_login) {
-        // Redirect to login if not logged in
-        window.location.href = 'login.php';
-      } else {
-        alert(data.message || 'Failed to add to favorites');
-        console.error('Failed to add to favorites:', data.message);
-      }
-    })
-    .catch(error => {
-      this.innerHTML = originalHtml;
-      this.style.pointerEvents = 'auto';
-      console.error('Error:', error);
+        </div>
+    `;
+    
+    toastContainer.appendChild(toastElement);
+    document.body.appendChild(toastContainer);
+    
+    const toast = new bootstrap.Toast(toastElement, {
+        autohide: true,
+        delay: 3000
     });
-  });
+    toast.show();
+    
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        document.body.removeChild(toastContainer);
+    });
 }
 </script>
 </body>

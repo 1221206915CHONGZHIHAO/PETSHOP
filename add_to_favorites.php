@@ -1,94 +1,54 @@
 <?php
-// Start a session
 session_start();
+require_once 'db_connection.php'; // Your database connection file
 
-// Check if the user is logged in
 if (!isset($_SESSION['customer_id'])) {
-    // User is not logged in, return error response
-    header('Content-Type: application/json');
-    echo json_encode([
-        'success' => false,
-        'require_login' => true,
-        'message' => 'Please login to add items to favorites'
-    ]);
+    echo json_encode(['success' => false, 'require_login' => true]);
     exit;
 }
 
-// Get the product ID from POST
 $product_id = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+$action = isset($_POST['action']) ? $_POST['action'] : 'add';
 
-// Validate product ID
 if ($product_id <= 0) {
-    header('Content-Type: application/json');
-    echo json_encode([
-        'success' => false,
-        'message' => 'Invalid product ID'
-    ]);
+    echo json_encode(['success' => false, 'message' => 'Invalid product']);
     exit;
 }
 
-// Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "petshop";
-
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    header('Content-Type: application/json');
-    echo json_encode([
-        'success' => false,
-        'message' => 'Database connection error'
-    ]);
-    exit;
-}
-
-// Check if product already in user's favorites (wishlist)
+// Check if already in wishlist
 $check_sql = "SELECT * FROM wishlist WHERE Customer_ID = ? AND product_id = ?";
-$check_stmt = $conn->prepare($check_sql);
-$check_stmt->bind_param("ii", $_SESSION['customer_id'], $product_id);
-$check_stmt->execute();
-$result = $check_stmt->get_result();
+$stmt = $conn->prepare($check_sql);
+$stmt->bind_param("ii", $_SESSION['customer_id'], $product_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$exists = ($result->num_rows > 0);
+$stmt->close();
 
-if ($result->num_rows > 0) {
-    // Product already in favorites
-    $check_stmt->close();
-    $conn->close();
+if ($action === 'add') {
+    if ($exists) {
+        echo json_encode(['success' => false, 'already_added' => true]);
+        exit;
+    }
     
-    header('Content-Type: application/json');
-    echo json_encode([
-        'success' => false,
-        'already_added' => true,
-        'message' => 'Product already in favorites'
-    ]);
-    exit;
-}
-
-// Add product to wishlist
-$insert_sql = "INSERT INTO wishlist (Customer_ID, product_id, added_at) VALUES (?, ?, NOW())";
-$insert_stmt = $conn->prepare($insert_sql);
-$insert_stmt->bind_param("ii", $_SESSION['customer_id'], $product_id);
-
-if ($insert_stmt->execute()) {
-    $insert_stmt->close();
-    $conn->close();
+    $insert_sql = "INSERT INTO wishlist (Customer_ID, product_id) VALUES (?, ?)";
+    $stmt = $conn->prepare($insert_sql);
+    $stmt->bind_param("ii", $_SESSION['customer_id'], $product_id);
+    $success = $stmt->execute();
+    $stmt->close();
     
-    header('Content-Type: application/json');
-    echo json_encode([
-        'success' => true,
-        'message' => 'Product added to favorites'
-    ]);
+    echo json_encode(['success' => $success]);
 } else {
-    $insert_stmt->close();
-    $conn->close();
+    if (!$exists) {
+        echo json_encode(['success' => false, 'message' => 'Product not in wishlist']);
+        exit;
+    }
     
-    header('Content-Type: application/json');
-    echo json_encode([
-        'success' => false,
-        'message' => 'Failed to add product to favorites'
-    ]);
+    $delete_sql = "DELETE FROM wishlist WHERE Customer_ID = ? AND product_id = ?";
+    $stmt = $conn->prepare($delete_sql);
+    $stmt->bind_param("ii", $_SESSION['customer_id'], $product_id);
+    $success = $stmt->execute();
+    $stmt->close();
+    
+    echo json_encode(['success' => $success]);
 }
 ?>
