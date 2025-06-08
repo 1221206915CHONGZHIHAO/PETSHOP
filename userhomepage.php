@@ -306,7 +306,7 @@ if (isset($_SESSION['customer_id'])) {
                 <li><a class="dropdown-item" href="favorites.php"><i class="bi bi-heart me-2"></i>My Favorites</a></li>
                 <li><a class="dropdown-item" href="myprofile_address.php"><i class="bi bi-person-lines-fill me-2"></i>My Profile/Address</a></li>
                 <li><hr class="dropdown-divider"></li>
-                <<li><a class="dropdown-item" href="logout.php?type=customer"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
               <?php else: ?>
                 <li><a class="dropdown-item" href="login.php">Login</a></li>
                 <li><a class="dropdown-item" href="register.php">Register</a></li>
