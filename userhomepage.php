@@ -90,6 +90,20 @@ if (isset($_SESSION['customer_id'])) {
         $stmt->close();
     }
 }
+
+// If coming as guest, ensure clean cart
+if (isset($_GET['guest']) && $_GET['guest'] === 'true') {
+    // Clear any existing cart data
+    unset($_SESSION['cart']);
+    unset($_SESSION['cart_items']);
+    unset($_SESSION['cart_total']);
+    unset($_SESSION['cart_count']);
+    unset($_SESSION['shopping_cart']);
+    
+    // Set guest mode
+    $_SESSION['guest_mode'] = true;
+    $_SESSION['role'] = 'guest';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

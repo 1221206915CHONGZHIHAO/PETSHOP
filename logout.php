@@ -41,12 +41,13 @@ if ($logout_type === 'customer' || (empty($logout_type) && isset($_SESSION['cust
         }
     }
     
-    // Only unset customer-related session variables
+    // Unset customer-related session variables
     unset($_SESSION['role']);
     unset($_SESSION['customer_id']);
     unset($_SESSION['customer_name']);
     unset($_SESSION['email']);
-    
+    unset($_SESSION['cart']);
+
     $redirect_url = "login.php";
 }
 
