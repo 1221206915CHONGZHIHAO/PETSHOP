@@ -380,15 +380,15 @@ $db->close();
                             <i class="fas fa-download me-1"></i> Export
                         </a>
                     </div>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="weekDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-calendar me-1"></i><?php echo isset($_GET['week_filter']) ? 'This Week' : 'All Time'; ?>
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="weekDropdown">
-                            <li><a class="dropdown-item <?php echo isset($_GET['week_filter']) ? 'active' : ''; ?>" href="?week_filter=1">This Week</a></li>
-                            <li><a class="dropdown-item <?php echo !isset($_GET['week_filter']) ? 'active' : ''; ?>" href="staff_homepage.php">All Time</a></li>
-                        </ul>
-                    </div>
+<div class="dropdown">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="weekDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-calendar me-1"></i><?php echo isset($_GET['week_filter']) ? 'This Week' : 'All Time'; ?>
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="weekDropdown">
+        <li><a class="dropdown-item time-filter-option <?php echo isset($_GET['week_filter']) ? 'active' : ''; ?>" href="#" data-filter="week">This Week</a></li>
+        <li><a class="dropdown-item time-filter-option <?php echo !isset($_GET['week_filter']) ? 'active' : ''; ?>" href="#" data-filter="all">All Time</a></li>
+    </ul>
+</div>
                 </div>
             </div>
 
@@ -603,6 +603,35 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('sidebar').classList.contains('show')) {
             document.getElementById('sidebar').classList.remove('show');
         }
+    });
+
+    // Time filter functionality
+    const weekFilter = <?php echo isset($_GET['week_filter']) ? 'true' : 'false'; ?>;
+    const weekDropdown = document.getElementById('weekDropdown');
+    
+    // Update button text based on current filter
+    if (weekFilter) {
+        weekDropdown.innerHTML = '<i class="fas fa-calendar me-1"></i>This Week';
+    } else {
+        weekDropdown.innerHTML = '<i class="fas fa-calendar me-1"></i>All Time';
+    }
+    
+    // Add click handlers for filter options
+    document.querySelectorAll('.time-filter-option').forEach(option => {
+        option.addEventListener('click', function(e) {
+            e.preventDefault();
+            const isWeekFilter = this.getAttribute('data-filter') === 'week';
+            
+            // Update UI
+            weekDropdown.innerHTML = `<i class="fas fa-calendar me-1"></i>${isWeekFilter ? 'This Week' : 'All Time'}`;
+            
+            // Reload page with new filter
+            if (isWeekFilter) {
+                window.location.href = 'staff_homepage.php?week_filter=1';
+            } else {
+                window.location.href = 'staff_homepage.php';
+            }
+        });
     });
 
     // Sales Chart
