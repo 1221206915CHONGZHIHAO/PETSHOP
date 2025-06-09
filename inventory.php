@@ -315,14 +315,13 @@ if ($result->num_rows > 0) {
                                     onclick="loadEditForm(this)">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <form method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
-                                    <button type="submit" class="btn btn-sm btn-danger" 
-                                        onclick="return confirm('Are you sure you want to delete this product?')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+<form method="POST" style="display:inline;" class="delete-form">
+    <input type="hidden" name="action" value="delete">
+    <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
+    <button type="submit" class="btn btn-sm btn-danger">
+        <i class="fas fa-trash"></i>
+    </button>
+</form>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -481,7 +480,27 @@ if ($result->num_rows > 0) {
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    // SweetAlert for delete confirmation
+document.querySelectorAll('.delete-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    });
+});
 // Sidebar toggle
 document.getElementById('sidebarToggle').addEventListener('click', function() {
     document.getElementById('sidebar').classList.toggle('collapsed');

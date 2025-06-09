@@ -49,10 +49,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $stmt->fetch();
                     
                     if ($password === $db_password) {
+                        // Regenerate session ID to prevent session fixation
+                        session_regenerate_id(true);
+                        
                         $_SESSION['role'] = "admin";
                         $_SESSION['admin_logged_in'] = true;
                         $_SESSION['username'] = $db_username;
                         $_SESSION['email'] = $db_email;
+                        
+                        // Additional security measures
+                        $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
+                        $_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
+                        $_SESSION['last_activity'] = time();
+                        
                         $success_message = "Login successful! Redirecting...";
                         
                         // Ensure redirect URL is within admin system

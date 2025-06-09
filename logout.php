@@ -7,11 +7,34 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
-// Get the logout type from URL parameter (e.g., logout.php?type=customer or logout.php?type=admin)
+// Get the logout type from URL parameter
 $logout_type = isset($_GET['type']) ? $_GET['type'] : '';
 
 // Initialize redirect URL
 $redirect_url = "login.php"; // Default to customer login
+
+// Function to completely destroy session
+function destroySession() {
+    // Unset all session variables
+    $_SESSION = array();
+
+    // Destroy the session cookie
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(
+            session_name(), 
+            '', 
+            time() - 42000,
+            $params["path"], 
+            $params["domain"],
+            $params["secure"], 
+            $params["httponly"]
+        );
+    }
+
+    // Destroy the session
+    session_destroy();
+}
 
 // Handle Customer Logout
 if ($logout_type === 'customer' || (empty($logout_type) && isset($_SESSION['customer_id']))) {
@@ -26,10 +49,10 @@ if ($logout_type === 'customer' || (empty($logout_type) && isset($_SESSION['cust
             $check_result = $check_stmt->get_result();
             
             if ($check_result->num_rows > 0) {
-                // Log customer logout
-                $stmt = $conn->prepare("INSERT INTO customer_login_logs (username, email, status) 
-                                      VALUES (?, ?, 'logout')");
-                $stmt->bind_param("ss", $_SESSION['customer_name'], $_SESSION['email']);
+                // Log customer logout with IP address
+                $stmt = $conn->prepare("INSERT INTO customer_login_logs (username, email, status, ip_address) 
+                                      VALUES (?, ?, 'logout', ?)");
+                $stmt->bind_param("sss", $_SESSION['customer_name'], $_SESSION['email'], $_SERVER['REMOTE_ADDR']);
                 if (!$stmt->execute()) {
                     error_log("Failed to log customer logout: " . $stmt->error);
                 }
@@ -41,19 +64,13 @@ if ($logout_type === 'customer' || (empty($logout_type) && isset($_SESSION['cust
         }
     }
     
-    // Unset customer-related session variables
-    unset($_SESSION['role']);
-    unset($_SESSION['customer_id']);
-    unset($_SESSION['customer_name']);
-    unset($_SESSION['email']);
-    unset($_SESSION['cart']);
-
+    // Destroy the session completely
+    destroySession();
     $redirect_url = "login.php";
 }
 
 // Handle Admin/Staff Logout
 elseif ($logout_type === 'admin' || isset($_SESSION['admin_logged_in']) || isset($_SESSION['staff_id'])) {
-    
     // Handle Staff Logout
     if (isset($_SESSION['staff_id'])) {
         $staff_id = $_SESSION['staff_id'];
@@ -67,9 +84,10 @@ elseif ($logout_type === 'admin' || isset($_SESSION['admin_logged_in']) || isset
             $check_result = $check_stmt->get_result();
             
             if ($check_result->num_rows > 0) {
-                $stmt = $conn->prepare("INSERT INTO staff_login_logs (staff_id, username, email, status) 
-                                      VALUES (?, ?, ?, 'logout')");
-                $stmt->bind_param("iss", $staff_id, $username, $email);
+                // Log staff logout with IP address
+                $stmt = $conn->prepare("INSERT INTO staff_login_logs (staff_id, username, email, status, ip_address) 
+                                      VALUES (?, ?, ?, 'logout', ?)");
+                $stmt->bind_param("isss", $staff_id, $username, $email, $_SERVER['REMOTE_ADDR']);
                 if (!$stmt->execute()) {
                     error_log("Failed to log staff logout: " . $stmt->error);
                 }
@@ -79,11 +97,6 @@ elseif ($logout_type === 'admin' || isset($_SESSION['admin_logged_in']) || isset
         } catch (Exception $e) {
             error_log("Error during staff logout logging: " . $e->getMessage());
         }
-        
-        // Unset staff session variables
-        unset($_SESSION['staff_id']);
-        unset($_SESSION['staff_name']);
-        unset($_SESSION['staff_email']);
     }
     
     // Handle Admin Logout
@@ -92,9 +105,10 @@ elseif ($logout_type === 'admin' || isset($_SESSION['admin_logged_in']) || isset
         $email = $_SESSION['email'] ?? 'admin@example.com';
         
         try {
-            $stmt = $conn->prepare("INSERT INTO admin_login_logs (username, email, status) 
-                                  VALUES (?, ?, 'logout')");
-            $stmt->bind_param("ss", $username, $email);
+            // Log admin logout with IP address
+            $stmt = $conn->prepare("INSERT INTO admin_login_logs (username, email, status, ip_address) 
+                                  VALUES (?, ?, 'logout', ?)");
+            $stmt->bind_param("sss", $username, $email, $_SERVER['REMOTE_ADDR']);
             if (!$stmt->execute()) {
                 error_log("Failed to log admin logout: " . $stmt->error);
             }
@@ -102,32 +116,25 @@ elseif ($logout_type === 'admin' || isset($_SESSION['admin_logged_in']) || isset
         } catch (Exception $e) {
             error_log("Error during admin logout logging: " . $e->getMessage());
         }
-        
-        // Unset admin session variables
-        unset($_SESSION['admin_logged_in']);
-        unset($_SESSION['username']);
-        unset($_SESSION['admin_email']);
     }
     
+    // Destroy the session completely
+    destroySession();
     $redirect_url = "admin_login.php";
 }
 
 // If no specific logout type and no sessions found, clear everything as fallback
 else {
-    $_SESSION = array();
-    
-    if (ini_get("session.use_cookies")) {
-        $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000,
-            $params["path"], $params["domain"],
-            $params["secure"], $params["httponly"]
-        );
-    }
-    
-    session_destroy();
+    destroySession();
+    $redirect_url = "login.php";
 }
 
 $conn->close();
+
+// Prevent caching of the logout page
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
 
 // Redirect to the appropriate page
 header("Location: $redirect_url");

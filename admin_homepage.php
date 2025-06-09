@@ -1,11 +1,5 @@
 <?php
-session_start();
-
-// Check if admin is logged in
-if (!isset($_SESSION['admin_logged_in'])) {
-    header("Location: admin_login.php");
-    exit;
-}
+require_once 'admin_session_check.php';
 
 // Database connection
 $host = "localhost";
@@ -98,7 +92,7 @@ $summaryWhere = isset($_GET['week_filter']) ? "AND order_date >= DATE_SUB(CURDAT
 $result = $conn->query("SELECT COUNT(*) as total_orders FROM orders $dateFilter");
 $summaryData['total_orders'] = $result->fetch_assoc()['total_orders'];
 
-$result = $conn->query("SELECT SUM(Total) as total_revenue FROM orders WHERE status = 'completed' $summaryWhere");
+$result = $conn->query("SELECT SUM(Total) as total_revenue FROM orders $dateFilter");
 $summaryData['total_revenue'] = $result->fetch_assoc()['total_revenue'] ?? 0;
 
 $result = $conn->query("SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending' $summaryWhere");

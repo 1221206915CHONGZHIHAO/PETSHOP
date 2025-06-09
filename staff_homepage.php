@@ -116,7 +116,7 @@ $summaryData = [];
 $result = $db->query("SELECT COUNT(*) as total_orders FROM orders $dateFilter");
 $summaryData['total_orders'] = $result->fetch_assoc()['total_orders'];
 
-$result = $db->query("SELECT SUM(Total) as total_revenue FROM orders WHERE status = 'completed' $summaryWhere");
+$result = $db->query("SELECT SUM(Total) as total_revenue FROM orders $dateFilter");
 $summaryData['total_revenue'] = $result->fetch_assoc()['total_revenue'] ?? 0;
 
 $result = $db->query("SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending' $summaryWhere");
