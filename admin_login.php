@@ -121,8 +121,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         $_SESSION['avatar_path'] = $db_img_url;
                         $conn->query("UPDATE Staff SET password_reset_token = NULL WHERE Staff_id = $db_staff_id");
                         
-                        $conn->query("INSERT INTO staff_login_logs (staff_id, username, email, status) 
-                                    VALUES ($db_staff_id, '$db_username', '$db_email', 'login')");
+try {
+    $log_stmt = $conn->prepare("INSERT INTO staff_login_logs (staff_id, username, email, status) 
+                               VALUES (?, ?, ?, 'login')");
+    $log_stmt->bind_param("iss", $db_staff_id, $db_username, $db_email);
+    $log_stmt->execute();
+    $log_stmt->close();
+} catch (Exception $e) {
+    error_log("Error logging staff login: " . $e->getMessage());
+}
                         
                         // Ensure redirect URL is within staff system
                         $redirect_url = !empty($redirect) ? $redirect : 'staff_homepage.php';
@@ -728,7 +735,7 @@ function initSliderCaptcha() {
     document.addEventListener('touchend', endDrag);
     
     // Mouse events for desktop
-    sliderThumb.addEventListener('mousedown', startDrag);
+        sliderThumb.addEventListener('mousedown', startDrag);
     document.addEventListener('mousemove', drag);
     document.addEventListener('mouseup', endDrag);
     
