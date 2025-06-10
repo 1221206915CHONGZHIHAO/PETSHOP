@@ -16,6 +16,7 @@ if ($conn->connect_error) {
 $error_message = "";
 $success_message = "";
 $redirect_url = "";
+$active_tab = "staff"; // Default to staff tab
 
 // Get redirect URL from GET parameter or set default
 $redirect = isset($_GET['redirect']) ? $_GET['redirect'] : '';
@@ -26,6 +27,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $login_input = trim($_POST['login_input']); 
     $password = $_POST['password'];
     $redirect = isset($_POST['redirect']) ? $_POST['redirect'] : '';
+
+    // Set active tab based on submitted role
+    $active_tab = $role;
 
     if (empty($login_input) || empty($password)) {
         $error_message = "All fields are required.";
@@ -557,13 +561,13 @@ $conn->close();
         <form method="POST" action="" id="loginForm">
             <!-- Role selector with icons -->
             <div class="role-selector mb-4">
-                <label class="role-option" id="adminOption">
-                    <input type="radio" name="role" value="admin" required>
+                <label class="role-option <?php echo $active_tab === 'admin' ? 'active' : ''; ?>" id="adminOption">
+                    <input type="radio" name="role" value="admin" <?php echo $active_tab === 'admin' ? 'checked' : ''; ?> required>
                     <i class="bi bi-shield-lock"></i>
                     Admin
                 </label>
-                <label class="role-option active" id="staffOption">
-                    <input type="radio" name="role" value="staff" required checked>
+                <label class="role-option <?php echo $active_tab === 'staff' ? 'active' : ''; ?>" id="staffOption">
+                    <input type="radio" name="role" value="staff" <?php echo $active_tab === 'staff' ? 'checked' : ''; ?> required>
                     <i class="bi bi-person-badge"></i>
                     Staff
                 </label>
@@ -574,7 +578,7 @@ $conn->close();
                     <i class="bi bi-person me-2" style="color: var(--primary);"></i>
                     Username or Email
                 </label>
-                <input type="text" name="login_input" class="form-control" required placeholder="Enter your username or email">
+                <input type="text" name="login_input" class="form-control" required placeholder="Enter your username or email" value="<?php echo isset($_POST['login_input']) ? htmlspecialchars($_POST['login_input']) : ''; ?>">
             </div>
 
             <div class="mb-4 position-relative">
@@ -588,7 +592,7 @@ $conn->close();
                 </button>
             </div>
 
-            <input type="hidden" name="redirect" id="redirectInput" value="">
+            <input type="hidden" name="redirect" id="redirectInput" value="<?php echo htmlspecialchars($redirect); ?>">
             <input type="hidden" name="captcha_verified" id="captchaVerified" value="false">
 
             <button type="submit" class="btn btn-primary w-100">
@@ -597,7 +601,7 @@ $conn->close();
             </button>
         </form>
 
-        <p class="text-center mt-4 forgot-password-link staff-visible">
+        <p class="text-center mt-4 forgot-password-link <?php echo $active_tab === 'staff' ? 'staff-visible' : ''; ?>">
             <a href="staff_forgot_password.php" class="mt-2 d-inline-block">
                 <i class="bi bi-question-circle me-1"></i>
                 Forgot Password?

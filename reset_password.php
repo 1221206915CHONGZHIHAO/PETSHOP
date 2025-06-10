@@ -513,6 +513,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Calculate percentage (max score is 7)
             percentage = Math.min(100, Math.round((score / 7) * 100));
             
+            // If all requirements are met, set to 100%
+            if (checkPasswordLength(password) && 
+                checkPasswordUppercase(password) && 
+                checkPasswordNumber(password) && 
+                checkPasswordSymbol(password)) {
+                percentage = 100;
+            }
+            
             // Determine color based on score
             if (score < 3) {
                 color = '#ff3333'; // Red (weak)
@@ -532,16 +540,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     passwordInput.addEventListener('input', function() {
         const password = passwordInput.value;
         
+        // Check requirements
+        const hasLength = checkPasswordLength(password);
+        const hasUppercase = checkPasswordUppercase(password);
+        const hasNumber = checkPasswordNumber(password);
+        const hasSymbol = checkPasswordSymbol(password);
+        
+        toggleIconVisibility(lengthCheck, hasLength);
+        toggleIconVisibility(uppercaseCheck, hasUppercase);
+        toggleIconVisibility(numberCheck, hasNumber);
+        toggleIconVisibility(symbolCheck, hasSymbol);
+        
         // Update strength meter
         const strength = calculatePasswordStrength(password);
         strengthMeter.style.width = strength.percentage + '%';
         strengthMeter.style.backgroundColor = strength.color;
-        
-        // Check requirements
-        toggleIconVisibility(lengthCheck, checkPasswordLength(password));
-        toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
-        toggleIconVisibility(numberCheck, checkPasswordNumber(password));
-        toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
         
         // Update match status if confirm password has value
         if (confirmPassword.value) {
