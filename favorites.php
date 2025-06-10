@@ -21,7 +21,7 @@ if ($conn->connect_error) {
 
 // Get favorite products for the current customer using wishlist table
 $stmt = $conn->prepare("
-    SELECT p.product_id, p.product_name, p.price, p.image_url, p.stock_quantity
+    SELECT DISTINCT p.product_id, p.product_name, p.price, p.image_url, p.stock_quantity
     FROM wishlist w
     JOIN products p ON w.product_id = p.product_id
     WHERE w.Customer_ID = ?
@@ -291,7 +291,7 @@ $conn->close();
           <p>Your trusted partner in pet care since 2015. We're dedicated to providing quality products and exceptional service for pet lovers everywhere.</p>
           <div class="social-links">
             <a href="https://www.facebook.com/profile.php?id=61575717095389"><i class="bi bi-facebook"></i></a>
-            <a href="https://www.instagram.com/smal.l7018/"><i class="bi bi-instagram"></i></a>
+            <a href="#"><i class="bi bi-instagram"></i></a>
           </div>
         </div>
       </div>
