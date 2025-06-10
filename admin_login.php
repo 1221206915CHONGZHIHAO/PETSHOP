@@ -137,8 +137,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             last_failed_login = NOW() 
                             WHERE Staff_id = $db_staff_id");
                         
-                        $conn->query("INSERT INTO staff_login_logs (staff_id, username, email, status) 
-                                    VALUES ($db_staff_id, '$db_username', '', 'failed')");
+                        $conn->query("INSERT INTO staff_login_logs (staff_id, username, email, status, ip_address) 
+                                    VALUES ($db_staff_id, '$db_username', '', 'failed', '{$_SERVER['REMOTE_ADDR']}')");
                     }
                 } else {
                     $error_message = "Username or email not found.";
