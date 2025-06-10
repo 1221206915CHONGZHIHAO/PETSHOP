@@ -91,8 +91,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("Invalid expiry date (MM/YY format required)");
         }
         
-        if (!preg_match('/^\d{3,4}$/', $_POST['card_cvv'])) {
-            throw new Exception("Invalid CVV");
+        // Updated CVV validation - exactly 3 digits
+        if (!preg_match('/^\d{3}$/', $_POST['card_cvv'])) {
+            throw new Exception("CVV must be exactly 3 digits");
         }
         
         // Start transaction
@@ -427,8 +428,8 @@ $conn->close();
                   <input type="text" class="form-control" id="card_expiry" name="card_expiry" placeholder="MM/YY" required>
                 </div>
                 <div class="col-md-6 mb-3">
-                  <label for="card_cvv" class="form-label">CVV</label>
-                  <input type="text" class="form-control" id="card_cvv" name="card_cvv" placeholder="123" required>
+                  <label for="card_cvv" class="form-label">CVV (3 digits)</label>
+                  <input type="text" class="form-control" id="card_cvv" name="card_cvv" placeholder="123" maxlength="3" required>
                 </div>
               </div>
             </div>
@@ -512,35 +513,35 @@ $conn->close();
       
       <!-- Contact Info -->
       <div class="col-md-7">
-                    <h4 class="footer-title">Contact Us</h4>
-                    <div class="row">
-                        <div class="col-sm-6 mb-3">
-                            <div class="contact-info">
-                                <i class="bi bi-geo-alt"></i>
-                                <span><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></span>
-                            </div>
-                        </div>
-                        <div class="col-sm-6 mb-3">
-                            <div class="contact-info">
-                                <i class="bi bi-telephone"></i>
-                                <span><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></span>
-                            </div>
-                        </div>
-                        <div class="col-sm-6 mb-3">
-                            <div class="contact-info">
-                                <i class="bi bi-envelope"></i>
-                                <span><?php echo !empty($shopSettings['contact_email']) ? htmlspecialchars($shopSettings['contact_email']) : 'Email not available'; ?></span>
-                            </div>
-                        </div>
-                        <div class="col-sm-6 mb-3">
-                            <div class="contact-info">
-                                <i class="bi bi-clock"></i>
-                                <span><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <h4 class="footer-title">Contact Us</h4>
+        <div class="row">
+          <div class="col-sm-6 mb-3">
+            <div class="contact-info">
+              <i class="bi bi-geo-alt"></i>
+              <span><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></span>
             </div>
+          </div>
+          <div class="col-sm-6 mb-3">
+            <div class="contact-info">
+              <i class="bi bi-telephone"></i>
+              <span><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></span>
+            </div>
+          </div>
+          <div class="col-sm-6 mb-3">
+            <div class="contact-info">
+              <i class="bi bi-envelope"></i>
+              <span><?php echo !empty($shopSettings['contact_email']) ? htmlspecialchars($shopSettings['contact_email']) : 'Email not available'; ?></span>
+            </div>
+          </div>
+          <div class="col-sm-6 mb-3">
+            <div class="contact-info">
+              <i class="bi bi-clock"></i>
+              <span><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     
     <!-- Footer Bottom -->
     <div class="footer-bottom" style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 40px; padding-top: 20px;">
@@ -611,10 +612,10 @@ document.addEventListener('DOMContentLoaded', function () {
         this.value = this.value.replace(/\D/g, '').replace(/(\d{2})(?=\d)/g, '$1/').substring(0, 5);
     });
 
-    // Format CVV (3 or 4 digits)
+    // Format CVV (exactly 3 digits)
     const cardCvvInput = document.getElementById('card_cvv');
     cardCvvInput.addEventListener('input', function () {
-        this.value = this.value.replace(/\D/g, '').substring(0, 4);
+        this.value = this.value.replace(/\D/g, '').substring(0, 3);
     });
 
     // Handle form submission with custom modal
@@ -650,9 +651,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 isValid = false;
             }
 
-            // Validate CVV
-            if (!/^\d{3,4}$/.test(cvv)) {
-                document.getElementById('client-error').textContent = 'CVV must be 3 or 4 digits.';
+            // Validate CVV (exactly 3 digits)
+            if (!/^\d{3}$/.test(cvv)) {
+                document.getElementById('client-error').textContent = 'CVV must be exactly 3 digits.';
                 document.getElementById('client-error').classList.remove('d-none');
                 window.scrollTo(0, 0);
                 isValid = false;
