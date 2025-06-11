@@ -417,7 +417,7 @@ if (isset($_GET['guest']) && $_GET['guest'] === 'true') {
                 </div>
                 <div class="card-body">
                   <h5 class="card-title"><?php echo htmlspecialchars($product['product_name']); ?></h5>
-                  <div class="price">$<?php echo number_format($product['price'], 2); ?></div>
+                  <div class="price">RM<?php echo number_format($product['price'], 2); ?></div>
                   <button class="btn btn-primary add-to-cart-btn" 
                           data-product-id="<?php echo $product['product_id']; ?>" 
                           data-product-name="<?php echo htmlspecialchars($product['product_name']); ?>">
