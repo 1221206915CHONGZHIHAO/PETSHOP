@@ -75,20 +75,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset(
 
 // Ensure cart count is loaded for logged-in users on every page
 if (isset($_SESSION['customer_id'])) {
-    // Only query if cart_count isn't set or needs refresh
-    if (!isset($_SESSION['cart_count'])) {
-        $stmt = $conn->prepare("
-            SELECT COUNT(DISTINCT Product_ID) AS cart_count 
-            FROM cart 
-            WHERE Customer_ID = ?
-        ");
-        $stmt->bind_param("i", $_SESSION['customer_id']);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-        $_SESSION['cart_count'] = $row['cart_count'] ?? 0;
-        $stmt->close();
-    }
+    // Always query the database to ensure the cart count is fresh on every page load.
+    $stmt = $conn->prepare("
+        SELECT COUNT(DISTINCT Product_ID) AS cart_count 
+        FROM cart 
+        WHERE Customer_ID = ?
+    ");
+    $stmt->bind_param("i", $_SESSION['customer_id']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $_SESSION['cart_count'] = $row['cart_count'] ?? 0;
+    $stmt->close();
 }
 
 // If coming as guest, ensure clean cart
