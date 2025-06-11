@@ -1,19 +1,15 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['customer_id'])) {
-    header("Location: login.php");
-    exit();
-}
-
-$servername = "localhost";
+$servername  = "localhost";
 $db_username = "root";
 $db_password = "";
-$dbname = "petshop";
+$dbname      = "petshop";
 
+// Database connection
 $conn = new mysqli($servername, $db_username, $db_password, $dbname);
 if ($conn->connect_error) {
-    die("数据库连接失败: " . $conn->connect_error);
+    die("Database connection failed: " . $conn->connect_error);
 }
 
 $shopSettings = [];

@@ -1,6 +1,6 @@
 <?php
 session_start();
-include 'db_connection.php'; // Assuming this establishes the database connection
+include 'db_connection.php';
 
 // Fetch shop settings from database
 $shopSettings = [];

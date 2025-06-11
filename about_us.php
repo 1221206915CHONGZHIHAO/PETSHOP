@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'db_connection.php'; // Use the existing db_connection.php for consistency
+require_once 'db_connection.php';
 
 $shopSettings = [];
 $settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
