@@ -12,9 +12,9 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
-// Fetch best sellers (example: most recently added products)
+// Fetch best sellers based on the 'best-selling' logic (most recently updated)
 $best_sellers = [];
-$best_sellers_sql = "SELECT * FROM products ORDER BY created_at DESC LIMIT 4";
+$best_sellers_sql = "SELECT * FROM products ORDER BY updated_at DESC LIMIT 4";
 $best_sellers_result = $conn->query($best_sellers_sql);
 if ($best_sellers_result && $best_sellers_result->num_rows > 0) {
     while($row = $best_sellers_result->fetch_assoc()) {
@@ -417,7 +417,7 @@ if (isset($_GET['guest']) && $_GET['guest'] === 'true') {
                 </div>
                 <div class="card-body">
                   <h5 class="card-title"><?php echo htmlspecialchars($product['product_name']); ?></h5>
-                  <div class="price">$<?php echo number_format($product['price'], 2); ?></div>
+                  <div class="price">RM<?php echo number_format($product['price'], 2); ?></div>
                   <button class="btn btn-primary add-to-cart-btn" 
                           data-product-id="<?php echo $product['product_id']; ?>" 
                           data-product-name="<?php echo htmlspecialchars($product['product_name']); ?>">

@@ -697,7 +697,8 @@ addToCartButtons.forEach(button => {
     e.preventDefault();
     const productId = this.getAttribute('data-product-id');
     const productName = this.getAttribute('data-product-name');
-    
+    const quantity = document.getElementById('quantity').value;
+
     this.disabled = true;
     const originalText = this.innerHTML;
     this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
@@ -707,7 +708,7 @@ addToCartButtons.forEach(button => {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: `product_id=${productId}`
+      body: `product_id=${productId}&quantity=${quantity}` 
     })
     .then(response => response.json())
     .then(data => {
