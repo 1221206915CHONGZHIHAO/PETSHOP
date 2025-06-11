@@ -10,14 +10,6 @@ if ($conn->connect_error) {
 // Get logout type from URL
 $logout_type = $_GET['type'] ?? '';
 
-// Store current sessions before any changes
-$active_sessions = [
-    'customer' => isset($_SESSION['customer_id']),
-    'staff' => isset($_SESSION['staff_id']),
-    'admin' => isset($_SESSION['admin_logged_in'])
-];
-
-
 // Handle Customer Logout
 if ($logout_type === 'customer') {
     // Backup customer data for logging
@@ -31,8 +23,9 @@ if ($logout_type === 'customer') {
     unset($_SESSION['customer_name']);
     unset($_SESSION['email']);
     unset($_SESSION['cart']);
-    if (isset($_SESSION['role']) && $_SESSION['role'] === 'customer') {
-        unset($_SESSION['role']);
+    unset($_SESSION['profile_image']);
+    if (isset($_SESSION['customer_role'])) {
+        unset($_SESSION['customer_role']);
     }
 
     // Log the logout
@@ -47,8 +40,8 @@ if ($logout_type === 'customer') {
         }
     }
 
-    // Redirect to customer login
-    header("Location: login.php");
+    // Redirect to customer login with success message
+    header("Location: login.php?logout=success");
     exit();
 }
 
@@ -57,16 +50,17 @@ elseif ($logout_type === 'staff') {
     // Backup staff data for logging
     $log_data = [
         'id' => $_SESSION['staff_id'] ?? 0,
-        'name' => $_SESSION['staff_name'] ?? '',
+        'name' => $_SESSION['staff_username'] ?? '',
         'email' => $_SESSION['staff_email'] ?? ''
     ];
 
     // Clear only staff-related session data
     unset($_SESSION['staff_id']);
-    unset($_SESSION['staff_name']);
+    unset($_SESSION['staff_username']);
     unset($_SESSION['staff_email']);
-    if (isset($_SESSION['role']) && $_SESSION['role'] === 'staff') {
-        unset($_SESSION['role']);
+    unset($_SESSION['staff_avatar_path']);
+    if (isset($_SESSION['staff_role'])) {
+        unset($_SESSION['staff_role']);
     }
 
     // Log the logout
@@ -81,8 +75,8 @@ elseif ($logout_type === 'staff') {
         }
     }
 
-    // Redirect to shared admin/staff login
-    header("Location: admin_login.php");
+    // Always redirect to admin login for staff logout
+    header("Location: admin_login.php?logout=success");
     exit();
 }
 
@@ -90,16 +84,16 @@ elseif ($logout_type === 'staff') {
 elseif ($logout_type === 'admin') {
     // Backup admin data for logging
     $log_data = [
-        'username' => $_SESSION['username'] ?? '',
-        'email' => $_SESSION['email'] ?? ''
+        'username' => $_SESSION['admin_username'] ?? '',
+        'email' => $_SESSION['admin_email'] ?? ''
     ];
 
     // Clear only admin-related session data
     unset($_SESSION['admin_logged_in']);
-    unset($_SESSION['username']);
-    unset($_SESSION['email']);
-    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
-        unset($_SESSION['role']);
+    unset($_SESSION['admin_username']);
+    unset($_SESSION['admin_email']);
+    if (isset($_SESSION['admin_role'])) {
+        unset($_SESSION['admin_role']);
     }
 
     // Log the logout
@@ -114,17 +108,17 @@ elseif ($logout_type === 'admin') {
         }
     }
 
-    // Redirect to shared admin/staff login
-    header("Location: admin_login.php");
+    // Redirect to admin login
+    header("Location: admin_login.php?logout=success");
     exit();
 }
 
-// Default behavior for invalid/missing logout type
-if ($active_sessions['customer']) {
+// Default behavior - check which session exists and redirect accordingly
+if (isset($_SESSION['customer_id'])) {
     header("Location: userhomepage.php");
-} elseif ($active_sessions['staff']) {
+} elseif (isset($_SESSION['staff_id'])) {
     header("Location: staff_homepage.php");
-} elseif ($active_sessions['admin']) {
+} elseif (isset($_SESSION['admin_logged_in'])) {
     header("Location: admin_homepage.php");
 } else {
     header("Location: login.php");
