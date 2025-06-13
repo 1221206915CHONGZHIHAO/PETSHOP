@@ -468,21 +468,17 @@ $masked_password = str_repeat('*', strlen($actual_password));
   </style>
 </head>
 <body>
-  <!-- Navigation -->
-<nav class="navbar navbar-expand-lg custom-nav fixed-top">
+  <nav class="navbar navbar-expand-lg custom-nav fixed-top">
     <div class="container">
-      <!-- Brand on the left -->
       <a class="navbar-brand" href="userhomepage.php">
         <img src="Hachi_Logo.png" alt="Hachi Pet Shop">
       </a>
       
-      <!-- Toggler for mobile view -->
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
 
       <div class="collapse navbar-collapse" id="navbarNav">
-        <!-- Main nav links centered -->
         <ul class="navbar-nav mx-auto">
         <li class="nav-item"><a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'userhomepage.php' ? 'active' : ''; ?>" href="userhomepage.php">Home</a></li>
         <li class="nav-item"><a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'about_us.php' ? 'active' : ''; ?>" href="about_us.php">About Us</a></li>
@@ -490,9 +486,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
         <li class="nav-item"><a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'contact_us.php' ? 'active' : ''; ?>" href="contact_us.php">Contact Us</a></li>
         </ul>
 
-        <!-- Icons on the right -->
         <ul class="navbar-nav ms-auto nav-icons">
-          <!-- Search Icon with Dropdown - Modified to redirect to products.php -->
           <li class="nav-item dropdown">
             <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-search"></i>
@@ -505,7 +499,6 @@ $masked_password = str_repeat('*', strlen($actual_password));
             </ul>
           </li>
 
-          <!-- Cart Icon with item count -->
           <li class="nav-item">
             <a class="nav-link position-relative" href="cart.php">
               <i class="bi bi-cart"></i>
@@ -517,7 +510,6 @@ $masked_password = str_repeat('*', strlen($actual_password));
             </a>
           </li>
 
-          <!-- User Icon with Dynamic Dropdown -->
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle d-flex align-items-center <?php echo in_array(basename($_SERVER['PHP_SELF']), ['user_dashboard.php', 'my_orders.php', 'favorites.php', 'myprofile_address.php']) ? 'active' : ''; ?>" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <?php if(isset($_SESSION['customer_id'])): ?>
@@ -726,11 +718,9 @@ $masked_password = str_repeat('*', strlen($actual_password));
   </div>
 </div>
 
-<!-- Footer with simplified structure -->
 <footer style="background: linear-gradient(to bottom,rgb(134, 138, 135),rgba(46, 21, 1, 0.69));">
     <div class="container">
       <div class="row">
-        <!-- Footer About -->
         <div class="col-md-5 mb-4 mb-lg-0">
           <div class="footer-about">
             <div class="footer-logo">
@@ -744,40 +734,38 @@ $masked_password = str_repeat('*', strlen($actual_password));
           </div>
         </div>
         
-        <!-- Contact Info -->
         <div class="col-md-7">
-                    <h4 class="footer-title">Contact Us</h4>
-                    <div class="row">
-                        <div class="col-sm-6 mb-3">
-                            <div class="contact-info">
-                                <i class="bi bi-geo-alt"></i>
-                                <span><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></span>
+                      <h4 class="footer-title">Contact Us</h4>
+                      <div class="row">
+                            <div class="col-sm-6 mb-3">
+                                <div class="contact-info">
+                                    <i class="bi bi-geo-alt"></i>
+                                    <span><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-sm-6 mb-3">
-                            <div class="contact-info">
-                                <i class="bi bi-telephone"></i>
-                                <span><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></span>
+                            <div class="col-sm-6 mb-3">
+                                <div class="contact-info">
+                                    <i class="bi bi-telephone"></i>
+                                    <span><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-sm-6 mb-3">
-                            <div class="contact-info">
-                                <i class="bi bi-envelope"></i>
-                                <span><?php echo !empty($shopSettings['contact_email']) ? htmlspecialchars($shopSettings['contact_email']) : 'Email not available'; ?></span>
+                            <div class="col-sm-6 mb-3">
+                                <div class="contact-info">
+                                    <i class="bi bi-envelope"></i>
+                                    <span><?php echo !empty($shopSettings['contact_email']) ? htmlspecialchars($shopSettings['contact_email']) : 'Email not available'; ?></span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-sm-6 mb-3">
-                            <div class="contact-info">
-                                <i class="bi bi-clock"></i>
-                                <span><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></span>
+                            <div class="col-sm-6 mb-3">
+                                <div class="contact-info">
+                                    <i class="bi bi-clock"></i>
+                                    <span><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></span>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-          
+                      </div>
+                  </div>
+              </div>
+            
       
-      <!-- Footer Bottom -->
       <div class="footer-bottom" style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 40px; padding-top: 20px;">
         <div class="row align-items-center">
           <div class="col-md-6 text-center text-md-start">
@@ -788,12 +776,10 @@ $masked_password = str_repeat('*', strlen($actual_password));
     </div>
   </footer>
 
-  <!-- Back to Top Button with improved styling -->
   <a href="#" class="back-to-top" id="backToTop" style="background: linear-gradient(145deg, var(--primary), var(--primary-dark));">
     <i class="bi bi-arrow-up"></i>
   </a>
 
-<!-- Edit Profile Modal - Modified to show name but make it readonly -->
 <div id="edit-profile-modal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -823,7 +809,6 @@ $masked_password = str_repeat('*', strlen($actual_password));
   </div>
 </div>
 
-<!-- Updated Change Password Modal with Validation -->
 <div id="change-password-modal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -880,7 +865,6 @@ $masked_password = str_repeat('*', strlen($actual_password));
   </div>
 </div>
 
-<!-- Address Modal -->
 <div id="address-modal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -943,39 +927,36 @@ $masked_password = str_repeat('*', strlen($actual_password));
   </div>
 </div>
 
-<!-- Bootstrap Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- AOS Animation Library -->
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
 <script>
-  // Initialize AOS Animation
-  AOS.init({
-      once: true,
-      duration: 800,
-      offset: 100
-    });
-    
-    // Navbar Scroll Effect
-    const navbar = document.querySelector('.custom-nav');
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 50) {
-        navbar.classList.add('navbar-scrolled');
-      } else {
-        navbar.classList.remove('navbar-scrolled');
-      }
-    });
-    
-    // Back to Top Button
-    const backToTopButton = document.getElementById('backToTop');
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 300) {
-        backToTopButton.classList.add('active');
-      } else {
-        backToTopButton.classList.remove('active');
-      }
-    });
-    
 document.addEventListener('DOMContentLoaded', function() {
+  // Initialize AOS Animation (if you use it on this page)
+  AOS.init({
+    once: true,
+    duration: 800,
+    offset: 100
+  });
+
+  const navbar = document.querySelector('.custom-nav');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 50) {
+      navbar.classList.add('navbar-scrolled');
+    } else {
+      navbar.classList.remove('navbar-scrolled');
+    }
+  });
+  
+  const backToTopButton = document.getElementById('backToTop');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 300) {
+      backToTopButton.classList.add('active');
+    } else {
+      backToTopButton.classList.remove('active');
+    }
+  });
+
   const modals = document.querySelectorAll('.modal');
   const closeButtons = document.querySelectorAll('.close-button, .close-modal-btn');
   const editProfileBtn = document.getElementById('edit-profile-btn');
@@ -999,17 +980,23 @@ document.addEventListener('DOMContentLoaded', function() {
   const passwordMatchIndicator = document.getElementById('password-match-indicator');
   const changePasswordSubmit = document.getElementById('change-password-submit');
 
-  // Open edit profile modal
+  function resetPasswordForm() {
+    const passwordForm = changePasswordModal.querySelector('form');
+    if (passwordForm) {
+      passwordForm.reset();
+    }
+    validatePassword();
+  }
+
   editProfileBtn.addEventListener('click', function() {
     editProfileModal.style.display = 'block';
   });
   
-  // Open change password modal
   changePasswordBtn.addEventListener('click', function() {
+    resetPasswordForm();
     changePasswordModal.style.display = 'block';
   });
   
-  // Open add address modal
   addAddressBtn.addEventListener('click', function() {
     document.getElementById('address_id').value = '';
     document.getElementById('address_label').value = '';
@@ -1026,7 +1013,6 @@ document.addEventListener('DOMContentLoaded', function() {
     addressModal.style.display = 'block';
   });
 
-  // Image preview functionality
   if (profileImageInput) {
     profileImageInput.addEventListener('change', function() {
       imagePreview.innerHTML = '';
@@ -1044,28 +1030,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Password validation functions
-  function checkPasswordLength(password) {
-    return password.length >= 8;
-  }
+  function checkPasswordLength(password) { return password.length >= 8; }
+  function checkPasswordUppercase(password) { return /[A-Z]/.test(password); }
+  function checkPasswordNumber(password) { return /[0-9]/.test(password); }
+  function checkPasswordSymbol(password) { return /[^A-Za-z0-9]/.test(password); }
+  function checkPasswordMatch(password, confirmPassword) { return password === confirmPassword && password.length > 0; }
   
-  function checkPasswordUppercase(password) {
-    return /[A-Z]/.test(password);
-  }
-  
-  function checkPasswordNumber(password) {
-    return /[0-9]/.test(password);
-  }
-  
-  function checkPasswordSymbol(password) {
-    return /[^A-Za-z0-9]/.test(password);
-  }
-  
-  function checkPasswordMatch(password, confirmPassword) {
-    return password === confirmPassword && password.length > 0;
-  }
-  
-  // Toggle icon visibility
   function toggleIconVisibility(element, isValid) {
     const crossIcon = element.querySelector('.bi-x-circle');
     const checkIcon = element.querySelector('.bi-check-circle');
@@ -1083,7 +1053,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Validate all password requirements
   function validatePassword() {
     const password = newPasswordInput.value;
     const confirmPassword = confirmPasswordInput.value;
@@ -1099,7 +1068,6 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleIconVisibility(numberCheck, numberValid);
     toggleIconVisibility(symbolCheck, symbolValid);
     
-    // Show/hide password match indicator
     if (confirmPassword.length > 0) {
       passwordMatchIndicator.style.display = 'block';
       toggleIconVisibility(matchCheck, matchValid);
@@ -1107,23 +1075,14 @@ document.addEventListener('DOMContentLoaded', function() {
       passwordMatchIndicator.style.display = 'none';
     }
     
-    // Enable/disable submit button
     const allValid = lengthValid && uppercaseValid && numberValid && symbolValid && matchValid;
     changePasswordSubmit.disabled = !allValid;
-    
     return allValid;
   }
   
-  // Add event listeners for password validation
-  if (newPasswordInput) {
-    newPasswordInput.addEventListener('input', validatePassword);
-  }
-  
-  if (confirmPasswordInput) {
-    confirmPasswordInput.addEventListener('input', validatePassword);
-  }
+  if (newPasswordInput) newPasswordInput.addEventListener('input', validatePassword);
+  if (confirmPasswordInput) confirmPasswordInput.addEventListener('input', validatePassword);
 
-  // Handle close buttons
   closeButtons.forEach(function(btn) {
     btn.addEventListener('click', function() {
       modals.forEach(function(modal) {
@@ -1132,7 +1091,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   
-  // Close modal when clicking outside
   window.addEventListener('click', function(event) {
     modals.forEach(function(modal) {
       if (event.target === modal) {
@@ -1141,65 +1099,58 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   
-  // Edit address buttons
   const editAddressBtns = document.querySelectorAll('.edit-address-btn');
   editAddressBtns.forEach(function(btn) {
     btn.addEventListener('click', function() {
       const addressId = this.getAttribute('data-id');
-      
-      // Find the address card parent element
       const addressCard = this.closest('.address-card');
       if (!addressCard) return;
       
-      // Get address data directly from the DOM
       const label = addressCard.querySelector('h4').textContent;
       const paragraphs = addressCard.querySelectorAll('p');
       
-      // Extract data from paragraphs
-      let fullName = '';
-      let addressLine1 = '';
-      let addressLine2 = '';
-      let city = '';
-      let state = '';
-      let postalCode = '';
-      let country = '';
-      let phone = '';
+      let fullName = '', addressLine1 = '', addressLine2 = '', city = '', 
+          state = '', postalCode = '', country = '', phone = '';
       
-      if (paragraphs.length > 0) fullName = paragraphs[0].textContent;
-      if (paragraphs.length > 1) addressLine1 = paragraphs[1].textContent;
+      if (paragraphs.length > 0) fullName = paragraphs[0].textContent.trim();
+      if (paragraphs.length > 1) addressLine1 = paragraphs[1].textContent.trim();
       
-      // Handle optional address line 2
-      let cityIndex = 2;
-      if (paragraphs.length > 3 && !paragraphs[2].textContent.includes(',')) {
-        addressLine2 = paragraphs[2].textContent;
-        cityIndex = 3;
+      let p_index = 2;
+      if (paragraphs.length > 2 && !paragraphs[p_index].textContent.includes(',')) {
+        addressLine2 = paragraphs[p_index].textContent.trim();
+        p_index++;
       }
       
-      // Parse city, state, zip from the format "City, State, Zip"
-      if (paragraphs.length > cityIndex) {
-        const cityStateZip = paragraphs[cityIndex].textContent.split(',');
-        if (cityStateZip.length >= 1) city = cityStateZip[0].trim();
-        if (cityStateZip.length >= 2) state = cityStateZip[1].trim();
-        if (cityStateZip.length >= 3) postalCode = cityStateZip[2].trim();
-      }
-      
-      // Get country
-      if (paragraphs.length > cityIndex + 1) {
-        country = paragraphs[cityIndex + 1].textContent;
-      }
-      
-      // Extract phone number from format "Phone: 123456789"
-      if (paragraphs.length > cityIndex + 2) {
-        const phoneText = paragraphs[cityIndex + 2].textContent;
-        if (phoneText.startsWith('Phone:')) {
-          phone = phoneText.replace('Phone:', '').trim();
+      if (paragraphs.length > p_index) {
+        const cityLine = paragraphs[p_index].textContent.trim();
+        const parts = cityLine.split(',').map(part => part.trim());
+
+        city = parts[0] || '';
+
+        if (parts.length === 3) {
+            state = parts[1];
+            postalCode = parts[2];
+        } else if (parts.length === 2) {
+            state = '';
+            postalCode = parts[1];
+        } else {
+            state = '';
+            postalCode = '';
         }
+        p_index++;
+      }
+
+      if (paragraphs.length > p_index) {
+        country = paragraphs[p_index].textContent.trim();
+        p_index++;
       }
       
-      // Check if this is the default address
+      if (paragraphs.length > p_index && paragraphs[p_index].textContent.includes('Phone:')) {
+        phone = paragraphs[p_index].textContent.replace('Phone:', '').trim();
+      }
+      
       const isDefault = addressCard.querySelector('.badge') !== null;
       
-      // Populate form fields
       document.getElementById('address_id').value = addressId;
       document.getElementById('address_label').value = label;
       document.getElementById('full_name').value = fullName;
@@ -1212,7 +1163,6 @@ document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('country').value = country;
       document.getElementById('is_default').checked = isDefault;
       
-      // Update modal title and display it
       addressModalTitle.textContent = 'Edit Address';
       addressModal.style.display = 'block';
     });
