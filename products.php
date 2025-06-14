@@ -81,17 +81,19 @@ function getProducts($sort = 'newest', $category = '', $search = '') {
     return $products;
 }
 
-// Get categories for sidebar
+// Get categories for sidebar from the 'pet_categories' table
 function getCategories() {
     global $conn;
     
-    $sql = "SELECT DISTINCT category FROM products ORDER BY category";
+    // UPDATED: Query now selects from 'pet_categories' table
+    $sql = "SELECT category_name FROM pet_categories ORDER BY category_name ASC";
     $result = $conn->query($sql);
     $categories = [];
     
     if ($result && $result->num_rows > 0) {
+        // UPDATED: Changed from $row['category'] to $row['category_name']
         while($row = $result->fetch_assoc()) {
-            $categories[] = $row['category'];
+            $categories[] = $row['category_name'];
         }
     }
     
@@ -128,35 +130,25 @@ if (!empty($search)) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hachi Pet Shop - <?php echo $page_title; ?></title>
-  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-  <!-- AOS Animation Library -->
   <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-  <!-- Toastr CSS for notifications -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
-  <!-- Custom CSS -->
   <link rel="stylesheet" href="userhomepage.css">
 </head>
 <body>
-<!-- Navigation -->
 <nav class="navbar navbar-expand-lg navbar-dark custom-nav fixed-top">
   <div class="container">
-    <!-- Brand on the left -->
     <a class="navbar-brand" href="userhomepage.php">
       <img src="Hachi_Logo.png" alt="Pet Shop">
     </a>
     
-    <!-- Toggler for mobile view -->
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
 
     <div class="collapse navbar-collapse" id="navbarNav">
-      <!-- Main nav links centered -->
       <ul class="navbar-nav mx-auto">
         <li class="nav-item"><a class="nav-link" href="userhomepage.php">Home</a></li>
         <li class="nav-item"><a class="nav-link" href="about_us.php">About Us</a></li>
@@ -164,9 +156,7 @@ if (!empty($search)) {
         <li class="nav-item"><a class="nav-link" href="contact_us.php">Contact Us</a></li>
       </ul>
 
-      <!-- Icons on the right -->
       <ul class="navbar-nav ms-auto nav-icons">
-          <!-- Search Icon with Dropdown - Modified to redirect to products.php -->
           <li class="nav-item dropdown">
             <a class="nav-link" href="#" id="searchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-search"></i>
@@ -179,7 +169,6 @@ if (!empty($search)) {
             </ul>
           </li>
 
-        <!-- Cart Icon with item count -->
         <li class="nav-item">
             <a class="nav-link position-relative" href="cart.php">
               <i class="bi bi-cart"></i>
@@ -191,7 +180,6 @@ if (!empty($search)) {
             </a>
           </li>
 
-        <!-- User Icon with Dynamic Dropdown -->
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
             <?php if(isset($_SESSION['customer_id'])): ?>
@@ -223,9 +211,7 @@ if (!empty($search)) {
   </div>
 </nav>
 
-<!-- Main Container -->
 <div class="container py-4 mt-5">
-  <!-- Page Header with Breadcrumbs -->
   <div class="row mb-4">
     <div class="col-12">
       <nav aria-label="breadcrumb">
@@ -246,9 +232,7 @@ if (!empty($search)) {
   </div>
 
   <div class="row">
-    <!-- Filter sidebar -->
     <aside class="col-lg-3 filter-section mb-4">
-      <!-- If there was a search, show it -->
       <?php if(!empty($search)): ?>
       <div class="alert alert-info mb-4">
         <p class="mb-1"><strong>Searching for:</strong> <?php echo htmlspecialchars($search); ?></p>
@@ -256,7 +240,6 @@ if (!empty($search)) {
       </div>
       <?php endif; ?>
       
-      <!-- Categories -->
       <div class="card shadow-sm border-0 rounded-3 mb-4">
         <div class="card-body">
           <h5>Categories</h5>
@@ -283,9 +266,7 @@ if (!empty($search)) {
       </div>
     </aside>
 
-    <!-- Product listing -->
     <div class="col-lg-9">
-      <!-- Top info and sorting -->
       <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
         <p class="mb-0"><strong><?php echo $product_count; ?></strong> items found</p>
         
@@ -300,7 +281,6 @@ if (!empty($search)) {
         </div>
       </div>
 
-      <!-- Product cards with AOS animations -->
       <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
         <?php if(!empty($products)): ?>
           <?php foreach($products as $index => $product): ?>
@@ -347,11 +327,9 @@ if (!empty($search)) {
   </div>
 </div>
 
-<!-- Footer -->
 <footer style="background: linear-gradient(to bottom,rgb(134, 138, 135),rgba(46, 21, 1, 0.69));">
   <div class="container">
     <div class="row">
-      <!-- Footer About -->
       <div class="col-md-5 mb-4 mb-lg-0">
         <div class="footer-about">
           <div class="footer-logo">
@@ -365,7 +343,6 @@ if (!empty($search)) {
         </div>
       </div>
       
-      <!-- Contact Info -->
       <div class="col-md-7">
                     <h4 class="footer-title">Contact Us</h4>
                     <div class="row">
@@ -397,7 +374,6 @@ if (!empty($search)) {
                 </div>
             </div>
     
-      <!-- Footer Bottom -->
       <div class="col-12">
         <div class="footer-bottom" style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: 40px; padding-top: 20px;">
           <div class="row align-items-center">
@@ -411,16 +387,12 @@ if (!empty($search)) {
   </div>
 </footer>
 
-<!-- Back to Top Button -->
 <a href="#" class="back-to-top" id="backToTop" style="background: linear-gradient(145deg, var(--primary), var(--primary-dark));">
   <i class="bi bi-arrow-up"></i>
 </a>
 
-<!-- Bootstrap Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- AOS Animation Library -->
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-<!-- Custom JavaScript -->
 <script>
   // Initialize AOS Animation
   AOS.init({
