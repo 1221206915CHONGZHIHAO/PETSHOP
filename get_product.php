@@ -16,6 +16,9 @@ $product = $result->fetch_assoc();
 if (!$product) {
     die("Product not found");
 }
+
+// Fetch all categories from pet_categories table
+$categories = $conn->query("SELECT * FROM pet_categories ORDER BY category_name")->fetch_all(MYSQLI_ASSOC);
 ?>
 <input type="hidden" name="action" value="update">
 <input type="hidden" name="product_id" value="<?= htmlspecialchars($product['product_id']) ?>">
@@ -29,16 +32,13 @@ if (!$product) {
     <div class="col-md-6 mb-3">
         <label class="form-label">Category*</label>
         <select name="category" class="form-select" required>
-            <optgroup label="Dogs">
-                <option value="Dogs" <?= $product['Category'] === 'Dogs' ? 'selected' : '' ?>>Dogs (General)</option>
-                <option value="Dog > Dry Food" <?= $product['Category'] === 'Dog > Dry Food' ? 'selected' : '' ?>>Dog > Dry Food</option>
-                <option value="Dog > Treats" <?= $product['Category'] === 'Dog > Treats' ? 'selected' : '' ?>>Dog > Treats</option>
-                <option value="Dog > Wet Food" <?= $product['Category'] === 'Dog > Wet Food' ? 'selected' : '' ?>>Dog > Wet Food</option>
-            </optgroup>
-            <option value="Cats" <?= $product['Category'] === 'Cats' ? 'selected' : '' ?>>Cats</option>
-            <option value="Birds" <?= $product['Category'] === 'Birds' ? 'selected' : '' ?>>Birds</option>
-            <option value="Fish" <?= $product['Category'] === 'Fish' ? 'selected' : '' ?>>Fish</option>
-            <option value="Other" <?= $product['Category'] === 'Other' ? 'selected' : '' ?>>Other</option>
+            <option value="">Select Category</option>
+            <?php foreach ($categories as $category): ?>
+                <option value="<?= htmlspecialchars($category['category_name']) ?>" 
+                    <?= $product['Category'] === $category['category_name'] ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($category['category_name']) ?>
+                </option>
+            <?php endforeach; ?>
         </select>
     </div>
 </div>

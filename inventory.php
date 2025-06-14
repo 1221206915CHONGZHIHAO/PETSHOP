@@ -353,8 +353,13 @@ if ($result->num_rows > 0) {
                             <label class="form-label">Category*</label>
                             <select name="category" class="form-select" required>
                                 <option value="">Select Category</option>
-                                <option value="Dogs">Dogs</option>
-                                <option value="Cats">Cats</option>
+                                <?php 
+                                $categories = $conn->query("SELECT * FROM pet_categories ORDER BY category_name")->fetch_all(MYSQLI_ASSOC);
+                                foreach ($categories as $category): ?>
+                                    <option value="<?= htmlspecialchars($category['category_name']) ?>">
+                                        <?= htmlspecialchars($category['category_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
