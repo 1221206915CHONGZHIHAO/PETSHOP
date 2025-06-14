@@ -24,6 +24,7 @@ if ($logout_type === 'customer') {
     unset($_SESSION['email']);
     unset($_SESSION['cart']);
     unset($_SESSION['profile_image']);
+    unset($_SESSION['cart_count']);
     if (isset($_SESSION['customer_role'])) {
         unset($_SESSION['customer_role']);
     }

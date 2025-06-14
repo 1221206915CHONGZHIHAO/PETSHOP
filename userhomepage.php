@@ -22,6 +22,16 @@ if ($best_sellers_result && $best_sellers_result->num_rows > 0) {
     }
 }
 
+// Fetch categories for the "Shop By Pet" section **
+$categories = [];
+$categories_sql = "SELECT category_name, description, image_url FROM pet_categories ORDER BY category_id ASC LIMIT 3";
+$categories_result = $conn->query($categories_sql);
+if ($categories_result && $categories_result->num_rows > 0) {
+    while ($row = $categories_result->fetch_assoc()) {
+        $categories[] = $row;
+    }
+}
+
 $shopSettings = [];
 $settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
 $settingsQuery->execute();
@@ -348,52 +358,34 @@ if (isset($_GET['guest']) && $_GET['guest'] === 'true') {
   </div>
 
   <!-- Featured Categories Section -->
-  <section class="categories py-5">
+   <section class="categories py-5">
     <div class="container">
       <div class="text-center mb-5" data-aos="fade-up">
         <h2 class="section-title">Shop By Pet</h2>
         <p class="section-subtitle">Explore our carefully curated selection of premium products for all your pet needs</p>
       </div>
+      
       <div class="row">
-        <!-- Category Card 1 -->
-        <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="100">
-          <div class="card category-card h-100">
-            <div class="overflow-hidden">
-              <img src="dog_categories.png" class="card-img-top" alt="Dogs">
+        <?php if (!empty($categories)): ?>
+            <?php foreach ($categories as $index => $category): ?>
+                <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="<?php echo ($index + 1) * 100; ?>">
+                    <div class="card category-card h-100">
+                        <div class="overflow-hidden">
+                            <img src="<?php echo htmlspecialchars($category['image_url'] ?? 'placeholder.png'); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($category['category_name']); ?>">
+                        </div>
+                        <div class="card-body text-center">
+                            <h5 class="card-title"><?php echo htmlspecialchars($category['category_name']); ?></h5>
+                            <p class="card-text text-muted mb-4"><?php echo htmlspecialchars($category['description']); ?></p>
+                            <a href="products.php?category=<?php echo urlencode($category['category_name']); ?>" class="btn btn-outline-primary">Browse Products</a>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="col-12 text-center">
+                <p>No pet categories available at the moment.</p>
             </div>
-            <div class="card-body text-center">
-              <h5 class="card-title">Dogs</h5>
-              <p class="card-text text-muted mb-4">Food, toys, accessories, and more for your canine companion</p>
-              <a href="products.php?category=Dogs" class="btn btn-outline-primary">Browse Products</a>
-            </div>
-          </div>
-        </div>
-        <!-- Category Card 2 -->
-        <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="200">
-          <div class="card category-card h-100">
-            <div class="overflow-hidden">
-              <img src="cat_categories.png" class="card-img-top" alt="Cats">
-            </div>
-            <div class="card-body text-center">
-              <h5 class="card-title">Cats</h5>
-              <p class="card-text text-muted mb-4">Everything your feline friend needs for a happy, healthy life</p>
-              <a href="products.php?category=Cats" class="btn btn-outline-primary">Browse Products</a>
-            </div>
-          </div>
-        </div>
-        <!-- Category Card 3 -->
-        <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="300">
-          <div class="card category-card h-100">
-            <div class="overflow-hidden">
-              <img src="other_categories.png" class="card-img-top" alt="Other Pets">
-            </div>
-            <div class="card-body text-center">
-              <h5 class="card-title">Other Pets</h5>
-              <p class="card-text text-muted mb-4">Supplies for birds, fish, reptiles, and small animals</p>
-              <a href="products.php?category=Other" class="btn btn-outline-primary">Browse Products</a>
-            </div>
-          </div>
-        </div>
+        <?php endif; ?>
       </div>
     </div>
   </section>
