@@ -3,7 +3,7 @@ session_start();
 
 // Redirect if not admin
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header("Location: login.php");
+    header("Location: admin_login.php?redirect=customer_logs.php");
     exit();
 }
 

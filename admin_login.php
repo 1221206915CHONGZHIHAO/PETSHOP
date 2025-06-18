@@ -16,7 +16,7 @@ if ($conn->connect_error) {
 $error_message = "";
 $success_message = "";
 $redirect_url = "";
-$active_tab = "staff"; // Default to staff tab
+$active_tab = "admin"; // Default to admin tab
 
 // Get redirect URL from GET parameter or set default
 $redirect = isset($_GET['redirect']) ? $_GET['redirect'] : '';
@@ -735,7 +735,7 @@ function initSliderCaptcha() {
     document.addEventListener('touchend', endDrag);
     
     // Mouse events for desktop
-        sliderThumb.addEventListener('mousedown', startDrag);
+    sliderThumb.addEventListener('mousedown', startDrag);
     document.addEventListener('mousemove', drag);
     document.addEventListener('mouseup', endDrag);
     

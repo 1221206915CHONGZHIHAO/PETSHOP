@@ -3,7 +3,7 @@ session_start();
 
 // Check if admin is logged in
 if (!isset($_SESSION['admin_logged_in'])) {
-    header("Location: login.php?redirect=customer_list.php");
+    header("Location: admin_login.php?redirect=customer_list.php");
     exit;
 }
 
@@ -319,9 +319,9 @@ $conn->close();
                                         <td><?php echo htmlspecialchars($customer['Customer_email'] ?? ''); ?></td>
                                         <td>
                                             <?php if ($customer['is_active'] == 1): ?>
-                                                <span class="status-active">Active</span>
+                                                <span class="status-active"><i class="fas fa-circle me-1"></i> Active</span>
                                             <?php else: ?>
-                                                <span class="status-inactive">Inactive</span>
+                                                <span class="status-inactive"><i class="fas fa-circle me-1"></i> Inactive</span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
@@ -342,15 +342,17 @@ $conn->close();
                                         </td>
                                         <td>
                                             <?php if ($customer['is_active'] == 1): ?>
-                                                <a href="customer_list.php?action=deactivate&id=<?php echo $customer['Customer_id']; ?>" 
-                                                   class="btn btn-sm btn-danger action-btn" 
-                                                   onclick="return confirm('Are you sure you want to deactivate this customer?')">
+                                                <a href="#" 
+                                                   class="btn btn-sm btn-danger action-btn deactivate-btn" 
+                                                   data-id="<?php echo $customer['Customer_id']; ?>"
+                                                   data-name="<?php echo htmlspecialchars($customer['Customer_name']); ?>">
                                                     <i class="fas fa-ban"></i> Deactivate
                                                 </a>
                                             <?php else: ?>
-                                                <a href="customer_list.php?action=reactivate&id=<?php echo $customer['Customer_id']; ?>" 
-                                                   class="btn btn-sm btn-success action-btn" 
-                                                   onclick="return confirm('Are you sure you want to reactivate this customer?')">
+                                                <a href="#" 
+                                                   class="btn btn-sm btn-success action-btn reactivate-btn" 
+                                                   data-id="<?php echo $customer['Customer_id']; ?>"
+                                                   data-name="<?php echo htmlspecialchars($customer['Customer_name']); ?>">
                                                     <i class="fas fa-check"></i> Reactivate
                                                 </a>
                                             <?php endif; ?>
@@ -370,6 +372,44 @@ $conn->close();
         </main>
     </div>
 </div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade confirmation-modal" id="confirmationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmationModalTitle">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="confirmation-icon">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <h4 id="confirmationMessage">Are you sure you want to perform this action?</h4>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmActionBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="successToast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-success text-white">
+            <strong class="me-auto">Success</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            <i class="fas fa-check-circle me-2"></i>
+            <span id="toastMessage">Action completed successfully!</span>
+        </div>
+    </div>
+</div>
+
 <!-- Footer Section -->
 <footer>
     <div class="container-fluid">
@@ -435,12 +475,70 @@ $conn->close();
     </div>
 </footer>
 
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // Sidebar toggle functionality
 document.getElementById('sidebarToggle').addEventListener('click', function() {
     document.getElementById('sidebar').classList.toggle('show');
+});
+
+// Confirmation modal and action handling
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    const confirmActionBtn = document.getElementById('confirmActionBtn');
+    const toast = new bootstrap.Toast(document.getElementById('successToast'));
+    let currentAction = '';
+    let currentId = '';
+    let currentName = '';
+    
+    // Deactivate button click handler
+    document.querySelectorAll('.deactivate-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentAction = 'deactivate';
+            currentId = this.getAttribute('data-id');
+            currentName = this.getAttribute('data-name');
+            
+            // Update modal content
+            document.getElementById('confirmationModalTitle').textContent = 'Confirm Deactivation';
+            document.getElementById('confirmationMessage').textContent = `Are you sure you want to deactivate ${currentName}?`;
+            
+            // Show modal
+            confirmationModal.show();
+        });
+    });
+    
+    // Reactivate button click handler
+    document.querySelectorAll('.reactivate-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentAction = 'reactivate';
+            currentId = this.getAttribute('data-id');
+            currentName = this.getAttribute('data-name');
+            
+            // Update modal content
+            document.getElementById('confirmationModalTitle').textContent = 'Confirm Reactivation';
+            document.getElementById('confirmationMessage').textContent = `Are you sure you want to reactivate ${currentName}?`;
+            
+            // Show modal
+            confirmationModal.show();
+        });
+    });
+    
+    // Confirm action button click handler
+    confirmActionBtn.addEventListener('click', function() {
+        confirmationModal.hide();
+        
+        // Perform the action
+        window.location.href = `customer_list.php?action=${currentAction}&id=${currentId}`;
+        
+        // Show success toast (this will only show if the redirect doesn't happen immediately)
+        document.getElementById('toastMessage').textContent = 
+            currentAction === 'deactivate' 
+            ? `${currentName} has been deactivated successfully!` 
+            : `${currentName} has been reactivated successfully!`;
+        toast.show();
+    });
 });
 </script>
 </body>

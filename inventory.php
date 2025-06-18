@@ -1,4 +1,12 @@
 <?php
+session_start();
+
+// Redirect if not admin
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    header("Location: admin_login.php?redirect=inventory.php");
+    exit();
+}
+
 require_once 'db_connection.php';
 
 // Handle form actions
@@ -114,26 +122,26 @@ if ($result->num_rows > 0) {
         @media (min-width: 768px) {
             .sidebar.collapsed { display: block; }
         }
-                                    h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -164,25 +172,25 @@ if ($result->num_rows > 0) {
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
                     </li>
-            <li class="nav-item">
-                <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
-                    <i class="fas fa-users me-2"></i>Staff Management
-                </a>
-                <div class="collapse" id="staffMenu">
-                    <ul class="nav flex-column ps-4">
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="manage_staff.php">
-                                <i class="fas fa-list me-2"></i>Staff List
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="staff_logs.php">
-                                <i class="fas fa-history me-2"></i>Login/Logout Logs
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
+                            <i class="fas fa-users me-2"></i>Staff Management
+                        </a>
+                        <div class="collapse" id="staffMenu">
+                            <ul class="nav flex-column ps-4">
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="manage_staff.php">
+                                        <i class="fas fa-list me-2"></i>Staff List
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_logs.php">
+                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
                             <i class="fas fa-user-friends me-2"></i>Customer Management
@@ -240,98 +248,98 @@ if ($result->num_rows > 0) {
             </div>
         </nav>
 
-
-<!-- Main Content -->
-<main class="col-md-10 ms-sm-auto px-md-4">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2"><i class="fas fa-boxes me-2"></i>Inventory Management</h1>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
-            <i class="fas fa-plus me-2"></i>Add New Product
-        </button>
-    </div>
-
-    <!-- Inventory Table -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <i class="fas fa-warehouse me-2"></i>Current Products
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Image</th>
-                            <th>Product Name</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Stock</th>
-                            <th>Status</th>
-                            <th>Last Updated</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($products as $product): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($product['product_id']) ?></td>
-                            <td>
-                                <?php if ($product['image_url']): ?>
-                                <img src="<?= htmlspecialchars($product['image_url']) ?>" class="product-img rounded" alt="Product Image">
-                                <?php else: ?>
-                                <span class="text-muted">No image</span>
-                                <?php endif; ?>
-                            </td>
-                            <td><?= htmlspecialchars($product['product_name']) ?></td>
-                            <td>
-                                <?php 
-                                $category = htmlspecialchars($product['Category']);
-                                if (strpos($category, '>') !== false) {
-                                    $parts = explode('>', $category);
-                                    echo trim($parts[1]);
-                                } else {
-                                    echo $category;
-                                }
-                                ?>
-                            </td>
-                            <td>RM<?= number_format($product['price'], 2) ?></td>
-                            <td class="<?= $product['stock_quantity'] < 5 ? 'low-stock' : '' ?>">
-                                <?= htmlspecialchars($product['stock_quantity']) ?>
-                            </td>
-                            <td>
-                                <?php if ($product['stock_quantity'] > 10): ?>
-                                    <span class="badge bg-success">In Stock</span>
-                                <?php elseif ($product['stock_quantity'] > 0): ?>
-                                    <span class="badge bg-warning text-dark">Low Stock</span>
-                                <?php else: ?>
-                                    <span class="badge bg-danger">Out of Stock</span>
-                                <?php endif; ?>
-                            </td>
-                            <td><?= date('Y-m-d H:i', strtotime($product['updated_at'])) ?></td>
-                            <td>
-                                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" 
-                                    data-bs-target="#editModal" 
-                                    data-id="<?= $product['product_id'] ?>"
-                                    onclick="loadEditForm(this)">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-<form method="POST" style="display:inline;" class="delete-form">
-    <input type="hidden" name="action" value="delete">
-    <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
-    <button type="submit" class="btn btn-sm btn-danger">
-        <i class="fas fa-trash"></i>
-    </button>
-</form>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+        <!-- Main Content -->
+        <main class="col-md-10 ms-sm-auto px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="fas fa-boxes me-2"></i>Inventory Management</h1>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                    <i class="fas fa-plus me-2"></i>Add New Product
+                </button>
             </div>
-        </div>
-    </div>
-</main>
 
+            <!-- Inventory Table -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-warehouse me-2"></i>Current Products
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Image</th>
+                                    <th>Product Name</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                    <th>Status</th>
+                                    <th>Last Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($products as $product): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($product['product_id']) ?></td>
+                                    <td>
+                                        <?php if ($product['image_url']): ?>
+                                        <img src="<?= htmlspecialchars($product['image_url']) ?>" class="product-img rounded" alt="Product Image">
+                                        <?php else: ?>
+                                        <span class="text-muted">No image</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= htmlspecialchars($product['product_name']) ?></td>
+                                    <td>
+                                        <?php 
+                                        $category = htmlspecialchars($product['Category']);
+                                        if (strpos($category, '>') !== false) {
+                                            $parts = explode('>', $category);
+                                            echo trim($parts[1]);
+                                        } else {
+                                            echo $category;
+                                        }
+                                        ?>
+                                    </td>
+                                    <td>RM<?= number_format($product['price'], 2) ?></td>
+                                    <td class="<?= $product['stock_quantity'] < 5 ? 'low-stock' : '' ?>">
+                                        <?= htmlspecialchars($product['stock_quantity']) ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($product['stock_quantity'] > 10): ?>
+                                            <span class="badge bg-success">In Stock</span>
+                                        <?php elseif ($product['stock_quantity'] > 0): ?>
+                                            <span class="badge bg-warning text-dark">Low Stock</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger">Out of Stock</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= date('Y-m-d H:i', strtotime($product['updated_at'])) ?></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" 
+                                            data-bs-target="#editModal" 
+                                            data-id="<?= $product['product_id'] ?>"
+                                            onclick="loadEditForm(this)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form method="POST" style="display:inline;" class="delete-form">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
 
 <!-- Add Product Modal -->
 <div class="modal fade" id="addItemModal" tabindex="-1">
@@ -419,11 +427,12 @@ if ($result->num_rows > 0) {
         </div>
     </div>
 </div>
+
 <!-- Footer Section -->
 <footer>
     <div class="container-fluid">
         <div class="row">
-            <div class="col-md-10 offset-md-2"> <!-- This matches the main content area -->
+            <div class="col-md-10 offset-md-2">
                 <div class="row">
                     <!-- Footer About -->
                     <div class="col-md-5 mb-4 mb-lg-0">
@@ -488,59 +497,60 @@ if ($result->num_rows > 0) {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // SweetAlert for delete confirmation
-document.querySelectorAll('.delete-form').forEach(form => {
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "You won't be able to revert this!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                form.submit();
-            }
+    document.querySelectorAll('.delete-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
         });
     });
-});
-// Sidebar toggle
-document.getElementById('sidebarToggle').addEventListener('click', function() {
-    document.getElementById('sidebar').classList.toggle('collapsed');
-});
+    
+    // Sidebar toggle
+    document.getElementById('sidebarToggle').addEventListener('click', function() {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+    });
 
-// Load edit form via AJAX
-function loadEditForm(button) {
-    const productId = button.getAttribute('data-id');
-    fetch('get_product.php?id=' + productId)
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('editForm').querySelector('.modal-body').innerHTML = html;
-        });
-}
-
-// Image preview for edit form
-function previewImage(event, previewId) {
-    const reader = new FileReader();
-    reader.onload = function() {
-        const preview = document.getElementById(previewId);
-        preview.src = reader.result;
-        preview.style.display = 'block';
+    // Load edit form via AJAX
+    function loadEditForm(button) {
+        const productId = button.getAttribute('data-id');
+        fetch('get_product.php?id=' + productId)
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('editForm').querySelector('.modal-body').innerHTML = html;
+            });
     }
-    reader.readAsDataURL(event.target.files[0]);
-}
 
-document.querySelector('#addItemModal form').addEventListener('submit', function(e) {
-    const priceInput = this.querySelector('input[name="price"]');
-    const price = parseFloat(priceInput.value);
-    if (isNaN(price) || price < 1) {
-        alert('Price must be at least 1.');
-        priceInput.focus();
-        e.preventDefault();
+    // Image preview for edit form
+    function previewImage(event, previewId) {
+        const reader = new FileReader();
+        reader.onload = function() {
+            const preview = document.getElementById(previewId);
+            preview.src = reader.result;
+            preview.style.display = 'block';
+        }
+        reader.readAsDataURL(event.target.files[0]);
     }
-});
+
+    document.querySelector('#addItemModal form').addEventListener('submit', function(e) {
+        const priceInput = this.querySelector('input[name="price"]');
+        const price = parseFloat(priceInput.value);
+        if (isNaN(price) || price < 1) {
+            alert('Price must be at least 1.');
+            priceInput.focus();
+            e.preventDefault();
+        }
+    });
 </script>
 </body>
 </html>
