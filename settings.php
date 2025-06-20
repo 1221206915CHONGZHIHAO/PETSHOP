@@ -52,6 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
         $errors['new_password'] = "New password is required";
     } elseif (strlen($new_password) < 8) {
         $errors['new_password'] = "Password must be at least 8 characters long";
+    } elseif (!preg_match('/[A-Z]/', $new_password)) {
+        $errors['new_password'] = "Password must contain at least one uppercase letter";
+    } elseif (!preg_match('/[0-9]/', $new_password)) {
+        $errors['new_password'] = "Password must contain at least one number";
+    } elseif (!preg_match('/[^A-Za-z0-9]/', $new_password)) {
+        $errors['new_password'] = "Password must contain at least one special character";
     }
 
     // Confirm new password
@@ -141,7 +147,7 @@ $db->close();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
     <style>
         .main-content { flex: 1; }
@@ -208,26 +214,93 @@ $db->close();
         .form-control.is-invalid ~ .invalid-feedback {
             display: block;
         }
-            h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
+        }
+        
+        /* New password requirements styles */
+        .password-requirements {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--gray);
+            background-color: rgba(240, 242, 245, 0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+        }
+        
+        .requirement {
+            margin-bottom: 5px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+        }
+        
+        .requirement i {
+            margin-right: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .requirement.text-success {
+            color: var(--primary) !important;
+        }
+        
+        /* Animation for validation icons */
+        .requirement i.bi-check-circle {
+            animation: fadeInScale 0.3s ease;
+        }
+        
+        @keyframes fadeInScale {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .input-group-text i {
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .input-group-text:hover i {
+            color: green;
+        }
+        
+        :root {
+            --primary: #4e9f3d;
+            --primary-light: #8fd14f;
+            --primary-dark: #38761d;
+            --secondary: #1e3a8a;
+            --accent: #ff7e2e;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --light-gray: #f0f2f5;
+        }
     </style>
 </head>
 <body>
@@ -246,7 +319,7 @@ $db->close();
             <i class="fas fa-user-circle me-1"></i>
             Welcome, <?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?>
         </span>
-        <a href="logout.php?type=staff"class="btn btn-danger"><i class="fas fa-sign-out-alt"></i>Logout</a>
+        <a href="logout.php?type=staff" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i>Logout</a>
     </div>
 </nav>
 <div class="container-fluid">
@@ -254,26 +327,26 @@ $db->close();
         <!-- Sidebar -->
         <nav id="sidebar" class="col-lg-2 d-lg-block bg-dark sidebar">
             <div class="position-sticky pt-3">
-<div class="text-center mb-4">
-    <?php
-    // Use img_URL from database if available, otherwise fall back to legacy path
-    $avatar_path = !empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
-    
-    if (file_exists($avatar_path)): ?>
-        <img src="<?php echo $avatar_path; ?>" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
-    <?php else: ?>
-        <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center mx-auto" style="width: 80px; height: 80px;">
-            <span class="text-white" style="font-size: 24px;">
-                <?php 
-                $username = $staff['Staff_username'] ?? $_SESSION['staff_name'];
-                echo strtoupper(substr($username, 0, 1)); 
-                ?>
-            </span>
-        </div>
-    <?php endif; ?>
-    <h5 class="text-white mb-1"><?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?></h5>
-    <small class="text-muted"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
-</div>
+                <div class="text-center mb-4">
+                    <?php
+                    // Use img_URL from database if available, otherwise fall back to legacy path
+                    $avatar_path = !empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
+                    
+                    if (file_exists($avatar_path)): ?>
+                        <img src="<?php echo $avatar_path; ?>" class="rounded-circle mb-2" alt="Staff Avatar" style="width: 80px; height: 80px; object-fit: cover;">
+                    <?php else: ?>
+                        <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center mx-auto" style="width: 80px; height: 80px;">
+                            <span class="text-white" style="font-size: 24px;">
+                                <?php 
+                                $username = $staff['Staff_username'] ?? $_SESSION['staff_name'];
+                                echo strtoupper(substr($username, 0, 1)); 
+                                ?>
+                            </span>
+                        </div>
+                    <?php endif; ?>
+                    <h5 class="text-white mb-1"><?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?></h5>
+                    <small class="text-muted"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
+                </div>
 
                 <!-- Sidebar Menu -->
                 <ul class="nav flex-column">
@@ -430,17 +503,17 @@ $db->close();
                             <i class="fas fa-lock me-2"></i>Change Password
                         </div>
                         <div class="card-body">
-                            <form method="POST">
+                            <form method="POST" id="passwordForm">
                                 <input type="hidden" name="change_password" value="1">
                                 
                                 <div class="mb-3">
                                     <label for="currentPassword" class="form-label">Current Password</label>
-                                    <div class="password-container">
+                                    <div class="input-group">
                                         <input type="password" class="form-control <?php echo isset($errors['current_password']) ? 'is-invalid' : ''; ?>" 
                                                id="currentPassword" name="current_password" required>
-                                        <button type="button" class="password-toggle" onclick="togglePassword('currentPassword', this)">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
+                                        <span class="input-group-text" onclick="togglePassword('currentPassword', this)">
+                                            <i class="bi bi-eye-slash"></i>
+                                        </span>
                                     </div>
                                     <?php if (isset($errors['current_password'])): ?>
                                         <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['current_password']); ?></div>
@@ -449,12 +522,34 @@ $db->close();
 
                                 <div class="mb-3">
                                     <label for="newPassword" class="form-label">New Password</label>
-                                    <div class="password-container">
+                                    <div class="input-group">
                                         <input type="password" class="form-control <?php echo isset($errors['new_password']) ? 'is-invalid' : ''; ?>" 
                                                id="newPassword" name="new_password" required>
-                                        <button type="button" class="password-toggle" onclick="togglePassword('newPassword', this)">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
+                                        <span class="input-group-text" onclick="togglePassword('newPassword', this)">
+                                            <i class="bi bi-eye-slash"></i>
+                                        </span>
+                                    </div>
+                                    <div class="password-requirements mt-2">
+                                        <div class="requirement" id="length-check">
+                                            <i class="bi bi-x-circle text-danger"></i>
+                                            <i class="bi bi-check-circle text-success d-none"></i>
+                                            <span>At least 8 characters</span>
+                                        </div>
+                                        <div class="requirement" id="uppercase-check">
+                                            <i class="bi bi-x-circle text-danger"></i>
+                                            <i class="bi bi-check-circle text-success d-none"></i>
+                                            <span>At least 1 uppercase letter</span>
+                                        </div>
+                                        <div class="requirement" id="number-check">
+                                            <i class="bi bi-x-circle text-danger"></i>
+                                            <i class="bi bi-check-circle text-success d-none"></i>
+                                            <span>At least 1 number</span>
+                                        </div>
+                                        <div class="requirement" id="symbol-check">
+                                            <i class="bi bi-x-circle text-danger"></i>
+                                            <i class="bi bi-check-circle text-success d-none"></i>
+                                            <span>At least 1 special character</span>
+                                        </div>
                                     </div>
                                     <?php if (isset($errors['new_password'])): ?>
                                         <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['new_password']); ?></div>
@@ -463,12 +558,12 @@ $db->close();
 
                                 <div class="mb-3">
                                     <label for="confirmPassword" class="form-label">Confirm New Password</label>
-                                    <div class="password-container">
+                                    <div class="input-group">
                                         <input type="password" class="form-control <?php echo isset($errors['confirm_password']) ? 'is-invalid' : ''; ?>" 
                                                id="confirmPassword" name="confirm_password" required>
-                                        <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword', this)">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
+                                        <span class="input-group-text" onclick="togglePassword('confirmPassword', this)">
+                                            <i class="bi bi-eye-slash"></i>
+                                        </span>
                                     </div>
                                     <?php if (isset($errors['confirm_password'])): ?>
                                         <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['confirm_password']); ?></div>
@@ -612,35 +707,102 @@ document.addEventListener('DOMContentLoaded', function() {
             reader.readAsDataURL(file);
         }
     });
+
+    // Password validation
+    const newPasswordInput = document.getElementById('newPassword');
+    const lengthCheck = document.getElementById('length-check');
+    const uppercaseCheck = document.getElementById('uppercase-check');
+    const numberCheck = document.getElementById('number-check');
+    const symbolCheck = document.getElementById('symbol-check');
+    
+    // Validation functions
+    function checkPasswordLength(password) {
+        return password.length >= 8;
+    }
+    
+    function checkPasswordUppercase(password) {
+        return /[A-Z]/.test(password);
+    }
+    
+    function checkPasswordNumber(password) {
+        return /[0-9]/.test(password);
+    }
+    
+    function checkPasswordSymbol(password) {
+        return /[^A-Za-z0-9]/.test(password);
+    }
+    
+    // Toggle icon visibility
+    function toggleIconVisibility(element, isValid) {
+        const crossIcon = element.querySelector('.bi-x-circle');
+        const checkIcon = element.querySelector('.bi-check-circle');
+        
+        if (isValid) {
+            crossIcon.classList.add('d-none');
+            checkIcon.classList.remove('d-none');
+            element.classList.add('text-success');
+            element.classList.remove('text-danger');
+        } else {
+            crossIcon.classList.remove('d-none');
+            checkIcon.classList.add('d-none');
+            element.classList.add('text-danger');
+            element.classList.remove('text-success');
+        }
+    }
+    
+    // Validate password on input
+    newPasswordInput.addEventListener('input', function() {
+        const password = newPasswordInput.value;
+        
+        // Check length requirement
+        toggleIconVisibility(lengthCheck, checkPasswordLength(password));
+        
+        // Check uppercase requirement
+        toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
+        
+        // Check number requirement
+        toggleIconVisibility(numberCheck, checkPasswordNumber(password));
+        
+        // Check symbol requirement
+        toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
+    });
+
+    // Also validate when the page loads in case form was submitted with errors
+    if (newPasswordInput.value) {
+        const password = newPasswordInput.value;
+        toggleIconVisibility(lengthCheck, checkPasswordLength(password));
+        toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
+        toggleIconVisibility(numberCheck, checkPasswordNumber(password));
+        toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
+    }
 });
 
-function togglePassword(inputId, button) {
-    if (inputId && button) {
-        // For password input fields
-        const input = document.getElementById(inputId);
-        const icon = button.querySelector('i');
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.remove('bi-eye');
-            icon.classList.add('bi-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.remove('bi-eye-slash');
-            icon.classList.add('bi-eye');
-        }
+function togglePassword(inputId, element) {
+    const input = document.getElementById(inputId);
+    const icon = element.querySelector('i');
+
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.remove("bi-eye-slash");
+        icon.classList.add("bi-eye");
     } else {
-        // For password display
-        const passwordDisplay = document.getElementById('passwordDisplay');
-        const passwordToggleIcon = document.getElementById('passwordToggleIcon');
-        if (passwordDisplay.textContent.includes('*')) {
-            passwordDisplay.textContent = '<?php echo addslashes($staff['Staff_password']); ?>';
-            passwordToggleIcon.classList.remove('bi-eye');
-            passwordToggleIcon.classList.add('bi-eye-slash');
-        } else {
-            passwordDisplay.textContent = '<?php echo str_repeat("*", strlen($staff['Staff_password'])); ?>';
-            passwordToggleIcon.classList.remove('bi-eye-slash');
-            passwordToggleIcon.classList.add('bi-eye');
-        }
+        input.type = "password";
+        icon.classList.remove("bi-eye");
+        icon.classList.add("bi-eye-slash");
+    }
+}
+
+function togglePassword() {
+    const passwordDisplay = document.getElementById('passwordDisplay');
+    const passwordToggleIcon = document.getElementById('passwordToggleIcon');
+    if (passwordDisplay.textContent.includes('*')) {
+        passwordDisplay.textContent = '<?php echo addslashes($staff['Staff_password']); ?>';
+        passwordToggleIcon.classList.remove('bi-eye');
+        passwordToggleIcon.classList.add('bi-eye-slash');
+    } else {
+        passwordDisplay.textContent = '<?php echo str_repeat("*", strlen($staff['Staff_password'])); ?>';
+        passwordToggleIcon.classList.remove('bi-eye-slash');
+        passwordToggleIcon.classList.add('bi-eye');
     }
 }
 </script>

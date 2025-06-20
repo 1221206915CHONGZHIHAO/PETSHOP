@@ -21,7 +21,12 @@ if (isset($_GET['toggle_status'])) {
     // Validate action
     if (!in_array($action, ['disable', 'enable'])) {
         $_SESSION['error_message'] = "Invalid action";
-        header("Location: admin_homepage.php");
+        // Preserve week_filter in redirect
+        $redirect_url = "admin_homepage.php";
+        if (isset($_GET['week_filter'])) {
+            $redirect_url .= "?week_filter=1";
+        }
+        header("Location: " . $redirect_url);
         exit;
     }
     
@@ -39,7 +44,24 @@ if (isset($_GET['toggle_status'])) {
     }
     
     $stmt->close();
-    header("Location: admin_homepage.php");
+    
+    // Build redirect URL with preserved parameters
+    $redirect_url = "admin_homepage.php";
+    $params = [];
+    
+    // Preserve week_filter if it was set
+    if (isset($_GET['week_filter'])) {
+        $params[] = "week_filter=1";
+    }
+    
+    // Add any other parameters you want to preserve here
+    // Example: if (isset($_GET['some_param'])) { $params[] = "some_param=" . urlencode($_GET['some_param']); }
+    
+    if (!empty($params)) {
+        $redirect_url .= "?" . implode("&", $params);
+    }
+    
+    header("Location: " . $redirect_url);
     exit;
 }
 
@@ -101,41 +123,71 @@ $summaryData['pending_orders'] = $result->fetch_assoc()['pending_orders'];
 $result = $conn->query("SELECT COUNT(*) as low_stock FROM products WHERE stock_quantity < 10");
 $summaryData['low_stock'] = $result->fetch_assoc()['low_stock'];
 
-// Fetch data for sales chart (last 6 months, exclude disabled)
-$salesData = [];
-$result = $conn->query("SELECT 
-    DATE_FORMAT(order_date, '%b') as month,
-    SUM(Total) as amount 
-    FROM orders 
-    WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND status != 'Disabled'
-    GROUP BY MONTH(order_date)
-    ORDER BY order_date ASC");
-while ($row = $result->fetch_assoc()) {
-    $salesData['labels'][] = $row['month'];
-    $salesData['data'][] = $row['amount'];
-}
+// Fetch data for sales chart (apply week filter if selected)
+$salesData = ['labels' => [], 'data' => []];
 
-// Fetch recent orders (always limit to 5, exclude disabled)
-$recentOrders = [];
-$result = $conn->query("SELECT 
-    orders.Order_ID as order_id, 
-    c.customer_name, 
-    orders.Total, 
-    orders.order_date, 
-    orders.status,
-    GROUP_CONCAT(CONCAT(p.product_name, ' (', oi.quantity, ')')) as products
-    FROM orders
-    JOIN customer c ON orders.Customer_ID = c.customer_id
-    JOIN order_items oi ON orders.Order_ID = oi.order_id
-    JOIN products p ON oi.product_id = p.product_id
-    WHERE orders.status != 'Disabled'
-    GROUP BY orders.Order_ID
-    ORDER BY orders.order_date DESC
-    LIMIT 5");
-while ($row = $result->fetch_assoc()) {
-    $recentOrders[] = $row;
+if (isset($_GET['week_filter'])) {
+    // For week view - show days of current week
+    $days = [];
+    $dayNames = [];
+    for ($i = 6; $i >= 0; $i--) {
+        $timestamp = strtotime("-$i days");
+        $days[] = date('Y-m-d', $timestamp);
+        $dayNames[] = date('D', $timestamp); // Short day names (Mon, Tue, etc.)
+    }
+    
+    // Initialize with zero values
+    $salesData['labels'] = $dayNames;
+    $salesData['data'] = array_fill(0, count($days), 0);
+    
+    // Get actual order data for the week
+    $result = $conn->query("SELECT 
+        DATE(order_date) as day,
+        SUM(Total) as amount 
+        FROM orders 
+        WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) 
+        AND status != 'Disabled'
+        GROUP BY DATE(order_date)
+        ORDER BY day ASC");
+    
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $dayIndex = array_search($row['day'], $days);
+            if ($dayIndex !== false) {
+                $salesData['data'][$dayIndex] = $row['amount'];
+            }
+        }
+    }
+} else {
+    // For all time view - show months (as before)
+    $months = [];
+    for ($i = 5; $i >= 0; $i--) {
+        $months[] = date('M', strtotime("-$i months"));
+    }
+    
+    // Initialize with zero values
+    $salesData['labels'] = $months;
+    $salesData['data'] = array_fill(0, count($months), 0);
+    
+    $result = $conn->query("SELECT 
+        DATE_FORMAT(order_date, '%b') as month,
+        MONTH(order_date) as month_num,
+        SUM(Total) as amount 
+        FROM orders 
+        WHERE status != 'Disabled'
+        AND order_date >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+        GROUP BY MONTH(order_date)
+        ORDER BY order_date ASC");
+    
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $monthIndex = array_search($row['month'], $months);
+            if ($monthIndex !== false) {
+                $salesData['data'][$monthIndex] = $row['amount'];
+            }
+        }
+    }
 }
-
 $shopSettings = [];
 $settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
 $settingsQuery->execute();
@@ -491,7 +543,7 @@ $conn->close();
                                         </span>
                                     </td>
                                     <td>
-                                        <a href="?toggle_status=1&order_id=<?php echo $order['order_id']; ?>&action=disable" class="btn btn-sm btn-secondary" onclick="return confirm('Are you sure you want to disable this order?')">
+                                        <a href="?toggle_status=1&order_id=<?php echo $order['order_id']; ?>&action=disable<?php echo isset($_GET['week_filter']) ? '&week_filter=1' : ''; ?>" class="btn btn-sm btn-secondary" onclick="return confirm('Are you sure you want to disable this order?')">
                                             <i class="fas fa-ban"></i>
                                         </a>
                                     </td>
@@ -580,8 +632,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('sidebar').classList.toggle('show');
     });
 
-    // Time filter functionality
-    const weekFilter = <?php echo isset($_GET['week_filter']) ? 'true' : 'false'; ?>;
+    // Get the current filter state from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const weekFilter = urlParams.has('week_filter');
     const weekDropdown = document.getElementById('weekDropdown');
     
     // Update button text based on current filter
@@ -591,72 +644,76 @@ document.addEventListener('DOMContentLoaded', function() {
         weekDropdown.innerHTML = '<i class="fas fa-calendar me-1"></i>All Time';
     }
     
-    // Add click handlers for filter options
+    // Time filter functionality
     document.querySelectorAll('.time-filter-option').forEach(option => {
         option.addEventListener('click', function(e) {
             e.preventDefault();
             const isWeekFilter = this.getAttribute('data-filter') === 'week';
             
-            // Update UI
-            weekDropdown.innerHTML = `<i class="fas fa-calendar me-1"></i>${isWeekFilter ? 'This Week' : 'All Time'}`;
-            
-            // Reload page with new filter
+            // Create URL with all current parameters except week_filter
+            const url = new URL(window.location.href);
             if (isWeekFilter) {
-                window.location.href = 'admin_homepage.php?week_filter=1';
+                url.searchParams.set('week_filter', '1');
             } else {
-                window.location.href = 'admin_homepage.php';
+                url.searchParams.delete('week_filter');
             }
+            
+            // Reload the page with the new filter
+            window.location.href = url.toString();
         });
     });
 
-    // Sales Chart
-    const salesCtx = document.getElementById('salesChart').getContext('2d');
-    new Chart(salesCtx, {
-        type: 'line',
-        data: {
-            labels: <?php echo json_encode($salesData['labels'] ?? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']); ?>,
-            datasets: [{
-                label: 'Sales',
-                data: <?php echo json_encode($salesData['data'] ?? [5000, 8000, 12000, 9000, 15000, 18000]); ?>,
-                backgroundColor: 'rgba(78, 115, 223, 0.05)',
-                borderColor: 'rgba(78, 115, 223, 1)',
-                pointBackgroundColor: 'rgba(78, 115, 223, 1)',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
-                borderWidth: 2,
-                tension: 0.3
-            }]
+// Sales Chart
+const salesCtx = document.getElementById('salesChart').getContext('2d');
+const salesLabels = <?php echo json_encode($salesData['labels']); ?>;
+const salesData = <?php echo json_encode($salesData['data']); ?>;
+
+new Chart(salesCtx, {
+    type: 'line',
+    data: {
+        labels: salesLabels,
+        datasets: [{
+            label: 'Sales',
+            data: salesData,
+            backgroundColor: 'rgba(78, 115, 223, 0.05)',
+            borderColor: 'rgba(78, 115, 223, 1)',
+            pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+            borderWidth: 2,
+            tension: 0.1 // Reduced tension for straighter lines between points
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: { 
+                mode: 'index', 
+                intersect: false,
+                callbacks: {
+                    label: function(context) {
+                        return 'RM' + context.raw.toLocaleString();
+                    }
+                }
+            }
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { 
-                    mode: 'index', 
-                    intersect: false,
-                    callbacks: {
-                        label: function(context) {
-                            return 'RM' + context.raw.toLocaleString();
-                        }
+        scales: {
+            y: {
+                beginAtZero: true, // Changed to true to start at 0
+                grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                ticks: { 
+                    callback: function(value) {
+                        return 'RM' + value.toLocaleString();
                     }
                 }
             },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
-                    ticks: { 
-                        callback: function(value) {
-                            return 'RM' + value.toLocaleString();
-                        }
-                    }
-                },
-                x: { grid: { display: false } }
-            }
+            x: { grid: { display: false } }
         }
-    });
+    }
+});
 });
 </script>
 

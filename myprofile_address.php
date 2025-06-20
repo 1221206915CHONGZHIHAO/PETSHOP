@@ -35,9 +35,9 @@ if ($result->num_rows > 0) {
 
 // Handle form submissions
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Update profile information - REMOVED NAME UPDATE
+    // Update profile information - CHANGED TO UPDATE USERNAME INSTEAD OF EMAIL
     if (isset($_POST['update_profile'])) {
-        $email = $_POST['email'];
+        $username = $_POST['username'];
         
         // Handle profile image upload
         $profile_image = $customer['profile_image']; // Keep existing image by default
@@ -76,8 +76,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         
         if (!isset($error_message)) {
-            $stmt = $conn->prepare("UPDATE customer SET Customer_email = ?, profile_image = ? WHERE Customer_ID = ?");
-            $stmt->bind_param("ssi", $email, $profile_image, $customer_id);
+            $stmt = $conn->prepare("UPDATE customer SET Customer_name = ?, profile_image = ? WHERE Customer_ID = ?");
+            $stmt->bind_param("ssi", $username, $profile_image, $customer_id);
             
             if ($stmt->execute()) {
                 $success_message = "Profile updated successfully!";
@@ -87,6 +87,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $stmt->execute();
                 $result = $stmt->get_result();
                 $customer = $result->fetch_assoc();
+                // Update session with new username
+                $_SESSION['customer_name'] = $customer['Customer_name'];
             } else {
                 $error_message = "Failed to update profile: " . $conn->error;
             }
@@ -629,28 +631,28 @@ $masked_password = str_repeat('*', strlen($actual_password));
                 ?>
               <?php endif; ?>
             </div>
-            <div class="user-info">
-              <div class="row">
-                <div class="col-md-3 fw-bold">Name:</div>
-                <div class="col-md-9"><?php echo htmlspecialchars($customer['Customer_name']); ?></div>
-              </div>
-              <div class="row">
-                <div class="col-md-3 fw-bold">Password:</div>
-                <div class="col-md-9 password-container">
-                  <span id="passwordDisplay"><?php echo $masked_password; ?></span>
-                  <button type="button" class="password-toggle" id="changePasswordBtn">
-                    <i class="bi bi-pencil"></i> Change Password
-                  </button>
+              <div class="user-info">
+                <div class="row">
+                  <div class="col-md-3 fw-bold">Name:</div>
+                  <div class="col-md-9"><?php echo htmlspecialchars($customer['Customer_name']); ?></div>
                 </div>
-              </div>
-              <div class="row">
-                <div class="col-md-3 fw-bold">Email:</div>
-                <div class="col-md-9"><?php echo htmlspecialchars($customer['Customer_email']); ?></div>
+                <div class="row">
+                  <div class="col-md-3 fw-bold">Password:</div>
+                  <div class="col-md-9 password-container">
+                    <span id="passwordDisplay"><?php echo $masked_password; ?></span>
+                    <button type="button" class="password-toggle" id="changePasswordBtn">
+                      <i class="bi bi-pencil"></i> Change Password
+                    </button>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-3 fw-bold">Email:</div>
+                  <div class="col-md-9"><?php echo htmlspecialchars($customer['Customer_email']); ?></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
       
       <div class="tab-pane fade" id="address" role="tabpanel" aria-labelledby="address-tab">
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -780,34 +782,35 @@ $masked_password = str_repeat('*', strlen($actual_password));
     <i class="bi bi-arrow-up"></i>
   </a>
 
-<div id="edit-profile-modal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h4>Edit Profile Information</h4>
-      <button type="button" class="close-button">&times;</button>
+<!-- Edit Profile Modal - UPDATED TO EDIT USERNAME INSTEAD OF EMAIL -->
+  <div id="edit-profile-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4>Edit Profile Information</h4>
+        <button type="button" class="close-button">&times;</button>
+      </div>
+      <form id="edit-profile-form" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+          <label for="profile_image" class="form-label">Profile Image (JPEG, PNG, GIF, max 2MB)</label>
+          <input type="file" class="form-control" id="profile_image" name="profile_image" accept="image/jpeg,image/png,image/gif">
+          <div id="image-preview" class="mt-2"></div>
+        </div>
+        <div class="form-group">
+          <label for="username" class="form-label">Username</label>
+          <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($customer['Customer_name']); ?>" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="text" class="form-control" value="<?php echo htmlspecialchars($customer['Customer_email']); ?>" readonly style="background-color: #f8f9fa; cursor: not-allowed;">
+          <small class="text-muted">Email cannot be changed</small>
+        </div>
+        <div class="text-end">
+          <button type="button" class="btn btn-secondary me-2 close-modal-btn">Cancel</button>
+          <button type="submit" name="update_profile" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
     </div>
-    <form id="edit-profile-form" method="post" enctype="multipart/form-data">
-      <div class="form-group">
-        <label for="profile_image" class="form-label">Profile Image (JPEG, PNG, GIF, max 2MB)</label>
-        <input type="file" class="form-control" id="profile_image" name="profile_image" accept="image/jpeg,image/png,image/gif">
-        <div id="image-preview" class="mt-2"></div>
-      </div>
-      <div class="form-group">
-        <label for="name" class="form-label">Name <span class="text-muted">(Cannot be changed)</span></label>
-        <input type="text" class="form-control" id="name" name="name" value="<?php echo htmlspecialchars($customer['Customer_name']); ?>" readonly style="background-color: #f8f9fa; cursor: not-allowed;">
-        <small class="text-muted">Contact support if you need to change your name</small>
-      </div>
-      <div class="form-group">
-        <label for="email" class="form-label">Email</label>
-        <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($customer['Customer_email']); ?>" required>
-      </div>
-      <div class="text-end">
-        <button type="button" class="btn btn-secondary me-2 close-modal-btn">Cancel</button>
-        <button type="submit" name="update_profile" class="btn btn-primary">Save Changes</button>
-      </div>
-    </form>
   </div>
-</div>
 
 <div id="change-password-modal" class="modal">
   <div class="modal-content">

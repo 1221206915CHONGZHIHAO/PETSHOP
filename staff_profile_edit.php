@@ -81,6 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['new_password'] = "New password is required";
         } elseif (strlen($new_password) < 8) {
             $errors['new_password'] = "Password must be at least 8 characters long";
+        } elseif (!preg_match('/[A-Z]/', $new_password)) {
+            $errors['new_password'] = "Password must contain at least one uppercase letter";
+        } elseif (!preg_match('/[0-9]/', $new_password)) {
+            $errors['new_password'] = "Password must contain at least one number";
+        } elseif (!preg_match('/[^A-Za-z0-9]/', $new_password)) {
+            $errors['new_password'] = "Password must contain at least one special character";
         }
 
         // Confirm new password
@@ -203,15 +209,27 @@ $db->close();
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Profile - PetShop Staff</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
     <style>
+        :root {
+            --primary: #4e9f3d;
+            --primary-light: #8fd14f;
+            --primary-dark: #38761d;
+            --secondary: #1e3a8a;
+            --accent: #ff7e2e;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --light-gray: #f0f2f5;
+        }
+
         .main-content { flex: 1; }
         .info-card {
             background-color: #fff;
@@ -289,26 +307,102 @@ $db->close();
         .form-control.is-invalid ~ .invalid-feedback {
             display: block;
         }
-            h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
+        }
+        
+        /* Password requirements styles */
+        .password-requirements {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--gray);
+            background-color: rgba(240, 242, 245, 0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+        }
+        
+        .requirement {
+            margin-bottom: 5px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+        }
+        
+        .requirement i {
+            margin-right: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .requirement.text-success {
+            color: var(--primary) !important;
+        }
+        
+        /* Animation for validation icons */
+        .requirement i.bi-check-circle {
+            animation: fadeInScale 0.3s ease;
+        }
+        
+        @keyframes fadeInScale {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .input-group-text i {
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .input-group-text:hover i {
+            color: green;
+        }
+        
+        /* Password strength meter */
+        .password-strength-meter {
+            height: 5px;
+            background-color: #e9ecef;
+            border-radius: 3px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .password-strength-meter-fill {
+            height: 100%;
+            width: 0;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        
+        .password-strength-text {
+            font-size: 12px;
+            margin-top: 3px;
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -326,7 +420,7 @@ $db->close();
             <i class="fas fa-user-circle me-1"></i>
             Welcome, <?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?>
         </span>
-        <a href="logout.php?type=staff"class="btn btn-danger"><i class="fas fa-sign-out-alt"></i>Logout</a>
+        <a href="logout.php?type=staff" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i>Logout</a>
     </div>
 </nav>
 <div class="container-fluid">
@@ -423,52 +517,52 @@ $db->close();
             </div>
         </nav>
 
-    <!-- Main Content -->
-    <main class="col-lg-10 ms-sm-auto p-4">
-        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-            <h1 class="h2"><i class="fas fa-user-edit me-2"></i>Edit Profile</h1>
-            <div>
-                <a href="settings.php" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i> Back to Settings
-                </a>
-            </div>
-        </div>
-
-        <?php if ($success): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle me-2"></i> Profile updated successfully!
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        <?php elseif ($upload_success): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle me-2"></i> Profile picture updated successfully!
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        <?php elseif (!empty($errors['database'])): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-circle me-2"></i> <?php echo htmlspecialchars($errors['database']); ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        <?php endif; ?>
-
-        <div class="row">
-    <div class="col-md-8">
-        <form id="profileForm" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-user me-2"></i>Basic Information
+        <!-- Main Content -->
+        <main class="col-lg-10 ms-sm-auto p-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="fas fa-user-edit me-2"></i>Edit Profile</h1>
+                <div>
+                    <a href="settings.php" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Settings
+                    </a>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Username</label>
-                        <input type="text" class="form-control <?php echo isset($errors['name']) ? 'is-invalid' : ''; ?>" 
-                               id="name" name="name" value="<?php echo htmlspecialchars($staff['Staff_username'] ?? $staff['Staff_name']); ?>" required>
-                        <?php if (isset($errors['name'])): ?>
-                            <div class="invalid-feedback"><?php echo htmlspecialchars($errors['name']); ?></div>
-                        <?php else: ?>
-                            <div class="invalid-feedback">Please provide your username.</div>
-                        <?php endif; ?>
-                    </div>
+            </div>
+
+            <?php if ($success): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i> Profile updated successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php elseif ($upload_success): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i> Profile picture updated successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php elseif (!empty($errors['database'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i> <?php echo htmlspecialchars($errors['database']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <form id="profileForm" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="fas fa-user me-2"></i>Basic Information
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Username</label>
+                                    <input type="text" class="form-control <?php echo isset($errors['name']) ? 'is-invalid' : ''; ?>" 
+                                           id="name" name="name" value="<?php echo htmlspecialchars($staff['Staff_username'] ?? $staff['Staff_name']); ?>" required>
+                                    <?php if (isset($errors['name'])): ?>
+                                        <div class="invalid-feedback"><?php echo htmlspecialchars($errors['name']); ?></div>
+                                    <?php else: ?>
+                                        <div class="invalid-feedback">Please provide your username.</div>
+                                    <?php endif; ?>
+                                </div>
                                 <div class="mb-3">
                                     <label for="email" class="form-label">Email Address</label>
                                     <input type="email" class="form-control <?php echo isset($errors['email']) ? 'is-invalid' : ''; ?>" 
@@ -495,12 +589,12 @@ $db->close();
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label for="current_password" class="form-label">Current Password</label>
-                                    <div class="password-container">
+                                    <div class="input-group">
                                         <input type="password" class="form-control <?php echo isset($errors['current_password']) ? 'is-invalid' : ''; ?>" 
                                                id="current_password" name="current_password">
-                                        <button type="button" class="password-toggle" onclick="togglePassword('current_password', this)">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
+                                        <span class="input-group-text" onclick="togglePassword('current_password', this)">
+                                            <i class="bi bi-eye-slash"></i>
+                                        </span>
                                     </div>
                                     <?php if (isset($errors['current_password'])): ?>
                                         <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['current_password']); ?></div>
@@ -510,12 +604,34 @@ $db->close();
 
                                 <div class="mb-3">
                                     <label for="new_password" class="form-label">New Password</label>
-                                    <div class="password-container">
+                                    <div class="input-group">
                                         <input type="password" class="form-control <?php echo isset($errors['new_password']) ? 'is-invalid' : ''; ?>" 
                                                id="new_password" name="new_password">
-                                        <button type="button" class="password-toggle" onclick="togglePassword('new_password', this)">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
+                                        <span class="input-group-text" onclick="togglePassword('new_password', this)">
+                                            <i class="bi bi-eye-slash"></i>
+                                        </span>
+                                    </div>
+                                    <div class="password-requirements mt-2">
+                                        <div class="requirement" id="length-check">
+                                            <i class="bi bi-x-circle text-danger"></i>
+                                            <i class="bi bi-check-circle text-success d-none"></i>
+                                            <span>At least 8 characters</span>
+                                        </div>
+                                        <div class="requirement" id="uppercase-check">
+                                            <i class="bi bi-x-circle text-danger"></i>
+                                            <i class="bi bi-check-circle text-success d-none"></i>
+                                            <span>At least 1 uppercase letter</span>
+                                        </div>
+                                        <div class="requirement" id="number-check">
+                                            <i class="bi bi-x-circle text-danger"></i>
+                                            <i class="bi bi-check-circle text-success d-none"></i>
+                                            <span>At least 1 number</span>
+                                        </div>
+                                        <div class="requirement" id="symbol-check">
+                                            <i class="bi bi-x-circle text-danger"></i>
+                                            <i class="bi bi-check-circle text-success d-none"></i>
+                                            <span>At least 1 special character</span>
+                                        </div>
                                     </div>
                                     <?php if (isset($errors['new_password'])): ?>
                                         <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['new_password']); ?></div>
@@ -524,12 +640,12 @@ $db->close();
 
                                 <div class="mb-3">
                                     <label for="confirm_password" class="form-label">Confirm New Password</label>
-                                    <div class="password-container">
+                                    <div class="input-group">
                                         <input type="password" class="form-control <?php echo isset($errors['confirm_password']) ? 'is-invalid' : ''; ?>" 
                                                id="confirm_password" name="confirm_password">
-                                        <button type="button" class="password-toggle" onclick="togglePassword('confirm_password', this)">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
+                                        <span class="input-group-text" onclick="togglePassword('confirm_password', this)">
+                                            <i class="bi bi-eye-slash"></i>
+                                        </span>
                                     </div>
                                     <?php if (isset($errors['confirm_password'])): ?>
                                         <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['confirm_password']); ?></div>
@@ -566,42 +682,43 @@ $db->close();
                     </form>
                 </div>
 
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        <i class="fas fa-user-circle me-2"></i>Profile Preview
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="user-avatar mx-auto mb-3">
-                            <?php
-                            // Check for image in this order: 1. Database img_URL, 2. Legacy path, 3. Show initials
-                            $avatar_path = !empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
-                            if (file_exists($avatar_path)): ?>
-                                <img src="<?php echo $avatar_path; ?>" id="avatarPreview" alt="Profile Image">
-                            <?php else: ?>
-                                <div id="initialsContainer">
-                                    <span id="avatarInitials">
-                                        <?php 
-                                        $name = $staff['Staff_username'] ?? $staff['Staff_name'];
-                                        $initials = strtoupper(substr($name, 0, 1));
-                                        if (strpos($name, ' ') !== false) {
-                                            $name_parts = explode(' ', $name);
-                                            $initials = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
-                                        }
-                                        echo $initials;
-                                        ?>
-                                    </span>
-                                </div>
-                            <?php endif; ?>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-user-circle me-2"></i>Profile Preview
                         </div>
-                        <h4 id="namePreview"><?php echo htmlspecialchars($staff['Staff_username'] ?? $staff['Staff_name']); ?></h4>
-                        <p class="text-muted mb-1" id="emailPreview"><?php echo htmlspecialchars($staff['Staff_Email']); ?></p>
-                        <span class="badge bg-primary"><?php echo htmlspecialchars($staff['position']); ?></span>
+                        <div class="card-body text-center">
+                            <div class="user-avatar mx-auto mb-3">
+                                <?php
+                                // Check for image in this order: 1. Database img_URL, 2. Legacy path, 3. Show initials
+                                $avatar_path = !empty($staff['img_URL']) ? $staff['img_URL'] : "staff_avatars/" . $_SESSION['staff_id'] . ".jpg";
+                                if (file_exists($avatar_path)): ?>
+                                    <img src="<?php echo $avatar_path; ?>" id="avatarPreview" alt="Profile Image">
+                                <?php else: ?>
+                                    <div id="initialsContainer">
+                                        <span id="avatarInitials">
+                                            <?php 
+                                            $name = $staff['Staff_username'] ?? $staff['Staff_name'];
+                                            $initials = strtoupper(substr($name, 0, 1));
+                                            if (strpos($name, ' ') !== false) {
+                                                $name_parts = explode(' ', $name);
+                                                $initials = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
+                                            }
+                                            echo $initials;
+                                            ?>
+                                        </span>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <h4 id="namePreview"><?php echo htmlspecialchars($staff['Staff_username'] ?? $staff['Staff_name']); ?></h4>
+                            <p class="text-muted mb-1" id="emailPreview"><?php echo htmlspecialchars($staff['Staff_Email']); ?></p>
+                            <span class="badge bg-primary"><?php echo htmlspecialchars($staff['position']); ?></span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 </div>
 <!-- Footer Section -->
 <footer>
@@ -739,26 +856,98 @@ document.addEventListener('DOMContentLoaded', function() {
                     avatarPreview.src = e.target.result;
                     avatarPreview.alt = 'Profile Image';
                     
-                                       // Add it to the avatar container
+                    // Add it to the avatar container
                     avatarContainer.appendChild(avatarPreview);
                 }
             };
             reader.readAsDataURL(this.files[0]);
         }
     });
+
+    // Password validation
+    const newPasswordInput = document.getElementById('new_password');
+    const lengthCheck = document.getElementById('length-check');
+    const uppercaseCheck = document.getElementById('uppercase-check');
+    const numberCheck = document.getElementById('number-check');
+    const symbolCheck = document.getElementById('symbol-check');
+    
+    // Validation functions
+    function checkPasswordLength(password) {
+        return password.length >= 8;
+    }
+    
+    function checkPasswordUppercase(password) {
+        return /[A-Z]/.test(password);
+    }
+    
+    function checkPasswordNumber(password) {
+        return /[0-9]/.test(password);
+    }
+    
+    function checkPasswordSymbol(password) {
+        return /[^A-Za-z0-9]/.test(password);
+    }
+    
+    // Toggle icon visibility
+    function toggleIconVisibility(element, isValid) {
+        const crossIcon = element.querySelector('.bi-x-circle');
+        const checkIcon = element.querySelector('.bi-check-circle');
+        
+        if (isValid) {
+            crossIcon.classList.add('d-none');
+            checkIcon.classList.remove('d-none');
+            element.classList.add('text-success');
+            element.classList.remove('text-danger');
+        } else {
+            crossIcon.classList.remove('d-none');
+            checkIcon.classList.add('d-none');
+            element.classList.add('text-danger');
+            element.classList.remove('text-success');
+        }
+    }
+    
+    // Validate password on input
+    newPasswordInput.addEventListener('input', function() {
+        const password = newPasswordInput.value;
+        
+        // Check length requirement
+        toggleIconVisibility(lengthCheck, checkPasswordLength(password));
+        
+        // Check uppercase requirement
+        toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
+        
+        // Check number requirement
+        toggleIconVisibility(numberCheck, checkPasswordNumber(password));
+        
+        // Check symbol requirement
+        toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
+        
+        // Update password strength meter
+        updatePasswordStrength(password);
+    });
+
+    // Also validate when the page loads in case form was submitted with errors
+    if (newPasswordInput.value) {
+        const password = newPasswordInput.value;
+        toggleIconVisibility(lengthCheck, checkPasswordLength(password));
+        toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
+        toggleIconVisibility(numberCheck, checkPasswordNumber(password));
+        toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
+        updatePasswordStrength(password);
+    }
 });
 
-function togglePassword(id, button) {
+function togglePassword(id, element) {
     const input = document.getElementById(id);
-    const icon = button.querySelector('i');
+    const icon = element.querySelector('i');
     if (input.type === 'password') {
         input.type = 'text';
-        icon.classList.remove('bi-eye');
-        icon.classList.add('bi-eye-slash');
-    } else {
-        input.type = 'password';
         icon.classList.remove('bi-eye-slash');
         icon.classList.add('bi-eye');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
     }
 }
 
@@ -778,54 +967,59 @@ function updateInitials(name) {
     }
 }
 
-// Password strength indicator
-function checkPasswordStrength(password) {
-    const strength = {
-        0: "Very Weak",
-        1: "Weak",
-        2: "Moderate",
-        3: "Strong",
-        4: "Very Strong"
-    };
+// Password strength meter function
+function updatePasswordStrength(password) {
+    const strengthMeter = document.getElementById('password-strength-meter-fill');
+    const strengthText = document.getElementById('password-strength-text');
     
-    let score = 0;
-    
-    // Check length
-    if (password.length >= 8) score++;
-    if (password.length >= 12) score++;
-    
-    // Check for mixed case
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
-    
-    // Check for numbers
-    if (/\d/.test(password)) score++;
-    
-    // Check for special chars
-    if (/[^a-zA-Z0-9]/.test(password)) score++;
-    
-    return strength[Math.min(score, 4)];
-}
-
-// Add password strength indicator
-document.getElementById('new_password').addEventListener('input', function() {
-    const password = this.value;
-    if (password.length > 0) {
-        const strength = checkPasswordStrength(password);
-        const strengthElement = document.getElementById('password-strength');
-        if (!strengthElement) {
-            const div = document.createElement('div');
-            div.id = 'password-strength';
-            div.className = 'mt-2';
-            this.parentNode.appendChild(div);
-        }
-        document.getElementById('password-strength').textContent = `Password Strength: ${strength}`;
-    } else {
-        const strengthElement = document.getElementById('password-strength');
-        if (strengthElement) {
-            strengthElement.remove();
-        }
+    if (!password) {
+        strengthMeter.style.width = '0%';
+        strengthMeter.style.backgroundColor = '';
+        strengthText.textContent = '';
+        return;
     }
-});
+    
+    // Calculate strength (0-100)
+    let strength = 0;
+    
+    // Length (max 40 points)
+    strength += Math.min(password.length * 5, 40);
+    
+    // Character variety (max 60 points)
+    let varietyScore = 0;
+    if (/[a-z]/.test(password)) varietyScore += 10;
+    if (/[A-Z]/.test(password)) varietyScore += 10;
+    if (/[0-9]/.test(password)) varietyScore += 10;
+    if (/[^a-zA-Z0-9]/.test(password)) varietyScore += 10;
+    if (password.length >= 12) varietyScore += 20;
+    
+    strength += varietyScore;
+    
+    // Cap at 100
+    strength = Math.min(strength, 100);
+    
+    // Update meter
+    strengthMeter.style.width = strength + '%';
+    
+    // Set color and text based on strength
+    if (strength < 30) {
+        strengthMeter.style.backgroundColor = '#dc3545'; // Red
+        strengthText.textContent = 'Weak';
+        strengthText.style.color = '#dc3545';
+    } else if (strength < 70) {
+        strengthMeter.style.backgroundColor = '#fd7e14'; // Orange
+        strengthText.textContent = 'Moderate';
+        strengthText.style.color = '#fd7e14';
+    } else if (strength < 90) {
+        strengthMeter.style.backgroundColor = '#ffc107'; // Yellow
+        strengthText.textContent = 'Strong';
+        strengthText.style.color = '#ffc107';
+    } else {
+        strengthMeter.style.backgroundColor = '#28a745'; // Green
+        strengthText.textContent = 'Very Strong';
+        strengthText.style.color = '#28a745';
+    }
+}
 </script>
 </body>
 </html>

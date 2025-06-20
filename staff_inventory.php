@@ -26,7 +26,6 @@ if ($result->num_rows > 0) {
     $shopSettings = $result->fetch_assoc();
 }
 
-
 // Handle form actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
@@ -35,12 +34,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $imagePath = null;
             if (!empty($_FILES['product_image']['name'])) {
                 $targetDir = "uploads/";
+                if (!file_exists($targetDir)) {
+                    mkdir($targetDir, 0777, true);
+                }
                 $imagePath = $targetDir . basename($_FILES['product_image']['name']);
-                move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath);
+                if (move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath)) {
+                    // File uploaded successfully
+                } else {
+                    die("Failed to upload image");
+                }
             }
 
-            $stmt = $conn->prepare("INSERT INTO products (product_name, description, price, image_url, stock_quantity, category) 
+            $stmt = $conn->prepare("INSERT INTO products (product_name, description, price, image_url, stock_quantity, Category) 
                                   VALUES (?, ?, ?, ?, ?, ?)");
+            if (!$stmt) {
+                die("Prepare failed: " . $conn->error);
+            }
+            
             $stmt->bind_param("ssdsis", 
                 $_POST['product_name'],
                 $_POST['description'],
@@ -49,23 +59,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_POST['stock_quantity'],
                 $_POST['category']
             );
-            $stmt->execute();
+            
+            if (!$stmt->execute()) {
+                die("Execute failed: " . $stmt->error);
+            }
         }
         // Update product
         elseif ($_POST['action'] === 'update') {
             // Get current image first
-            $result = $conn->query("SELECT image_url FROM products WHERE product_id = " . $_POST['product_id']);
+            $result = $conn->query("SELECT image_url FROM products WHERE product_id = " . (int)$_POST['product_id']);
             $currentImage = $result->fetch_assoc()['image_url'];
             
             $imagePath = $currentImage;
             if (!empty($_FILES['product_image']['name'])) {
                 $targetDir = "uploads/";
                 $imagePath = $targetDir . basename($_FILES['product_image']['name']);
-                move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath);
-                
-                // Delete old image if it exists
-                if ($currentImage && file_exists($currentImage)) {
-                    unlink($currentImage);
+                if (move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath)) {
+                    // Delete old image if it exists
+                    if ($currentImage && file_exists($currentImage)) {
+                        unlink($currentImage);
+                    }
+                } else {
+                    die("Failed to upload image");
                 }
             }
 
@@ -75,8 +90,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                   price = ?,
                                   image_url = ?,
                                   stock_quantity = ?,
-                                  category = ?
+                                  Category = ?
                                   WHERE product_id = ?");
+            if (!$stmt) {
+                die("Prepare failed: " . $conn->error);
+            }
+            
             $stmt->bind_param("ssdsisi",
                 $_POST['product_name'],
                 $_POST['description'],
@@ -86,12 +105,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_POST['category'],
                 $_POST['product_id']
             );
-            $stmt->execute();
+            
+            if (!$stmt->execute()) {
+                die("Execute failed: " . $stmt->error);
+            }
         }
         // Delete product
         elseif ($_POST['action'] === 'delete') {
             // Delete associated image first
-            $result = $conn->query("SELECT image_url FROM products WHERE product_id = " . $_POST['product_id']);
+            $result = $conn->query("SELECT image_url FROM products WHERE product_id = " . (int)$_POST['product_id']);
             $imagePath = $result->fetch_assoc()['image_url'];
             if ($imagePath && file_exists($imagePath)) {
                 unlink($imagePath);
@@ -111,9 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Fetch all products
 $products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fetch_all(MYSQLI_ASSOC);
 
+// Fetch categories for dropdown
+$categories = $conn->query("SELECT * FROM pet_categories ORDER BY category_name")->fetch_all(MYSQLI_ASSOC);
+
 $conn->close();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>

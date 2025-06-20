@@ -256,7 +256,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
       <li><a href="my_orders.php"><i class="bi bi-box"></i> My Orders</a></li>
       <li><a href="favorites.php"><i class="bi bi-heart"></i> My Favourite</a></li>
       <li><a href="myprofile_address.php"><i class="bi bi-person-lines-fill"></i> My Profile/Address</a></li>
-      <li><a href="logout.php" class="logout-link"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+      <li><a class="dropdown-item" href="logout.php?type=customer"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
     </ul>
   </div>
   

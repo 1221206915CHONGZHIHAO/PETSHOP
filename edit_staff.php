@@ -1,6 +1,12 @@
 <?php
 include('db_connection.php');
 
+// Initialize variables
+$error = '';
+$password_error = '';
+$success = '';
+
+// Get shop settings
 $shopSettings = [];
 $settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
 $settingsQuery->execute();
@@ -10,70 +16,66 @@ if ($result->num_rows > 0) {
     $shopSettings = $result->fetch_assoc();
 }
 
-
+// Get staff member data
 $id = $_GET['id'];
 $sql = "SELECT * FROM Staff WHERE Staff_ID=?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $result = $stmt->get_result()->fetch_assoc();
-$update_sql = "UPDATE Staff SET position=?, status=? WHERE Staff_ID=?";
-$stmt = $conn->prepare($update_sql);
-$stmt->bind_param("ssi", $position, $status, $id);
-
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $name = $_POST['Staff_name'];
-    $username = $_POST['Staff_Username'];
-    $email = $_POST['Staff_Email'];
+    // Get form data
     $position = $_POST['position'];
     $status = $_POST['status'];
     $resetPassword = isset($_POST['resetPassword']) ? true : false;
     $newPassword = $_POST['newPassword'] ?? '';
 
     // Validate password if reset is requested
-if ($resetPassword && empty($newPassword)) {
-    $password_error = "Please enter a new password";
-} elseif ($resetPassword && strlen($newPassword) < 8) {
-    $password_error = "Password must be at least 8 characters long";
-} elseif ($resetPassword && !preg_match('/[A-Z]/', $newPassword)) {
-    $password_error = "Password must contain at least one uppercase letter";
-} elseif ($resetPassword && !preg_match('/[0-9]/', $newPassword)) {
-    $password_error = "Password must contain at least one number";
-} elseif ($resetPassword && !preg_match('/[^A-Za-z0-9]/', $newPassword)) {
-    $password_error = "Password must contain at least one special character";
-}
+    if ($resetPassword) {
+        if (empty($newPassword)) {
+            $password_error = "Please enter a new password";
+        } elseif (strlen($newPassword) < 8) {
+            $password_error = "Password must be at least 8 characters long";
+        } elseif (!preg_match('/[A-Z]/', $newPassword)) {
+            $password_error = "Password must contain at least one uppercase letter";
+        } elseif (!preg_match('/[0-9]/', $newPassword)) {
+            $password_error = "Password must contain at least one number";
+        } elseif (!preg_match('/[^A-Za-z0-9]/', $newPassword)) {
+            $password_error = "Password must contain at least one special character";
+        }
+    }
 
     // Only proceed if no password errors
     if (!$resetPassword || empty($password_error)) {
-        $update_sql = "UPDATE Staff SET Staff_name=?, Staff_Username=?, Staff_Email=?, position=?, status=?";
+        // Prepare the base update query
+        $update_sql = "UPDATE Staff SET position=?, status=?";
+        $params = [$position, $status];
+        $types = "ss"; // position and status are strings
         
         // Add password to update if reset is requested
         if ($resetPassword) {
             $update_sql .= ", Staff_Password=?";
+            $params[] = $newPassword;
+            $types .= "s"; // password is string
         }
         
         $update_sql .= " WHERE Staff_ID=?";
+        $params[] = $id;
+        $types .= "i"; // id is integer
         
         $stmt = $conn->prepare($update_sql);
-        
-        // Bind parameters based on whether password is being reset
-        if ($resetPassword) {
-            $stmt->bind_param("ssssssi", $name, $username, $email, $position, $status, $newPassword, $id);
-        } else {
-            $stmt->bind_param("sssssi", $name, $username, $email, $position, $status, $id);
-        }
+        $stmt->bind_param($types, ...$params);
 
         if ($stmt->execute()) {
-            header("Location: manage_staff.php?success=1");
+            $_SESSION['success_message'] = "Staff member updated successfully";
+            header("Location: manage_staff.php");
             exit();
         } else {
-            $error = "Error: " . $conn->error;
+            $error = "Error updating staff member: " . $conn->error;
         }
     }
 }
-
-
 ?>
 
 <!DOCTYPE html>
@@ -84,7 +86,7 @@ if ($resetPassword && empty($newPassword)) {
     <title>Edit Staff - Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
     <style>
         .confirmation-modal .modal-header {
@@ -119,60 +121,58 @@ if ($resetPassword && empty($newPassword)) {
             color: #6c757d;
             margin-top: 0.5rem;
         }
-                            h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
-    .password-requirements {
-    margin-top: 8px;
-    font-size: 13px;
-    color: var(--gray);
-    background-color: rgba(240, 242, 245, 0.8);
-    padding: 10px 15px;
-    border-radius: 8px;
-}
-
-.requirement {
-    margin-bottom: 5px;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-}
-
-.requirement i {
-    margin-right: 8px;
-    font-size: 14px;
-    transition: all 0.3s ease;
-}
-
-.requirement.text-success {
-    color: var(--primary) !important;
-}
-
-.disabled-field {
-    background-color: #e9ecef !important;
-    color: #6c757d !important;
-    cursor: not-allowed;
-}
-.disabled-label {
-    color: #6c757d;
-}
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
+        }
+        .password-requirements {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--gray);
+            background-color: rgba(240, 242, 245, 0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+        }
+        .requirement {
+            margin-bottom: 5px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            color: #6c757d;
+        }
+        .requirement i {
+            margin-right: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: none;
+        }
+        .requirement.text-success {
+            color: var(--primary) !important;
+        }
+        .disabled-field {
+            background-color: #e9ecef !important;
+            color: #6c757d !important;
+            cursor: not-allowed;
+        }
+        .disabled-label {
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -195,34 +195,34 @@ if ($resetPassword && empty($newPassword)) {
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar -->
-<nav id="sidebar" class="col-md-2 d-md-block bg-dark sidebar">
-    <div class="position-sticky">
-        <h4 class="text-light text-center py-3"><i class="fas fa-paw me-2"></i>Admin Menu</h4>
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link text-light" href="admin_homepage.php">
-                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link text-light" data-bs-toggle="collapse" href="#staffMenu">
-                    <i class="fas fa-users me-2"></i>Staff Management
-                </a>
-                <div class="collapse" id="staffMenu">
-                    <ul class="nav flex-column ps-4">
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="manage_staff.php">
-                                <i class="fas fa-list me-2"></i>Staff List
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="staff_logs.php">
-                                <i class="fas fa-history me-2"></i>Login/Logout Logs
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+        <nav id="sidebar" class="col-md-2 d-md-block bg-dark sidebar">
+            <div class="position-sticky">
+                <h4 class="text-light text-center py-3"><i class="fas fa-paw me-2"></i>Admin Menu</h4>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="admin_homepage.php">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-light active" data-bs-toggle="collapse" href="#staffMenu">
+                            <i class="fas fa-users me-2"></i>Staff Management
+                        </a>
+                        <div class="collapse show" id="staffMenu">
+                            <ul class="nav flex-column ps-4">
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="manage_staff.php">
+                                        <i class="fas fa-list me-2"></i>Staff List
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_logs.php">
+                                        <i class="fas fa-history me-2"></i>Login/Logout Logs
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
                             <i class="fas fa-user-friends me-2"></i>Customer Management
@@ -291,18 +291,14 @@ if ($resetPassword && empty($newPassword)) {
                 </div>
             </div>
 
-            <?php if (isset($error)): ?>
-                <div class="alert alert-danger alert-dismissible fade show">
-                    <i class="fas fa-exclamation-circle me-2"></i><?php echo $error; ?>
+
+
+            <?php if (isset($_SESSION['success_message'])): ?>
+                <div class="alert alert-success alert-dismissible fade show">
+                    <i class="fas fa-check-circle me-2"></i><?php echo $_SESSION['success_message']; ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-            <?php endif; ?>
-            
-            <?php if (isset($password_error)): ?>
-                <div class="alert alert-danger alert-dismissible fade show">
-                    <i class="fas fa-exclamation-circle me-2"></i><?php echo $password_error; ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
+                <?php unset($_SESSION['success_message']); ?>
             <?php endif; ?>
 
             <div class="card">
@@ -312,68 +308,85 @@ if ($resetPassword && empty($newPassword)) {
                 <div class="card-body">
                     <form method="POST" class="needs-validation" novalidate>
                         <div class="row mb-3">
-<div class="row mb-3">
-    <div class="col-md-6">
-        <label for="Staff_name" class="form-label disabled-label">Full Name</label>
-        <input type="text" class="form-control disabled-field" id="Staff_name" name="Staff_name" 
-               value="<?php echo htmlspecialchars($result['Staff_name']); ?>" readonly disabled>
-    </div>
-    <div class="col-md-6">
-        <label for="Staff_Username" class="form-label disabled-label">Username</label>
-        <input type="text" class="form-control disabled-field" id="Staff_Username" name="Staff_Username" 
-               value="<?php echo htmlspecialchars($result['Staff_Username']); ?>" readonly disabled>
-    </div>
-</div>
+                            <div class="col-md-6">
+                                <label for="Staff_name" class="form-label disabled-label">Full Name</label>
+                                <input type="text" class="form-control disabled-field" id="Staff_name" name="Staff_name" 
+                                       value="<?php echo htmlspecialchars($result['Staff_name']); ?>" readonly disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="Staff_Username" class="form-label disabled-label">Username</label>
+                                <input type="text" class="form-control disabled-field" id="Staff_Username" name="Staff_Username" 
+                                       value="<?php echo htmlspecialchars($result['Staff_Username']); ?>" readonly disabled>
+                            </div>
+                        </div>
 
-<div class="row mb-3">
-    <div class="col-md-6">
-        <label for="Staff_Email" class="form-label disabled-label">Email Address</label>
-        <input type="email" class="form-control disabled-field" id="Staff_Email" name="Staff_Email" 
-               value="<?php echo htmlspecialchars($result['Staff_Email']); ?>" readonly disabled>
-    </div>
-    <div class="col-md-6">
-        <label for="position" class="form-label">Position</label>
-        <select class="form-select" id="position" name="position" required>
-            <option value="Manager" <?= ($result['position'] == 'Manager') ? 'selected' : '' ?>>Manager</option>
-            <option value="Sales Associate" <?= ($result['position'] == 'Sales Associate') ? 'selected' : '' ?>>Sales Associate</option>
-            <option value="Inventory Specialist" <?= ($result['position'] == 'Inventory Specialist') ? 'selected' : '' ?>>Inventory Specialist</option>
-        </select>
-    </div>
-</div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="Staff_Email" class="form-label disabled-label">Email Address</label>
+                                <input type="email" class="form-control disabled-field" id="Staff_Email" name="Staff_Email" 
+                                       value="<?php echo htmlspecialchars($result['Staff_Email']); ?>" readonly disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="position" class="form-label">Position</label>
+                                <select class="form-select" id="position" name="position" required>
+                                    <option value="Manager" <?= ($result['position'] == 'Manager') ? 'selected' : '' ?>>Manager</option>
+                                    <option value="Sales Associate" <?= ($result['position'] == 'Sales Associate') ? 'selected' : '' ?>>Sales Associate</option>
+                                    <option value="Inventory Specialist" <?= ($result['position'] == 'Inventory Specialist') ? 'selected' : '' ?>>Inventory Specialist</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="Active" <?= ($result['status'] == 'Active') ? 'selected' : '' ?>>Active</option>
+                                    <option value="Inactive" <?= ($result['status'] == 'Inactive') ? 'selected' : '' ?>>Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Password reset section -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="resetPassword" name="resetPassword">
+                                    <label class="form-check-label" for="resetPassword">
+                                        Reset Password
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
 
                         <!-- Password field (hidden by default) -->
-<div class="row mb-3" id="passwordField" style="display: none;">
-    <div class="col-md-6">
-        <label for="newPassword" class="form-label">New Password</label>
-        <input type="text" class="form-control" id="newPassword" name="newPassword">
-        <div class="password-requirements mt-2">
-            <div class="requirement" id="length-check">
-                <i class="fas fa-times-circle text-danger"></i>
-                <i class="fas fa-check-circle text-success d-none"></i>
-                <span>At least 8 characters</span>
-            </div>
-            <div class="requirement" id="uppercase-check">
-                <i class="fas fa-times-circle text-danger"></i>
-                <i class="fas fa-check-circle text-success d-none"></i>
-                <span>At least 1 uppercase letter</span>
-            </div>
-            <div class="requirement" id="number-check">
-                <i class="fas fa-times-circle text-danger"></i>
-                <i class="fas fa-check-circle text-success d-none"></i>
-                <span>At least 1 number</span>
-            </div>
-            <div class="requirement" id="symbol-check">
-                <i class="fas fa-times-circle text-danger"></i>
-                <i class="fas fa-check-circle text-success d-none"></i>
-                <span>At least 1 special character</span>
-            </div>
-        </div>
-        <small class="text-muted password-note">
-            <i class="fas fa-info-circle me-1"></i>
-            The password will be stored as plain text in the database
-        </small>
-    </div>
-</div>
+                        <div class="row mb-3" id="passwordField" style="display: none;">
+                            <div class="col-md-6">
+                                <label for="newPassword" class="form-label">New Password</label>
+                                <input type="text" class="form-control" id="newPassword" name="newPassword">
+                                <div class="password-requirements mt-2">
+                                    <div class="requirement" id="length-check">
+                                        <i class="fas fa-check-circle text-success"></i>
+                                        <span>At least 8 characters</span>
+                                    </div>
+                                    <div class="requirement" id="uppercase-check">
+                                        <i class="fas fa-check-circle text-success"></i>
+                                        <span>At least 1 uppercase letter</span>
+                                    </div>
+                                    <div class="requirement" id="number-check">
+                                        <i class="fas fa-check-circle text-success"></i>
+                                        <span>At least 1 number</span>
+                                    </div>
+                                    <div class="requirement" id="symbol-check">
+                                        <i class="fas fa-check-circle text-success"></i>
+                                        <span>At least 1 special character</span>
+                                    </div>
+                                </div>
+                                <small class="text-muted password-note">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    The password will be stored as plain text in the database
+                                </small>
+                            </div>
+                        </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <a href="manage_staff.php" class="btn btn-secondary me-md-2">
@@ -419,11 +432,12 @@ if ($resetPassword && empty($newPassword)) {
         </div>
     </div>
 </div>
+
 <!-- Footer Section -->
 <footer>
     <div class="container-fluid">
         <div class="row">
-            <div class="col-md-10 offset-md-2"> <!-- This matches the main content area -->
+            <div class="col-md-10 offset-md-2">
                 <div class="row">
                     <!-- Footer About -->
                     <div class="col-md-5 mb-4 mb-lg-0">
@@ -483,7 +497,6 @@ if ($resetPassword && empty($newPassword)) {
         </div>
     </div>
 </footer>
-
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -549,9 +562,23 @@ document.querySelector('form').addEventListener('submit', function(e) {
         }, { once: true });
     }
 });
+
 // Password validation
 document.getElementById('newPassword').addEventListener('input', function() {
     const password = this.value;
+    
+    if (password.length === 0) {
+        // Hide all icons when password is empty
+        document.querySelectorAll('.requirement i').forEach(icon => {
+            icon.style.display = 'none';
+        });
+        return;
+    }
+    
+    // Show all icons when typing starts
+    document.querySelectorAll('.requirement i').forEach(icon => {
+        icon.style.display = 'inline-block';
+    });
     
     // Check length requirement
     toggleIconVisibility(document.getElementById('length-check'), password.length >= 8);
@@ -567,19 +594,14 @@ document.getElementById('newPassword').addEventListener('input', function() {
 });
 
 function toggleIconVisibility(element, isValid) {
-    const crossIcon = element.querySelector('.fa-times-circle');
-    const checkIcon = element.querySelector('.fa-check-circle');
+    const icon = element.querySelector('i');
     
     if (isValid) {
-        crossIcon.classList.add('d-none');
-        checkIcon.classList.remove('d-none');
-        element.classList.add('text-success');
-        element.classList.remove('text-danger');
+        icon.classList.remove('fa-times-circle', 'text-danger');
+        icon.classList.add('fa-check-circle', 'text-success');
     } else {
-        crossIcon.classList.remove('d-none');
-        checkIcon.classList.add('d-none');
-        element.classList.add('text-danger');
-        element.classList.remove('text-success');
+        icon.classList.remove('fa-check-circle', 'text-success');
+        icon.classList.add('fa-times-circle', 'text-danger');
     }
 }
 </script>
