@@ -476,7 +476,7 @@ $db->close();
                                     <div class="col-md-3 fw-bold">Password:</div>
                                     <div class="col-md-9 password-container">
                                         <span id="passwordDisplay"><?php echo str_repeat('*', strlen($staff['Staff_password'])); ?></span>
-                                        <button class="password-toggle" onclick="togglePassword()">
+                                        <button class="password-toggle" onclick="toggleAccountPassword()">
                                             <i class="bi bi-eye" id="passwordToggleIcon"></i>
                                         </button>
                                     </div>
@@ -777,6 +777,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Toggle function for password input fields
 function togglePassword(inputId, element) {
     const input = document.getElementById(inputId);
     const icon = element.querySelector('i');
@@ -792,7 +793,8 @@ function togglePassword(inputId, element) {
     }
 }
 
-function togglePassword() {
+// Toggle function for account password display
+function toggleAccountPassword() {
     const passwordDisplay = document.getElementById('passwordDisplay');
     const passwordToggleIcon = document.getElementById('passwordToggleIcon');
     if (passwordDisplay.textContent.includes('*')) {

@@ -81,12 +81,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['new_password'] = "New password is required";
         } elseif (strlen($new_password) < 8) {
             $errors['new_password'] = "Password must be at least 8 characters long";
-        } elseif (!preg_match('/[A-Z]/', $new_password)) {
-            $errors['new_password'] = "Password must contain at least one uppercase letter";
-        } elseif (!preg_match('/[0-9]/', $new_password)) {
-            $errors['new_password'] = "Password must contain at least one number";
-        } elseif (!preg_match('/[^A-Za-z0-9]/', $new_password)) {
-            $errors['new_password'] = "Password must contain at least one special character";
         }
 
         // Confirm new password
@@ -97,75 +91,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password_changed = true;
     }
 
-    // Handle profile picture upload
-    if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-        $file_type = $_FILES['avatar']['type'];
-        $max_size = 2 * 1024 * 1024; // 2MB
-        
-        if (!in_array($file_type, $allowed_types)) {
-            $errors['avatar'] = "Only JPG, PNG, and GIF files are allowed";
-        } elseif ($_FILES['avatar']['size'] > $max_size) {
-            $errors['avatar'] = "File size must be less than 2MB";
-        } else {
-            $upload_dir = 'staff_avatars/';
-            
-            // Create directory if it doesn't exist and make sure it's writable
-            if (!file_exists($upload_dir)) {
-                if (!mkdir($upload_dir, 0755, true)) {
-                    $errors['avatar'] = "Failed to create upload directory";
-                }
-            } elseif (!is_writable($upload_dir)) {
-                $errors['avatar'] = "Upload directory is not writable";
+// Handle profile picture upload
+if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK && is_uploaded_file($_FILES['avatar']['tmp_name'])) {
+    $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+    $file_type = mime_content_type($_FILES['avatar']['tmp_name']);
+    $max_size = 2 * 1024 * 1024; // 2MB
+
+    if (!in_array($file_type, $allowed_types)) {
+        $errors['avatar'] = "Only JPG, PNG, and GIF files are allowed";
+    } elseif ($_FILES['avatar']['size'] > $max_size) {
+        $errors['avatar'] = "File size must be less than 2MB";
+    } else {
+        $upload_dir = 'staff_avatars/';
+
+        if (!file_exists($upload_dir)) {
+            if (!mkdir($upload_dir, 0755, true)) {
+                $errors['avatar'] = "Failed to create upload directory";
             }
-            
-            if (empty($errors['avatar'])) {
-                $file_extension = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
-                $avatar_filename = $staff_id . '_' . uniqid() . '.' . $file_extension;
-                $avatar_path = $upload_dir . $avatar_filename;
-                
-                // Delete old image if it exists
-                if (!empty($staff['img_URL']) && file_exists($staff['img_URL'])) {
-                    unlink($staff['img_URL']);
-                }
-                
-                if (move_uploaded_file($_FILES['avatar']['tmp_name'], $avatar_path)) {
-                    // Update database with image path (relative path for display)
-                    $display_path = 'staff_avatars/' . $avatar_filename;
-                    $update_img_query = "UPDATE staff SET img_URL = ? WHERE Staff_ID = ?";
-                    $stmt = $db->prepare($update_img_query);
-                    $stmt->bind_param("si", $display_path, $staff_id);
-                    
-                    if ($stmt->execute()) {
-                        $upload_success = true;
-                        $staff['img_URL'] = $display_path;
-                        $_SESSION['avatar_path'] = $display_path;
-                    } else {
-                        $errors['database'] = "Failed to update profile picture: " . $db->error;
-                        // Remove the uploaded file if database update failed
-                        if (file_exists($avatar_path)) {
-                            unlink($avatar_path);
-                        }
+        } elseif (!is_writable($upload_dir)) {
+            $errors['avatar'] = "Upload directory is not writable";
+        }
+
+        if (empty($errors['avatar'])) {
+            $file_extension = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
+            $avatar_filename = $staff_id . '_' . uniqid() . '.' . $file_extension;
+            $avatar_path = $upload_dir . $avatar_filename;
+
+            if (move_uploaded_file($_FILES['avatar']['tmp_name'], $avatar_path)) {
+                // Update DB path (relative path)
+                $display_path = $avatar_path;
+                $update_img_query = "UPDATE staff SET img_URL = ? WHERE Staff_ID = ?";
+                $stmt = $db->prepare($update_img_query);
+                $stmt->bind_param("si", $display_path, $staff_id);
+
+                if ($stmt->execute()) {
+                    // Delete old image only after DB update succeeds
+                    if (!empty($staff['img_URL']) && file_exists($staff['img_URL'])) {
+                        unlink($staff['img_URL']);
                     }
+
+                    $upload_success = true;
+                    $staff['img_URL'] = $display_path;
+                    $_SESSION['avatar_path'] = $display_path;
                 } else {
-                    $errors['avatar'] = "Failed to upload image";
+                    $errors['database'] = "Failed to update profile picture: " . $db->error;
+                    // Remove the new uploaded image if DB update failed
+                    if (file_exists($avatar_path)) {
+                        unlink($avatar_path);
+                    }
                 }
+            } else {
+                $errors['avatar'] = "Failed to upload image";
             }
         }
-    } elseif (isset($_FILES['avatar']) && $_FILES['avatar']['error'] !== UPLOAD_ERR_NO_FILE) {
-        $upload_errors = [
-            0 => 'There is no error, the file uploaded with success',
-            1 => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
-            2 => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form',
-            3 => 'The uploaded file was only partially uploaded',
-            4 => 'No file was uploaded',
-            6 => 'Missing a temporary folder',
-            7 => 'Failed to write file to disk.',
-            8 => 'A PHP extension stopped the file upload.',
-        ];
-        $error_code = $_FILES['avatar']['error'];
-        $errors['avatar'] = "File upload error: " . ($upload_errors[$error_code] ?? 'Unknown error');
     }
+} elseif (isset($_FILES['avatar']) && $_FILES['avatar']['error'] !== UPLOAD_ERR_NO_FILE) {
+    // Handle other file upload errors
+    $upload_errors = [
+        1 => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
+        2 => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form',
+        3 => 'The uploaded file was only partially uploaded',
+        6 => 'Missing a temporary folder',
+        7 => 'Failed to write file to disk.',
+        8 => 'A PHP extension stopped the file upload.'
+    ];
+    $error_code = $_FILES['avatar']['error'];
+    $errors['avatar'] = "File upload error: " . ($upload_errors[$error_code] ?? 'Unknown error');
+}
 
     // Update database if no errors (excluding avatar errors if no file was uploaded)
     if (empty(array_diff_key($errors, ['avatar' => '']))) {
@@ -218,18 +210,6 @@ $db->close();
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
     <style>
-        :root {
-            --primary: #4e9f3d;
-            --primary-light: #8fd14f;
-            --primary-dark: #38761d;
-            --secondary: #1e3a8a;
-            --accent: #ff7e2e;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --gray: #6c757d;
-            --light-gray: #f0f2f5;
-        }
-
         .main-content { flex: 1; }
         .info-card {
             background-color: #fff;
@@ -277,6 +257,7 @@ $db->close();
             background: none;
             border: none;
             color: #6c757d;
+            z-index: 5;
         }
         #sidebar {
             background-color: #343a40;
@@ -327,81 +308,8 @@ $db->close();
             background-color: var(--primary);
             margin-top: 0.5rem;
         }
-        
-        /* Password requirements styles */
-        .password-requirements {
-            margin-top: 8px;
-            font-size: 13px;
-            color: var(--gray);
-            background-color: rgba(240, 242, 245, 0.8);
-            padding: 10px 15px;
-            border-radius: 8px;
-        }
-        
-        .requirement {
-            margin-bottom: 5px;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-        }
-        
-        .requirement i {
-            margin-right: 8px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-        
-        .requirement.text-success {
-            color: var(--primary) !important;
-        }
-        
-        /* Animation for validation icons */
-        .requirement i.bi-check-circle {
-            animation: fadeInScale 0.3s ease;
-        }
-        
-        @keyframes fadeInScale {
-            0% {
-                transform: scale(0);
-                opacity: 0;
-            }
-            50% {
-                transform: scale(1.2);
-            }
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-        
-        .input-group-text i {
-            cursor: pointer;
-            transition: color 0.3s ease;
-        }
-        
-        .input-group-text:hover i {
-            color: green;
-        }
-        
-        /* Password strength meter */
-        .password-strength-meter {
-            height: 5px;
-            background-color: #e9ecef;
-            border-radius: 3px;
-            margin-top: 5px;
-            overflow: hidden;
-        }
-        
-        .password-strength-meter-fill {
-            height: 100%;
-            width: 0;
-            transition: width 0.3s ease, background-color 0.3s ease;
-        }
-        
-        .password-strength-text {
-            font-size: 12px;
-            margin-top: 3px;
-            text-align: right;
+        .form-control {
+            padding-right: 35px; /* Make space for the eye icon */
         }
     </style>
 </head>
@@ -589,12 +497,12 @@ $db->close();
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label for="current_password" class="form-label">Current Password</label>
-                                    <div class="input-group">
+                                    <div class="password-container">
                                         <input type="password" class="form-control <?php echo isset($errors['current_password']) ? 'is-invalid' : ''; ?>" 
                                                id="current_password" name="current_password">
-                                        <span class="input-group-text" onclick="togglePassword('current_password', this)">
+                                        <button type="button" class="password-toggle" onclick="togglePassword('current_password', this)">
                                             <i class="bi bi-eye-slash"></i>
-                                        </span>
+                                        </button>
                                     </div>
                                     <?php if (isset($errors['current_password'])): ?>
                                         <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['current_password']); ?></div>
@@ -604,34 +512,12 @@ $db->close();
 
                                 <div class="mb-3">
                                     <label for="new_password" class="form-label">New Password</label>
-                                    <div class="input-group">
+                                    <div class="password-container">
                                         <input type="password" class="form-control <?php echo isset($errors['new_password']) ? 'is-invalid' : ''; ?>" 
                                                id="new_password" name="new_password">
-                                        <span class="input-group-text" onclick="togglePassword('new_password', this)">
+                                        <button type="button" class="password-toggle" onclick="togglePassword('new_password', this)">
                                             <i class="bi bi-eye-slash"></i>
-                                        </span>
-                                    </div>
-                                    <div class="password-requirements mt-2">
-                                        <div class="requirement" id="length-check">
-                                            <i class="bi bi-x-circle text-danger"></i>
-                                            <i class="bi bi-check-circle text-success d-none"></i>
-                                            <span>At least 8 characters</span>
-                                        </div>
-                                        <div class="requirement" id="uppercase-check">
-                                            <i class="bi bi-x-circle text-danger"></i>
-                                            <i class="bi bi-check-circle text-success d-none"></i>
-                                            <span>At least 1 uppercase letter</span>
-                                        </div>
-                                        <div class="requirement" id="number-check">
-                                            <i class="bi bi-x-circle text-danger"></i>
-                                            <i class="bi bi-check-circle text-success d-none"></i>
-                                            <span>At least 1 number</span>
-                                        </div>
-                                        <div class="requirement" id="symbol-check">
-                                            <i class="bi bi-x-circle text-danger"></i>
-                                            <i class="bi bi-check-circle text-success d-none"></i>
-                                            <span>At least 1 special character</span>
-                                        </div>
+                                        </button>
                                     </div>
                                     <?php if (isset($errors['new_password'])): ?>
                                         <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['new_password']); ?></div>
@@ -640,12 +526,12 @@ $db->close();
 
                                 <div class="mb-3">
                                     <label for="confirm_password" class="form-label">Confirm New Password</label>
-                                    <div class="input-group">
+                                    <div class="password-container">
                                         <input type="password" class="form-control <?php echo isset($errors['confirm_password']) ? 'is-invalid' : ''; ?>" 
                                                id="confirm_password" name="confirm_password">
-                                        <span class="input-group-text" onclick="togglePassword('confirm_password', this)">
+                                        <button type="button" class="password-toggle" onclick="togglePassword('confirm_password', this)">
                                             <i class="bi bi-eye-slash"></i>
-                                        </span>
+                                        </button>
                                     </div>
                                     <?php if (isset($errors['confirm_password'])): ?>
                                         <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['confirm_password']); ?></div>
@@ -863,83 +749,11 @@ document.addEventListener('DOMContentLoaded', function() {
             reader.readAsDataURL(this.files[0]);
         }
     });
-
-    // Password validation
-    const newPasswordInput = document.getElementById('new_password');
-    const lengthCheck = document.getElementById('length-check');
-    const uppercaseCheck = document.getElementById('uppercase-check');
-    const numberCheck = document.getElementById('number-check');
-    const symbolCheck = document.getElementById('symbol-check');
-    
-    // Validation functions
-    function checkPasswordLength(password) {
-        return password.length >= 8;
-    }
-    
-    function checkPasswordUppercase(password) {
-        return /[A-Z]/.test(password);
-    }
-    
-    function checkPasswordNumber(password) {
-        return /[0-9]/.test(password);
-    }
-    
-    function checkPasswordSymbol(password) {
-        return /[^A-Za-z0-9]/.test(password);
-    }
-    
-    // Toggle icon visibility
-    function toggleIconVisibility(element, isValid) {
-        const crossIcon = element.querySelector('.bi-x-circle');
-        const checkIcon = element.querySelector('.bi-check-circle');
-        
-        if (isValid) {
-            crossIcon.classList.add('d-none');
-            checkIcon.classList.remove('d-none');
-            element.classList.add('text-success');
-            element.classList.remove('text-danger');
-        } else {
-            crossIcon.classList.remove('d-none');
-            checkIcon.classList.add('d-none');
-            element.classList.add('text-danger');
-            element.classList.remove('text-success');
-        }
-    }
-    
-    // Validate password on input
-    newPasswordInput.addEventListener('input', function() {
-        const password = newPasswordInput.value;
-        
-        // Check length requirement
-        toggleIconVisibility(lengthCheck, checkPasswordLength(password));
-        
-        // Check uppercase requirement
-        toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
-        
-        // Check number requirement
-        toggleIconVisibility(numberCheck, checkPasswordNumber(password));
-        
-        // Check symbol requirement
-        toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
-        
-        // Update password strength meter
-        updatePasswordStrength(password);
-    });
-
-    // Also validate when the page loads in case form was submitted with errors
-    if (newPasswordInput.value) {
-        const password = newPasswordInput.value;
-        toggleIconVisibility(lengthCheck, checkPasswordLength(password));
-        toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
-        toggleIconVisibility(numberCheck, checkPasswordNumber(password));
-        toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
-        updatePasswordStrength(password);
-    }
 });
 
-function togglePassword(id, element) {
+function togglePassword(id, button) {
     const input = document.getElementById(id);
-    const icon = element.querySelector('i');
+    const icon = button.querySelector('i');
     if (input.type === 'password') {
         input.type = 'text';
         icon.classList.remove('bi-eye-slash');
@@ -964,60 +778,6 @@ function updateInitials(name) {
             }
         }
         avatarInitials.textContent = initials;
-    }
-}
-
-// Password strength meter function
-function updatePasswordStrength(password) {
-    const strengthMeter = document.getElementById('password-strength-meter-fill');
-    const strengthText = document.getElementById('password-strength-text');
-    
-    if (!password) {
-        strengthMeter.style.width = '0%';
-        strengthMeter.style.backgroundColor = '';
-        strengthText.textContent = '';
-        return;
-    }
-    
-    // Calculate strength (0-100)
-    let strength = 0;
-    
-    // Length (max 40 points)
-    strength += Math.min(password.length * 5, 40);
-    
-    // Character variety (max 60 points)
-    let varietyScore = 0;
-    if (/[a-z]/.test(password)) varietyScore += 10;
-    if (/[A-Z]/.test(password)) varietyScore += 10;
-    if (/[0-9]/.test(password)) varietyScore += 10;
-    if (/[^a-zA-Z0-9]/.test(password)) varietyScore += 10;
-    if (password.length >= 12) varietyScore += 20;
-    
-    strength += varietyScore;
-    
-    // Cap at 100
-    strength = Math.min(strength, 100);
-    
-    // Update meter
-    strengthMeter.style.width = strength + '%';
-    
-    // Set color and text based on strength
-    if (strength < 30) {
-        strengthMeter.style.backgroundColor = '#dc3545'; // Red
-        strengthText.textContent = 'Weak';
-        strengthText.style.color = '#dc3545';
-    } else if (strength < 70) {
-        strengthMeter.style.backgroundColor = '#fd7e14'; // Orange
-        strengthText.textContent = 'Moderate';
-        strengthText.style.color = '#fd7e14';
-    } else if (strength < 90) {
-        strengthMeter.style.backgroundColor = '#ffc107'; // Yellow
-        strengthText.textContent = 'Strong';
-        strengthText.style.color = '#ffc107';
-    } else {
-        strengthMeter.style.backgroundColor = '#28a745'; // Green
-        strengthText.textContent = 'Very Strong';
-        strengthText.style.color = '#28a745';
     }
 }
 </script>
