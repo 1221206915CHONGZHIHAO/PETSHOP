@@ -686,28 +686,27 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Profile picture preview
-    document.getElementById('profileImage').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const avatarImage = document.getElementById('avatarImage');
-                if (avatarImage) {
-                    avatarImage.src = e.target.result;
-                } else {
-                    const avatarDiv = document.querySelector('.user-avatar');
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.alt = 'Profile Image';
-                    img.id = 'avatarImage';
-                    avatarDiv.innerHTML = '';
-                    avatarDiv.appendChild(img);
-                }
-            };
-            reader.readAsDataURL(file);
+// Only show success message after upload
+<?php if ($upload_success): ?>
+document.addEventListener('DOMContentLoaded', function() {
+    // Refresh the avatar preview after successful upload
+    const avatarPath = '<?php echo $staff["img_URL"] ?? ""; ?>';
+    if (avatarPath) {
+        const avatarImage = document.getElementById('avatarImage');
+        if (avatarImage) {
+            avatarImage.src = avatarPath + '?t=' + new Date().getTime(); // Cache buster
+        } else {
+            const avatarDiv = document.querySelector('.user-avatar');
+            avatarDiv.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = avatarPath;
+            img.alt = 'Profile Image';
+            img.id = 'avatarImage';
+            avatarDiv.appendChild(img);
         }
-    });
-
+    }
+});
+<?php endif; ?>
     // Password validation
     const newPasswordInput = document.getElementById('newPassword');
     const lengthCheck = document.getElementById('length-check');

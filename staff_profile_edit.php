@@ -714,41 +714,30 @@ document.addEventListener('DOMContentLoaded', function() {
         emailPreview.textContent = this.value;
     });
 
-    // Avatar preview
-    const avatarInput = document.getElementById('avatar');
-    const avatarContainer = document.querySelector('.user-avatar');
-    
-    avatarInput.addEventListener('change', function() {
-        if (this.files && this.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // First, check if there's already an image preview
-                let avatarPreview = document.getElementById('avatarPreview');
-                
-                if (avatarPreview) {
-                    // If there is an image already, just update its source
-                    avatarPreview.src = e.target.result;
-                } else {
-                    // If there isn't an image (showing initials instead), create one
-                    const initialsContainer = document.getElementById('initialsContainer');
-                    if (initialsContainer) {
-                        // Remove the initials container
-                        initialsContainer.remove();
-                    }
-                    
-                    // Create new image element
-                    avatarPreview = document.createElement('img');
-                    avatarPreview.id = 'avatarPreview';
-                    avatarPreview.src = e.target.result;
-                    avatarPreview.alt = 'Profile Image';
-                    
-                    // Add it to the avatar container
-                    avatarContainer.appendChild(avatarPreview);
-                }
-            };
-            reader.readAsDataURL(this.files[0]);
+ // Only show success message after upload
+<?php if ($upload_success): ?>
+document.addEventListener('DOMContentLoaded', function() {
+    // Refresh the avatar preview after successful upload
+    const avatarPath = '<?php echo $staff["img_URL"] ?? ""; ?>';
+    if (avatarPath) {
+        const avatarPreview = document.getElementById('avatarPreview');
+        if (avatarPreview) {
+            avatarPreview.src = avatarPath + '?t=' + new Date().getTime(); // Cache buster
+        } else {
+            const initialsContainer = document.getElementById('initialsContainer');
+            if (initialsContainer) {
+                initialsContainer.remove();
+                const avatarContainer = document.querySelector('.user-avatar');
+                const newImg = document.createElement('img');
+                newImg.id = 'avatarPreview';
+                newImg.src = avatarPath;
+                newImg.alt = 'Profile Image';
+                avatarContainer.appendChild(newImg);
+            }
         }
-    });
+    }
+});
+<?php endif; ?>
 });
 
 function togglePassword(id, button) {
