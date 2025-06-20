@@ -28,12 +28,11 @@ if ($result->num_rows > 0) {
     $shopSettings = $result->fetch_assoc();
 }
 
-// Get all orders for the current customer
-// Replace the existing query with this one to calculate the total from order items
+// Get all orders for the current customer with shipping fee included
 $stmt = $conn->prepare("
     SELECT o.Order_ID, o.order_date, o.PaymentMethod as payment_method, 
            o.status, o.Address as shipping_address,
-           SUM(oi.subtotal) as Total,
+           SUM(oi.subtotal) + 4.90 as Total, -- Shipping fee added here
            COUNT(oi.order_item_id) as item_count 
     FROM Orders o
     JOIN Order_Items oi ON o.Order_ID = oi.order_id

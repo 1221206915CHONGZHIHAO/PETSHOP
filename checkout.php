@@ -80,6 +80,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
+        // Validate name on card (letters and spaces only)
+        if (!preg_match('/^[A-Za-z ]+$/', $_POST['card_name'])) {
+            throw new Exception("Name on card can only contain letters and spaces");
+        }
+        
         // Basic card validation
         $card_number = preg_replace('/\D/', '', $_POST['card_number']);
         if (strlen($card_number) < 13 || strlen($card_number) > 19) {
@@ -91,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("Invalid expiry date (MM/YY format required)");
         }
         
-        // Updated CVV validation - exactly 3 digits
+        // CVV validation - exactly 3 digits
         if (!preg_match('/^\d{3}$/', $_POST['card_cvv'])) {
             throw new Exception("CVV must be exactly 3 digits");
         }
@@ -332,6 +337,20 @@ $conn->close();
       margin-right: 8px;
       font-size: 1.2rem;
     }
+    /* Input validation styles */
+    .is-invalid {
+      border-color: #dc3545 !important;
+    }
+    .invalid-feedback {
+      display: none;
+      width: 100%;
+      margin-top: 0.25rem;
+      font-size: 0.875em;
+      color: #dc3545;
+    }
+    .was-validated .form-control:invalid ~ .invalid-feedback {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -352,7 +371,7 @@ $conn->close();
     <?php endif; ?>
     <div class="alert alert-danger d-none" id="client-error"></div>
     
-    <form method="post" id="checkout-form">
+    <form method="post" id="checkout-form" class="needs-validation" novalidate>
       <div class="row">
         <div class="col-lg-8">
           <div class="checkout-container mb-4">
@@ -376,6 +395,7 @@ $conn->close();
                         </a>
                     </div>
                 <?php endif; ?>
+                <div class="invalid-feedback">Please provide a shipping address.</div>
             </div>
             
             <div class="form-check mb-3">
@@ -414,22 +434,30 @@ $conn->close();
             <div id="credit_card_details">
               <div class="mb-3">
                 <label for="card_name" class="form-label">Name on Card</label>
-                <input type="text" class="form-control" id="card_name" name="card_name" required>
+                <input type="text" class="form-control" id="card_name" name="card_name" 
+                       pattern="[A-Za-z ]+" title="Please enter only letters" required>
+                <div class="invalid-feedback">Please enter a valid name (letters only).</div>
               </div>
               
               <div class="mb-3">
                 <label for="card_number" class="form-label">Card Number</label>
-                <input type="text" class="form-control" id="card_number" name="card_number" placeholder="1234 5678 9012 3456" required>
+                <input type="text" class="form-control" id="card_number" name="card_number" 
+                       placeholder="1234 5678 9012 3456" pattern="[\d ]{13,19}" required>
+                <div class="invalid-feedback">Please enter a valid card number (13-19 digits).</div>
               </div>
               
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <label for="card_expiry" class="form-label">Expiration Date (MM/YY)</label>
-                  <input type="text" class="form-control" id="card_expiry" name="card_expiry" placeholder="MM/YY" required>
+                  <input type="text" class="form-control" id="card_expiry" name="card_expiry" 
+                         placeholder="MM/YY" pattern="\d{2}/\d{2}" required>
+                  <div class="invalid-feedback">Please enter a valid expiry date (MM/YY format).</div>
                 </div>
                 <div class="col-md-6 mb-3">
                   <label for="card_cvv" class="form-label">CVV (3 digits)</label>
-                  <input type="text" class="form-control" id="card_cvv" name="card_cvv" placeholder="123" maxlength="3" required>
+                  <input type="text" class="form-control" id="card_cvv" name="card_cvv" 
+                         placeholder="123" pattern="\d{3}" maxlength="3" required>
+                  <div class="invalid-feedback">Please enter a valid 3-digit CVV.</div>
                 </div>
               </div>
             </div>
@@ -600,21 +628,43 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Format and limit card number to 16 digits
-    const cardNumberInput = document.getElementById('card_number');
-    cardNumberInput.addEventListener('input', function () {
-        this.value = this.value.replace(/\D/g, '').substring(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ');
+    // Restrict name on card to letters only
+    const cardNameInput = document.getElementById('card_name');
+    cardNameInput.addEventListener('input', function() {
+        // Remove any non-letter characters
+        this.value = this.value.replace(/[^A-Za-z ]/g, '');
     });
 
-    // Format expiry
+    // Format and limit card number to digits only
+    const cardNumberInput = document.getElementById('card_number');
+    cardNumberInput.addEventListener('input', function() {
+        // Remove all non-digit characters
+        let value = this.value.replace(/\D/g, '');
+        // Limit to 16 digits
+        value = value.substring(0, 16);
+        // Add space every 4 digits
+        this.value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+    });
+
+    // Format expiry (MM/YY)
     const cardExpiryInput = document.getElementById('card_expiry');
-    cardExpiryInput.addEventListener('input', function () {
-        this.value = this.value.replace(/\D/g, '').replace(/(\d{2})(?=\d)/g, '$1/').substring(0, 5);
+    cardExpiryInput.addEventListener('input', function() {
+        // Remove all non-digit characters
+        let value = this.value.replace(/\D/g, '');
+        // Limit to 4 digits (MMYY)
+        value = value.substring(0, 4);
+        // Add slash after 2 digits
+        if (value.length > 2) {
+            this.value = value.substring(0, 2) + '/' + value.substring(2);
+        } else {
+            this.value = value;
+        }
     });
 
     // Format CVV (exactly 3 digits)
     const cardCvvInput = document.getElementById('card_cvv');
-    cardCvvInput.addEventListener('input', function () {
+    cardCvvInput.addEventListener('input', function() {
+        // Remove all non-digit characters and limit to 3 digits
         this.value = this.value.replace(/\D/g, '').substring(0, 3);
     });
 
@@ -623,53 +673,72 @@ document.addEventListener('DOMContentLoaded', function () {
         e.preventDefault();
         
         // First validate the form
-        const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
-        const cardNumber = document.getElementById('card_number').value.replace(/\s/g, '');
-        const expiry = document.getElementById('card_expiry').value;
-        const cvv = document.getElementById('card_cvv').value;
-        let isValid = true;
-
-        if (paymentMethod === 'Credit Card' || paymentMethod === 'Debit Card') {
-            // Validate 16-digit card number
-            if (!/^\d{16}$/.test(cardNumber)) {
-                document.getElementById('client-error').textContent = 'Card number must be exactly 16 digits.';
-                document.getElementById('client-error').classList.remove('d-none');
-                window.scrollTo(0, 0);
-                isValid = false;
+        const form = document.getElementById('checkout-form');
+        form.classList.add('was-validated');
+        
+        if (!form.checkValidity()) {
+            // Scroll to first invalid field
+            const firstInvalid = form.querySelector(':invalid');
+            if (firstInvalid) {
+                firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstInvalid.focus();
             }
-
-            // Validate expiry
-            const [expMonth, expYear] = expiry.split('/');
-            const now = new Date();
-            if (!/^\d{2}\/\d{2}$/.test(expiry) ||
-                Number(expMonth) < 1 || Number(expMonth) > 12 ||
-                Number(`20${expYear}`) < now.getFullYear() ||
-                (Number(`20${expYear}`) === now.getFullYear() && Number(expMonth) < now.getMonth() + 1)) {
-                document.getElementById('client-error').textContent = 'Card expiry date is invalid or expired.';
-                document.getElementById('client-error').classList.remove('d-none');
-                window.scrollTo(0, 0);
-                isValid = false;
-            }
-
-            // Validate CVV (exactly 3 digits)
-            if (!/^\d{3}$/.test(cvv)) {
-                document.getElementById('client-error').textContent = 'CVV must be exactly 3 digits.';
-                document.getElementById('client-error').classList.remove('d-none');
-                window.scrollTo(0, 0);
-                isValid = false;
-            }
+            return;
         }
-
+        
         // If validation passed, show the modal
-        if (isValid) {
-            const modal = new bootstrap.Modal(document.getElementById('noRefundAlert'));
-            modal.show();
-        }
+        const modal = new bootstrap.Modal(document.getElementById('noRefundAlert'));
+        modal.show();
     });
 
     // Handle confirm order button
     document.getElementById('confirmOrderBtn').addEventListener('click', function() {
         document.getElementById('checkout-form').submit();
+    });
+
+    // Real-time validation for name on card
+    cardNameInput.addEventListener('blur', function() {
+        if (!/^[A-Za-z ]+$/.test(this.value.trim())) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
+    });
+
+    // Real-time validation for card number
+    cardNumberInput.addEventListener('blur', function() {
+        const digits = this.value.replace(/\D/g, '');
+        if (digits.length < 13 || digits.length > 19) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
+    });
+
+    // Real-time validation for expiry
+    cardExpiryInput.addEventListener('blur', function() {
+        const [month, year] = this.value.split('/');
+        const now = new Date();
+        const currentYear = now.getFullYear() % 100;
+        const currentMonth = now.getMonth() + 1;
+        
+        if (!/^\d{2}\/\d{2}$/.test(this.value) ||
+            Number(month) < 1 || Number(month) > 12 ||
+            Number(year) < currentYear ||
+            (Number(year) === currentYear && Number(month) < currentMonth)) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
+    });
+
+    // Real-time validation for CVV
+    cardCvvInput.addEventListener('blur', function() {
+        if (!/^\d{3}$/.test(this.value)) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
     });
 });
 </script>
