@@ -28,14 +28,16 @@ if ($result->num_rows > 0) {
     $shopSettings = $result->fetch_assoc();
 }
 
-// Get all orders for the current customer with shipping fee included
+// Get all orders for the current customer with shipping fee included and check for removed items
 $stmt = $conn->prepare("
     SELECT o.Order_ID, o.order_date, o.PaymentMethod as payment_method, 
            o.status, o.Address as shipping_address,
            SUM(oi.subtotal) + 4.90 as Total, -- Shipping fee added here
-           COUNT(oi.order_item_id) as item_count 
+           COUNT(oi.order_item_id) as item_count,
+           SUM(CASE WHEN p.product_id IS NULL THEN 1 ELSE 0 END) as removed_items_count
     FROM Orders o
     JOIN Order_Items oi ON o.Order_ID = oi.order_id
+    LEFT JOIN Products p ON oi.product_id = p.product_id
     WHERE o.Customer_ID = ?
     GROUP BY o.Order_ID
     ORDER BY o.order_date DESC
@@ -127,6 +129,15 @@ $conn->close();
     .dropdown-item.active, .dropdown-item:active {
       background-color: var(--primary);
       color: white;
+    }
+
+    /* Style for removed items alert */
+    .removed-items-alert {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 0.75rem 1.25rem;
+      margin-top: 0.5rem;
+      border-radius: 4px;
     }
   </style>
 </head>
@@ -239,6 +250,12 @@ $conn->close();
                     <?php echo date('F j, Y \a\t g:i a', strtotime($order['order_date'])); ?>
                   </p>
                   <p><i class="bi bi-box-seam me-1"></i> <?php echo $order['item_count']; ?> item(s)</p>
+                  <?php if ($order['removed_items_count'] > 0): ?>
+                    <div class="removed-items-alert">
+                      <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                      <?php echo $order['removed_items_count']; ?> item(s) in this order have been removed and are no longer available
+                    </div>
+                  <?php endif; ?>
                   <p><i class="bi bi-credit-card me-1"></i> <?php echo htmlspecialchars($order['payment_method']); ?></p>
                 </div>
                 <div class="col-md-4 text-md-end">

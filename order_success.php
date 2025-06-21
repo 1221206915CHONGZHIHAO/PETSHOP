@@ -20,16 +20,27 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Get order items with product details
+// Get shop settings
+$shopSettings = [];
+$settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
+$settingsQuery->execute();
+$settingsResult = $settingsQuery->get_result();
+
+if ($settingsResult->num_rows > 0) {
+    $shopSettings = $settingsResult->fetch_assoc();
+}
+
+// Get order items with product details and check for removed products
 $stmt = $conn->prepare("
     SELECT o.Order_ID, o.order_date, o.PaymentMethod as payment_method, 
            o.status, o.Address as shipping_address,
            oi.quantity, oi.unit_price, oi.subtotal,
            p.product_id, p.product_name, p.image_url,
-           (SELECT SUM(subtotal) FROM Order_Items WHERE order_id = o.Order_ID) as subtotal
+           (SELECT SUM(subtotal) FROM Order_Items WHERE order_id = o.Order_ID) as subtotal,
+           CASE WHEN p.product_id IS NULL THEN 1 ELSE 0 END as is_removed
     FROM Orders o
     JOIN Order_Items oi ON o.Order_ID = oi.order_id
-    JOIN products p ON oi.product_id = p.product_id
+    LEFT JOIN products p ON oi.product_id = p.product_id
     WHERE o.Order_ID = ? AND o.Customer_ID = ?
 ");
 $stmt->bind_param("ii", $order_id, $_SESSION['customer_id']);
@@ -37,6 +48,14 @@ $stmt->execute();
 $result = $stmt->get_result();
 $order_items = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
+
+// Calculate removed items count
+$removed_items_count = 0;
+foreach ($order_items as $item) {
+    if ($item['is_removed']) {
+        $removed_items_count++;
+    }
+}
 
 // Get basic order info if items exist
 if (!empty($order_items)) {
@@ -49,7 +68,8 @@ if (!empty($order_items)) {
         'payment_method' => $order_items[0]['payment_method'],
         'status' => $order_items[0]['status'],
         'shipping_address' => $order_items[0]['shipping_address'],
-        'item_count' => count($order_items)
+        'item_count' => count($order_items),
+        'removed_items_count' => $removed_items_count
     ];
 } else {
     header('Location: products.php');
@@ -64,7 +84,7 @@ $conn->close();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hachi Pet Shop - Order Confirmation</title>
+  <title>Hachi Pet Shop - Order Details</title>
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- Bootstrap CSS -->
@@ -143,6 +163,41 @@ $conn->close();
     body.pdf-generation footer {
       display: none !important;
     }
+    
+    /* Styles for removed items */
+    .removed-item {
+      opacity: 0.7;
+      background-color: #fff9e6;
+    }
+    .removed-item td {
+      position: relative;
+    }
+    .removed-item td:first-child::before {
+      content: "Removed Item";
+      position: absolute;
+      top: 0;
+      left: 0;
+      background-color: #ffc107;
+      color: #856404;
+      padding: 2px 8px;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+    .removed-item-image {
+      filter: grayscale(100%);
+      opacity: 0.5;
+    }
+    .removed-item-name {
+      text-decoration: line-through;
+      color: #6c757d;
+    }
+    .removed-items-alert {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 0.75rem 1.25rem;
+      margin-bottom: 1rem;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -212,9 +267,16 @@ $conn->close();
 <div class="page-content">
   <main class="container py-5">
     <div class="success-container text-center" id="pdf-content">
-      <i class="bi bi-check-circle-fill success-icon"></i>
-      <h1 class="mb-3">Thank You for Your Order!</h1>
-      <p class="lead mb-4">Your order #<?php echo $order['Order_ID']; ?> has been confirmed.</p>
+      <i class="bi bi-receipt success-icon"></i>
+      <h1 class="mb-3">Order Details</h1>
+      <p class="lead mb-4">Details for your order #<?php echo $order['Order_ID']; ?></p>
+      
+      <?php if ($order['removed_items_count'] > 0): ?>
+        <div class="removed-items-alert text-start">
+          <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+          <?php echo $order['removed_items_count']; ?> item(s) in this order have been removed and are no longer available
+        </div>
+      <?php endif; ?>
       
       <div class="order-details">
         <h3><i class="bi bi-receipt me-2"></i>Order Summary</h3>
@@ -241,7 +303,7 @@ $conn->close();
       </div>
       
       <div class="ordered-items">
-        <h4><i class="bi bi-cart-check me-2"></i>Purchased Items</h4>
+        <h4><i class="bi bi-cart-check me-2"></i>Order Items</h4>
         <div class="table-responsive">
           <table class="table">
             <thead>
@@ -254,15 +316,25 @@ $conn->close();
             </thead>
             <tbody>
               <?php foreach ($order_items as $item): ?>
-              <tr>
+              <tr class="<?php echo $item['is_removed'] ? 'removed-item' : ''; ?>">
                 <td>
                   <div class="d-flex align-items-center">
-                    <img src="<?php echo htmlspecialchars($item['image_url']); ?>" 
-                         alt="<?php echo htmlspecialchars($item['product_name']); ?>" 
-                         class="img-thumbnail me-3">
+                    <?php if ($item['is_removed']): ?>
+                      <div class="img-thumbnail me-3 removed-item-image">
+                        <i class="bi bi-box-seam" style="font-size: 3rem; color: #6c757d;"></i>
+                      </div>
+                    <?php else: ?>
+                      <img src="<?php echo htmlspecialchars($item['image_url']); ?>" 
+                           alt="<?php echo htmlspecialchars($item['product_name']); ?>" 
+                           class="img-thumbnail me-3">
+                    <?php endif; ?>
                     <div>
-                      <h6><?php echo htmlspecialchars($item['product_name']); ?></h6>
-                      <small class="text-muted">Product ID: <?php echo $item['product_id']; ?></small>
+                      <h6 class="<?php echo $item['is_removed'] ? 'removed-item-name' : ''; ?>">
+                        <?php echo $item['is_removed'] ? 'Removed Product' : htmlspecialchars($item['product_name']); ?>
+                      </h6>
+                      <?php if (!$item['is_removed']): ?>
+                        <small class="text-muted">Product ID: <?php echo $item['product_id']; ?></small>
+                      <?php endif; ?>
                     </div>
                   </div>
                 </td>
@@ -297,7 +369,7 @@ $conn->close();
         <a href="products.php" class="btn btn-primary btn-success-page">
           <i class="bi bi-arrow-left me-2"></i>Continue Shopping
         </a>
-        <a href="my_orders.php?order_id=<?php echo $order['Order_ID']; ?>" class="btn btn-outline-secondary btn-success-page">
+        <a href="my_orders.php" class="btn btn-outline-secondary btn-success-page">
           <i class="bi bi-list-check me-2"></i>View Order History
         </a>
         <button id="downloadPdf" class="btn btn-pdf btn-success-page">
@@ -331,25 +403,25 @@ $conn->close();
           <div class="col-sm-6 mb-3">
             <div class="contact-info">
               <i class="bi bi-geo-alt"></i>
-              <span>123 Pet Street, Animal City<br>Singapore 123456</span>
+              <span><?php echo !empty($shopSettings['address']) ? htmlspecialchars($shopSettings['address']) : 'Address not available'; ?></span>
             </div>
           </div>
           <div class="col-sm-6 mb-3">
             <div class="contact-info">
               <i class="bi bi-telephone"></i>
-              <span>+65 1234 5678</span>
+              <span><?php echo !empty($shopSettings['phone_number']) ? htmlspecialchars($shopSettings['phone_number']) : 'Phone number not available'; ?></span>
             </div>
           </div>
           <div class="col-sm-6 mb-3">
             <div class="contact-info">
               <i class="bi bi-envelope"></i>
-              <span>info@hachipetshop.com</span>
+              <span><?php echo !empty($shopSettings['contact_email']) ? htmlspecialchars($shopSettings['contact_email']) : 'Email not available'; ?></span>
             </div>
           </div>
           <div class="col-sm-6 mb-3">
             <div class="contact-info">
               <i class="bi bi-clock"></i>
-              <span>Mon-Fri: 9am-6pm<br>Sat-Sun: 10am-4pm</span>
+              <span><?php echo !empty($shopSettings['opening_hours']) ? htmlspecialchars($shopSettings['opening_hours']) : 'Opening hours not available'; ?></span>
             </div>
           </div>
         </div>
