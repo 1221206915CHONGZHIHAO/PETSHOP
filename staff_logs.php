@@ -165,7 +165,7 @@ $result = $conn->query($sql);
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-light" href="staff_orders.php?show_disabled=1">
+                                    <a class="nav-link text-light" href="orders.php?show_disabled=1">
                                         <i class="fas fa-ban me-2"></i>Disabled Orders
                                     </a>
                                 </li>
