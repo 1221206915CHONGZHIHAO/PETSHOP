@@ -19,6 +19,9 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
+// Shipping fee constant
+define('SHIPPING_FEE', 4.90);
+
 // Fetch staff username
 $staff_id = $_SESSION['staff_id'];
 $stmt = $conn->prepare("SELECT Staff_username FROM staff WHERE Staff_ID = ?");
@@ -36,7 +39,6 @@ $result = $settingsQuery->get_result();
 if ($result->num_rows > 0) {
     $shopSettings = $result->fetch_assoc();
 }
-
 
 // Handle status update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
@@ -168,21 +170,42 @@ $order_items = [];
 if ($result->num_rows > 0) {
     while($order = $result->fetch_assoc()) {
         $order_id = $order['Order_ID'];
-        $item_sql = "SELECT p.Product_name, oi.Quantity, oi.unit_price 
+        // Modified query to handle deleted products
+        $item_sql = "SELECT 
+                        COALESCE(p.Product_name, 'Deleted Product') AS Product_name, 
+                        oi.Quantity, 
+                        oi.unit_price,
+                        oi.Product_ID
                      FROM Order_Items oi
-                     JOIN Products p ON oi.Product_ID = p.Product_id
+                     LEFT JOIN Products p ON oi.Product_ID = p.Product_id
                      WHERE oi.Order_ID = $order_id";
         $item_result = $conn->query($item_sql);
         $items = [];
         $full_items = [];
-        while($item = $item_result->fetch_assoc()) {
-            $items[] = $item['Product_name'] . " (" . $item['Quantity'] . ")";
-            $full_items[] = [
-                'name' => $item['Product_name'],
-                'quantity' => $item['Quantity'],
-                'price' => $item['unit_price']
-            ];
-        }
+        $calculated_total = 0;
+        
+// In the order items fetching section, change this:
+while($item = $item_result->fetch_assoc()) {
+    $product_name = $item['Product_name'];
+    $items[] = $product_name . " (" . $item['Quantity'] . ")";
+    $item_total = $item['unit_price'] * $item['Quantity'];
+    $calculated_total += $item_total;
+    // Remove this line: $calculated_total += SHIPPING_FEE;
+    
+    $full_items[] = [
+        'name' => $product_name,
+        'quantity' => $item['Quantity'],
+        'price' => $item['unit_price'],
+        'item_total' => $item_total,
+        'product_id' => $item['Product_ID']
+    ];
+}
+
+// Add shipping fee after the loop
+$calculated_total += SHIPPING_FEE;
+        
+        // Ensure the order total matches the sum of item totals
+        $order['Total'] = $calculated_total;
         $order['products'] = implode(", ", $items);
         $order['full_items'] = $full_items;
         $order_items[] = $order;
@@ -192,7 +215,6 @@ if ($result->num_rows > 0) {
 $conn->close();
 ?>
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -201,7 +223,7 @@ $conn->close();
     <title><?php echo $show_disabled ? 'Disabled Orders - Staff' : 'Order Management - Staff'; ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
     <style>
         .action-modal .modal-header {
@@ -255,26 +277,26 @@ $conn->close();
         .nav-tabs .nav-link.active {
             font-weight: bold;
         }
-            h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -293,7 +315,7 @@ $conn->close();
             <i class="fas fa-user-circle me-1"></i>
             Welcome, <?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?>
         </span>
-        <a href="logout.php?type=staff"class="btn btn-danger"><i class="fas fa-sign-out-alt"></i>Logout</a>
+        <a href="logout.php?type=staff" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i>Logout</a>
     </div>
 </nav>
 
@@ -313,9 +335,9 @@ $conn->close();
                         <div class="rounded-circle mb-2 bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
                             <span class="text-white" style="font-size: 24px;">
                             <?php 
-$username = $staff['Staff_username'] ?? $_SESSION['staff_name'];
-echo strtoupper(substr($username, 0, 1)); 
-?>
+                            $username = $staff['Staff_username'] ?? $_SESSION['staff_name'];
+                            echo strtoupper(substr($username, 0, 1)); 
+                            ?>
                             </span>
                         </div>
                     <?php endif; ?>
@@ -639,7 +661,7 @@ echo strtoupper(substr($username, 0, 1));
                     
                     <h6 class="mt-4 mb-3"><strong>Order Items:</strong></h6>
                     <ul class="product-list" id="orderItemsList">
-                        <!-- Items will be populated by JavaScript -->
+                        <!-- Order items will be populated here via JavaScript -->
                     </ul>
                 </div>
             </div>
@@ -760,21 +782,54 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('detailsPayment').textContent = orderDetails.PaymentMethod;
             document.getElementById('detailsTotal').textContent = parseFloat(orderDetails.Total).toFixed(2);
             
-            // Populate order items - simplified to show just product name and quantity
+            // Populate order items
             const itemsList = document.getElementById('orderItemsList');
             itemsList.innerHTML = '';
             
-            if (orderDetails.full_items && Array.isArray(orderDetails.full_items)) {
-                orderDetails.full_items.forEach(item => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `<strong>${item.name}</strong> (Qty: ${item.quantity}) - $${parseFloat(item.price).toFixed(2)}`;
-                    itemsList.appendChild(li);
-                });
-            } else {
-                const li = document.createElement('li');
-                li.textContent = "Product details not available";
-                itemsList.appendChild(li);
-            }
+// In the order details modal handler, modify the JavaScript to:
+if (orderDetails.full_items && Array.isArray(orderDetails.full_items)) {
+    let calculatedTotal = 0;
+    
+    orderDetails.full_items.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        calculatedTotal += itemTotal;
+        
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <strong>${item.name}</strong> (Qty: ${item.quantity}) - 
+            RM${parseFloat(item.price).toFixed(2)} × ${item.quantity} = 
+            <span class="product-price">RM${parseFloat(itemTotal).toFixed(2)}</span>
+            ${item.product_id ? '' : '<span class="badge bg-secondary ms-2">Product Deleted</span>'}
+        `;
+        itemsList.appendChild(li);
+    });
+    
+    // Add shipping fee row
+    const shippingLi = document.createElement('li');
+    shippingLi.innerHTML = `<strong>Shipping Fee</strong> - RM4.90`;
+    itemsList.appendChild(shippingLi);
+    
+    // Calculate subtotal (items only)
+    const subtotalLi = document.createElement('li');
+    subtotalLi.style.fontWeight = 'bold';
+    subtotalLi.style.borderTop = '1px solid #eee';
+    subtotalLi.style.paddingTop = '5px';
+    subtotalLi.style.marginTop = '5px';
+    itemsList.appendChild(subtotalLi);
+    
+    // Add total row (subtotal + shipping)
+    const totalLi = document.createElement('li');
+    totalLi.style.fontWeight = 'bold';
+    totalLi.style.borderTop = '2px solid #333';
+    totalLi.style.paddingTop = '10px';
+    totalLi.style.marginTop = '10px';
+    const totalAmount = parseFloat(calculatedTotal) + 4.90;
+    totalLi.innerHTML = `Total: RM${totalAmount.toFixed(2)}`;
+    itemsList.appendChild(totalLi);
+    
+    // Update the displayed total to match the calculated total
+    document.getElementById('detailsTotal').textContent = totalAmount.toFixed(2);
+}
         });
     }
 
@@ -787,7 +842,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const currentStatus = button.getAttribute('data-current-status');
             
             document.getElementById('updateOrderId').value = orderId;
-            document.getElementById('statusSelect').value = currentStatus;
+            
+            // Set the current status as selected in the dropdown
+            const statusSelect = document.getElementById('statusSelect');
+            for (let i = 0; i < statusSelect.options.length; i++) {
+                if (statusSelect.options[i].value === currentStatus) {
+                    statusSelect.options[i].selected = true;
+                    break;
+                }
+            }
         });
     }
 
@@ -815,18 +878,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Delete Order Modal Handler
-    const deleteOrderModal = document.getElementById('deleteOrderModal');
-    if (deleteOrderModal) {
-        deleteOrderModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            const orderId = button.getAttribute('data-order-id');
-            document.getElementById('deleteOrderId').value = orderId;
-            document.getElementById('displayOrderId').textContent = '#' + orderId;
-            document.getElementById('deleteCustomer').textContent = button.getAttribute('data-customer');
-        });
-    }
-
     // Apply filter values from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('status')) {
@@ -837,6 +888,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (urlParams.has('date_to')) {
         document.getElementById('dateTo').value = urlParams.get('date_to');
+    }
+
+    // Sidebar toggle functionality
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        });
     }
 });
 </script>

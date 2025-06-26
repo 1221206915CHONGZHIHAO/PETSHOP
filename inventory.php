@@ -70,18 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             $stmt->execute();
         }
-        // Delete product
+        // Delete product - MODIFIED FOR SOFT DELETE
         elseif ($_POST['action'] === 'delete') {
-            // Delete associated image first
-            $result = $conn->query("SELECT image_url FROM products WHERE product_id = " . $_POST['product_id']);
-            $imagePath = $result->fetch_assoc()['image_url'];
-            if ($imagePath && file_exists($imagePath)) {
-                unlink($imagePath);
-            }
-
-            $stmt = $conn->prepare("DELETE FROM products WHERE product_id = ?");
+            // Instead of deleting, we set stock_quantity to -1 to mark as deleted
+            $stmt = $conn->prepare("UPDATE products SET stock_quantity = -1 WHERE product_id = ?");
             $stmt->bind_param("i", $_POST['product_id']);
             $stmt->execute();
+            
+            // We keep the image file for historical reference
         }
         
         // Redirect to prevent form resubmission
@@ -90,8 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch all products
-$products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fetch_all(MYSQLI_ASSOC);
+// Fetch all active products (stock_quantity >= 0) - MODIFIED TO EXCLUDE SOFT DELETED ITEMS
+$products = $conn->query("SELECT * FROM products WHERE stock_quantity >= 0 ORDER BY updated_at DESC")->fetch_all(MYSQLI_ASSOC);
 
 $shopSettings = [];
 $settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
@@ -141,6 +137,11 @@ if ($result->num_rows > 0) {
             width: 70px;
             background-color: var(--primary);
             margin-top: 0.5rem;
+        }
+        /* New style for delete confirmation message */
+        .delete-confirm-text {
+            color: #d33;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -496,18 +497,18 @@ if ($result->num_rows > 0) {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // SweetAlert for delete confirmation
+    // SweetAlert for delete confirmation - MODIFIED FOR SOFT DELETE
     document.querySelectorAll('.delete-form').forEach(form => {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             Swal.fire({
                 title: 'Are you sure?',
-                text: "You won't be able to revert this!",
+                html: '<div class="delete-confirm-text">This will hide the product from the store but keep it in the database for order history.</div>',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete it!'
+                confirmButtonText: 'Yes, archive it!'
             }).then((result) => {
                 if (result.isConfirmed) {
                     form.submit();

@@ -77,20 +77,25 @@ if (isset($_GET['export'])) {
     $dateFilter = isset($_GET['week_filter']) ? "WHERE orders.order_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK) AND orders.status != 'Disabled'" : "WHERE orders.status != 'Disabled'";
     
     $result = $db->query("SELECT 
-        orders.Order_ID as order_id, 
-        c.customer_name, 
-        orders.Total, 
-        orders.order_date, 
-        orders.status,
-        GROUP_CONCAT(CONCAT(p.product_name, ' (', oi.quantity, ')')) as products
-        FROM orders
-        JOIN customer c ON orders.Customer_ID = c.customer_id
-        JOIN order_items oi ON orders.Order_ID = oi.order_id
-        JOIN products p ON oi.product_id = p.product_id
-        $dateFilter
-        GROUP BY orders.Order_ID
-        ORDER BY orders.order_date DESC
-        LIMIT 5");
+    orders.Order_ID as order_id, 
+    c.customer_name, 
+    orders.Total, 
+    orders.order_date, 
+    orders.status,
+    IFNULL(GROUP_CONCAT(
+        CASE 
+            WHEN p.product_name IS NULL THEN CONCAT('Deleted Product (', oi.quantity, ')')
+            ELSE CONCAT(p.product_name, ' (', oi.quantity, ')')
+        END
+    ), 'No products') as products
+    FROM orders
+    JOIN customer c ON orders.Customer_ID = c.customer_id
+    LEFT JOIN order_items oi ON orders.Order_ID = oi.order_id
+    LEFT JOIN products p ON oi.product_id = p.product_id
+    $dateFilter
+    GROUP BY orders.Order_ID
+    ORDER BY orders.order_date DESC
+    LIMIT 5");
     
     while ($row = $result->fetch_assoc()) {
         fputcsv($output, array(
@@ -201,27 +206,30 @@ if ($result->num_rows > 0) {
     $shopSettings = $result->fetch_assoc();
 }
 // Fetch recent orders (last 5)
-$recentOrdersQuery = $db->query("SELECT 
+$recentOrders = [];
+$recentQuery = $db->query("SELECT 
     orders.Order_ID as order_id, 
     c.customer_name, 
     orders.Total, 
     orders.order_date, 
     orders.status,
-    GROUP_CONCAT(CONCAT(p.product_name, ' (', oi.quantity, ')')) as products
+    IFNULL(GROUP_CONCAT(
+        CASE 
+            WHEN p.product_name IS NULL THEN CONCAT('Deleted Product (', oi.quantity, ')')
+            ELSE CONCAT(p.product_name, ' (', oi.quantity, ')')
+        END
+    ), 'No products') as products
     FROM orders
     JOIN customer c ON orders.Customer_ID = c.customer_id
-    JOIN order_items oi ON orders.Order_ID = oi.order_id
-    JOIN products p ON oi.product_id = p.product_id
+    LEFT JOIN order_items oi ON orders.Order_ID = oi.order_id
+    LEFT JOIN products p ON oi.product_id = p.product_id
     $dateFilter
     GROUP BY orders.Order_ID
     ORDER BY orders.order_date DESC
     LIMIT 5");
 
-$recentOrders = [];
-if ($recentOrdersQuery && $recentOrdersQuery->num_rows > 0) {
-    while ($row = $recentOrdersQuery->fetch_assoc()) {
-        $recentOrders[] = $row;
-    }
+if ($recentQuery) {
+    $recentOrders = $recentQuery->fetch_all(MYSQLI_ASSOC);
 }
 $db->close();
 ?>
@@ -565,7 +573,7 @@ $db->close();
                                 <tr>
                                     <td>#<?php echo $order['order_id']; ?></td>
                                     <td><?php echo htmlspecialchars($order['customer_name']); ?></td>
-                                    <td><?php echo htmlspecialchars($order['products']); ?></td>
+                                    <td><?php echo !empty($order['products']) ? htmlspecialchars($order['products']) : 'No products'; ?></td>
                                     <td>RM<?php echo number_format($order['Total'], 2); ?></td>
                                     <td><?php echo date('Y-m-d', strtotime($order['order_date'])); ?></td>
                                     <td>

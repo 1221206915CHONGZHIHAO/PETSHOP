@@ -34,23 +34,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $imagePath = null;
             if (!empty($_FILES['product_image']['name'])) {
                 $targetDir = "uploads/";
-                if (!file_exists($targetDir)) {
-                    mkdir($targetDir, 0777, true);
-                }
                 $imagePath = $targetDir . basename($_FILES['product_image']['name']);
-                if (move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath)) {
-                    // File uploaded successfully
-                } else {
-                    die("Failed to upload image");
-                }
+                move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath);
             }
 
-            $stmt = $conn->prepare("INSERT INTO products (product_name, description, price, image_url, stock_quantity, Category) 
+            $stmt = $conn->prepare("INSERT INTO products (product_name, description, price, image_url, stock_quantity, category) 
                                   VALUES (?, ?, ?, ?, ?, ?)");
-            if (!$stmt) {
-                die("Prepare failed: " . $conn->error);
-            }
-            
             $stmt->bind_param("ssdsis", 
                 $_POST['product_name'],
                 $_POST['description'],
@@ -59,28 +48,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_POST['stock_quantity'],
                 $_POST['category']
             );
-            
-            if (!$stmt->execute()) {
-                die("Execute failed: " . $stmt->error);
-            }
+            $stmt->execute();
         }
         // Update product
         elseif ($_POST['action'] === 'update') {
             // Get current image first
-            $result = $conn->query("SELECT image_url FROM products WHERE product_id = " . (int)$_POST['product_id']);
+            $result = $conn->query("SELECT image_url FROM products WHERE product_id = " . $_POST['product_id']);
             $currentImage = $result->fetch_assoc()['image_url'];
             
             $imagePath = $currentImage;
             if (!empty($_FILES['product_image']['name'])) {
                 $targetDir = "uploads/";
                 $imagePath = $targetDir . basename($_FILES['product_image']['name']);
-                if (move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath)) {
-                    // Delete old image if it exists
-                    if ($currentImage && file_exists($currentImage)) {
-                        unlink($currentImage);
-                    }
-                } else {
-                    die("Failed to upload image");
+                move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath);
+                
+                // Delete old image if it exists
+                if ($currentImage && file_exists($currentImage)) {
+                    unlink($currentImage);
                 }
             }
 
@@ -90,12 +74,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                   price = ?,
                                   image_url = ?,
                                   stock_quantity = ?,
-                                  Category = ?
+                                  category = ?
                                   WHERE product_id = ?");
-            if (!$stmt) {
-                die("Prepare failed: " . $conn->error);
-            }
-            
             $stmt->bind_param("ssdsisi",
                 $_POST['product_name'],
                 $_POST['description'],
@@ -105,23 +85,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_POST['category'],
                 $_POST['product_id']
             );
-            
-            if (!$stmt->execute()) {
-                die("Execute failed: " . $stmt->error);
-            }
+            $stmt->execute();
         }
-        // Delete product
+        // Delete product - MODIFIED FOR SOFT DELETE
         elseif ($_POST['action'] === 'delete') {
-            // Delete associated image first
-            $result = $conn->query("SELECT image_url FROM products WHERE product_id = " . (int)$_POST['product_id']);
-            $imagePath = $result->fetch_assoc()['image_url'];
-            if ($imagePath && file_exists($imagePath)) {
-                unlink($imagePath);
-            }
-
-            $stmt = $conn->prepare("DELETE FROM products WHERE product_id = ?");
+            // Instead of deleting, we set stock_quantity to -1 to mark as deleted
+            $stmt = $conn->prepare("UPDATE products SET stock_quantity = -1 WHERE product_id = ?");
             $stmt->bind_param("i", $_POST['product_id']);
             $stmt->execute();
+            
+            // We keep the image file for historical reference
         }
         
         // Redirect to prevent form resubmission
@@ -130,8 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch all products
-$products = $conn->query("SELECT * FROM products ORDER BY updated_at DESC")->fetch_all(MYSQLI_ASSOC);
+// Fetch all active products (stock_quantity >= 0) - MODIFIED TO EXCLUDE SOFT DELETED ITEMS
+$products = $conn->query("SELECT * FROM products WHERE stock_quantity >= 0 ORDER BY updated_at DESC")->fetch_all(MYSQLI_ASSOC);
 
 // Fetch categories for dropdown
 $categories = $conn->query("SELECT * FROM pet_categories ORDER BY category_name")->fetch_all(MYSQLI_ASSOC);
@@ -146,7 +119,7 @@ $conn->close();
     <title>Inventory - PetShop Staff</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
     <style>
         #sidebar {
@@ -200,26 +173,31 @@ $conn->close();
             align-items: center;
             justify-content: center;
         }
-            h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
+        }
+        /* New style for delete confirmation message */
+        .delete-confirm-text {
+            color: #d33;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -238,7 +216,7 @@ $conn->close();
             <i class="fas fa-user-circle me-1"></i>
             Welcome, <?php echo htmlspecialchars($staff['Staff_username'] ?? $_SESSION['staff_name']); ?>
         </span>
-        <a href="logout.php?type=staff"class="btn btn-danger"><i class="fas fa-sign-out-alt"></i>Logout</a>
+        <a href="logout.php?type=staff" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i>Logout</a>
     </div>
 </nav>
 
@@ -268,35 +246,35 @@ $conn->close();
                     <small class="text-muted text-center"><?php echo htmlspecialchars($_SESSION['position']); ?></small>
                 </div>
 
-        <!-- Sidebar Menu -->
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link text-light" href="staff_homepage.php">
-                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                </a>
-            </li>
+                <!-- Sidebar Menu -->
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="staff_homepage.php">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                    </li>
 
-            <li class="nav-item">
-                <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
-                    <i class="fas fa-user-friends me-2"></i>Customer Management
-                </a>
-                <div class="collapse" id="customerMenu">
-                    <ul class="nav flex-column ps-4">
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="staff_customer_list.php">
-                                <i class="fas fa-list me-2"></i>Customer List
-                            </a>
-                        </li>
-                        <li class="nav-item">
+                    <li class="nav-item">
+                        <a class="nav-link text-light" data-bs-toggle="collapse" href="#customerMenu">
+                            <i class="fas fa-user-friends me-2"></i>Customer Management
+                        </a>
+                        <div class="collapse" id="customerMenu">
+                            <ul class="nav flex-column ps-4">
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" href="staff_customer_list.php">
+                                        <i class="fas fa-list me-2"></i>Customer List
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a class="nav-link text-light" href="staff_customer_logs.php">
                                         <i class="fas fa-history me-2"></i>Login/Logout Logs
                                     </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
 
-            <li class="nav-item">
+                    <li class="nav-item">
                         <a class="nav-link text-light" data-bs-toggle="collapse" href="#orderMenu">
                             <i class="fas fa-shopping-cart me-2"></i>Order Management
                         </a>
@@ -316,28 +294,26 @@ $conn->close();
                         </div>
                     </li>
 
-            <li class="nav-item">
+                    <li class="nav-item">
                         <a class="nav-link text-light" href="staff_reports.php">
                             <i class="fas fa-chart-line me-2"></i>Reports
                         </a>
                     </li>
 
-            <li class="nav-item">
-                <a class="nav-link text-light active" href="staff_inventory.php">
-                    <i class="fas fa-boxes me-2"></i>Inventory
-                </a>
-            </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-light active" href="staff_inventory.php">
+                            <i class="fas fa-boxes me-2"></i>Inventory
+                        </a>
+                    </li>
 
-            <li class="nav-item mt-3">
-                <a class="nav-link text-light" href="settings.php">
-                    <i class="fas fa-cog me-2"></i>Settings
-                </a>
-            </li>
-        </ul>
-    </div>
-</nav>
-
-
+                    <li class="nav-item mt-3">
+                        <a class="nav-link text-light" href="settings.php">
+                            <i class="fas fa-cog me-2"></i>Settings
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
 
         <!-- Main Content -->
         <main class="col-lg-10 ms-sm-auto p-4">
@@ -416,86 +392,87 @@ $conn->close();
 
             <!-- Inventory Table -->
             <div class="card mb-4">
-        <div class="card-header">
-            <i class="fas fa-warehouse me-2"></i>Current Products
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Image</th>
-                            <th>Product Name</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Stock</th>
-                            <th>Status</th>
-                            <th>Last Updated</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($products as $product): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($product['product_id']) ?></td>
-                            <td>
-                                <?php if ($product['image_url']): ?>
-                                <img src="<?= htmlspecialchars($product['image_url']) ?>" class="product-img rounded" alt="Product Image">
-                                <?php else: ?>
-                                <span class="text-muted">No image</span>
-                                <?php endif; ?>
-                            </td>
-                            <td><?= htmlspecialchars($product['product_name']) ?></td>
-                            <td>
-                                <?php 
-                                $category = htmlspecialchars($product['Category']);
-                                if (strpos($category, '>') !== false) {
-                                    $parts = explode('>', $category);
-                                    echo trim($parts[1]);
-                                } else {
-                                    echo $category;
-                                }
-                                ?>
-                            </td>
-                            <td>RM<?= number_format($product['price'], 2) ?></td>
-                            <td class="<?= $product['stock_quantity'] < 5 ? 'low-stock' : '' ?>">
-                                <?= htmlspecialchars($product['stock_quantity']) ?>
-                            </td>
-                            <td>
-                                <?php if ($product['stock_quantity'] > 10): ?>
-                                    <span class="badge bg-success">In Stock</span>
-                                <?php elseif ($product['stock_quantity'] > 0): ?>
-                                    <span class="badge bg-warning text-dark">Low Stock</span>
-                                <?php else: ?>
-                                    <span class="badge bg-danger">Out of Stock</span>
-                                <?php endif; ?>
-                            </td>
-                            <td><?= date('Y-m-d H:i', strtotime($product['updated_at'])) ?></td>
-                            <td>
-                                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" 
-                                    data-bs-target="#editModal" 
-                                    data-id="<?= $product['product_id'] ?>"
-                                    onclick="loadEditForm(this)">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <form method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
-                                    <button type="submit" class="btn btn-sm btn-danger" 
-                                        onclick="return confirm('Are you sure you want to delete this product?')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <div class="card-header">
+                    <i class="fas fa-warehouse me-2"></i>Current Products
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Image</th>
+                                    <th>Product Name</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                    <th>Status</th>
+                                    <th>Last Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($products as $product): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($product['product_id']) ?></td>
+                                    <td>
+                                        <?php if ($product['image_url']): ?>
+                                        <img src="<?= htmlspecialchars($product['image_url']) ?>" class="product-img rounded" alt="Product Image">
+                                        <?php else: ?>
+                                        <span class="text-muted">No image</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= htmlspecialchars($product['product_name']) ?></td>
+                                    <td>
+                                        <?php 
+                                        $category = htmlspecialchars($product['Category']);
+                                        if (strpos($category, '>') !== false) {
+                                            $parts = explode('>', $category);
+                                            echo trim($parts[1]);
+                                        } else {
+                                            echo $category;
+                                        }
+                                        ?>
+                                    </td>
+                                    <td>RM<?= number_format($product['price'], 2) ?></td>
+                                    <td class="<?= $product['stock_quantity'] < 5 ? 'low-stock' : '' ?>">
+                                        <?= htmlspecialchars($product['stock_quantity']) ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($product['stock_quantity'] > 10): ?>
+                                            <span class="badge bg-success">In Stock</span>
+                                        <?php elseif ($product['stock_quantity'] > 0): ?>
+                                            <span class="badge bg-warning text-dark">Low Stock</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger">Out of Stock</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= date('Y-m-d H:i', strtotime($product['updated_at'])) ?></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" 
+                                            data-bs-target="#editModal" 
+                                            data-id="<?= $product['product_id'] ?>"
+                                            onclick="loadEditForm(this)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form method="POST" style="display:inline;" class="delete-form">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
+        </main>
     </div>
-</main>
+</div>
 
 <!-- Add Product Modal -->
 <div class="modal fade" id="addItemModal" tabindex="-1">
@@ -517,8 +494,11 @@ $conn->close();
                             <label class="form-label">Category*</label>
                             <select name="category" class="form-select" required>
                                 <option value="">Select Category</option>
-                                <option value="Dogs">Dogs</option>
-                                <option value="Cats">Cats</option>
+                                <?php foreach ($categories as $category): ?>
+                                    <option value="<?= htmlspecialchars($category['category_name']) ?>">
+                                        <?= htmlspecialchars($category['category_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
@@ -578,11 +558,12 @@ $conn->close();
         </div>
     </div>
 </div>
+
 <!-- Footer Section -->
 <footer>
     <div class="container-fluid">
         <div class="row">
-            <div class="col-md-10 offset-md-2"> <!-- This matches the main content area -->
+            <div class="col-md-10 offset-md-2">
                 <div class="row">
                     <!-- Footer About -->
                     <div class="col-md-5 mb-4 mb-lg-0">
@@ -642,12 +623,34 @@ $conn->close();
         </div>
     </div>
 </footer>
+
 <!-- JavaScript -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 // Sidebar toggle
 document.getElementById('sidebarToggle').addEventListener('click', function() {
     document.getElementById('sidebar').classList.toggle('collapsed');
+});
+
+// SweetAlert for delete confirmation - MODIFIED FOR SOFT DELETE
+document.querySelectorAll('.delete-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Are you sure?',
+            html: '<div class="delete-confirm-text">This will hide the product from the store but keep it in the database for order history.</div>',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, archive it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    });
 });
 
 // Load edit form via AJAX

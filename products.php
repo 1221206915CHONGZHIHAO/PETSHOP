@@ -39,7 +39,7 @@ function getCartCount() {
 function getProducts($sort = 'newest', $category = '', $search = '') {
     global $conn;
     
-    $sql = "SELECT * FROM products WHERE 1=1";
+    $sql = "SELECT * FROM products WHERE stock_quantity >= 0"; // Only show products with non-negative stock
     
     // Add search filter if provided
     if (!empty($search)) {
@@ -80,7 +80,6 @@ function getProducts($sort = 'newest', $category = '', $search = '') {
     
     return $products;
 }
-
 // Get categories for sidebar from the 'pet_categories' table
 function getCategories() {
     global $conn;

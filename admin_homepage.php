@@ -204,17 +204,22 @@ $recentQuery = $conn->query("SELECT
     orders.Total, 
     orders.order_date, 
     orders.status,
-    GROUP_CONCAT(CONCAT(p.product_name, ' (', oi.quantity, ')')) as products
+    IFNULL(GROUP_CONCAT(
+        CASE 
+            WHEN p.product_name IS NULL THEN CONCAT('Deleted Product (', oi.quantity, ')')
+            ELSE CONCAT(p.product_name, ' (', oi.quantity, ')')
+        END
+    ), 'No products') as products
     FROM orders
     JOIN customer c ON orders.Customer_ID = c.customer_id
-    JOIN order_items oi ON orders.Order_ID = oi.order_id
-    JOIN products p ON oi.product_id = p.product_id
+    LEFT JOIN order_items oi ON orders.Order_ID = oi.order_id
+    LEFT JOIN products p ON oi.product_id = p.product_id
     $dateFilter
     GROUP BY orders.Order_ID
     ORDER BY orders.order_date DESC
     LIMIT 5");
 
-if ($recentQuery && $recentQuery->num_rows > 0) {
+if ($recentQuery) {
     $recentOrders = $recentQuery->fetch_all(MYSQLI_ASSOC);
 }
 

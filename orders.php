@@ -19,6 +19,9 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
+// Shipping fee constant
+define('SHIPPING_FEE', 4.90);
+
 // Handle status update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     $order_id = intval($_POST['order_id']);
@@ -60,16 +63,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_order_status']
     exit;
 }
 
+// Handle order deletion
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_order'])) {
+    $order_id = intval($_POST['order_id']);
+    
+    // Start transaction
+    $conn->begin_transaction();
+    
+    try {
+        // First delete order items
+        $stmt = $conn->prepare("DELETE FROM Order_Items WHERE Order_ID = ?");
+        $stmt->bind_param("i", $order_id);
+        $stmt->execute();
+        
+        // Then delete the order
+        $stmt = $conn->prepare("DELETE FROM orders WHERE Order_ID = ?");
+        $stmt->bind_param("i", $order_id);
+        $stmt->execute();
+        
+        $conn->commit();
+        $_SESSION['success_message'] = "Order #$order_id has been deleted successfully";
+    } catch (Exception $e) {
+        $conn->rollback();
+        $_SESSION['error_message'] = "Error deleting order: " . $e->getMessage();
+    }
+    
+    header("Location: orders.php");
+    exit;
+}
+
 // Check if we should show disabled orders
 $show_disabled = isset($_GET['show_disabled']) && $_GET['show_disabled'] == '1';
 
-// Fetch orders with customer information
-$status_condition = $show_disabled ? "o.Status = 'Disabled'" : "o.Status != 'Disabled'";
+// Build the SQL query
 $sql = "SELECT o.Order_ID, c.Customer_name, o.Total, o.Address, o.PaymentMethod, o.Order_Date, o.Status 
         FROM `orders` o
         JOIN Customer c ON o.Customer_ID = c.Customer_id
-        WHERE $status_condition
+        WHERE o.Status " . ($show_disabled ? "= 'Disabled'" : "!= 'Disabled'") . "
         ORDER BY o.Order_Date DESC";
+
 $result = $conn->query($sql);
 
 // Fetch order items (products) for each order
@@ -77,20 +109,45 @@ $order_items = [];
 if ($result->num_rows > 0) {
     while($order = $result->fetch_assoc()) {
         $order_id = $order['Order_ID'];
-        $item_sql = "SELECT p.Product_name, oi.Quantity 
+        // Modified query to handle deleted products
+        $item_sql = "SELECT 
+                        COALESCE(p.Product_name, 'Deleted Product') AS Product_name, 
+                        oi.Quantity, 
+                        oi.unit_price,
+                        oi.Product_ID
                      FROM Order_Items oi
-                     JOIN Products p ON oi.Product_ID = p.Product_id
+                     LEFT JOIN Products p ON oi.Product_ID = p.Product_id
                      WHERE oi.Order_ID = $order_id";
         $item_result = $conn->query($item_sql);
         $items = [];
+        $full_items = [];
+        $calculated_total = 0;
+        
         while($item = $item_result->fetch_assoc()) {
-            $items[] = $item['Product_name'] . " (" . $item['Quantity'] . ")";
+            $product_name = $item['Product_name'];
+            $items[] = $product_name . " (" . $item['Quantity'] . ")";
+            $item_total = $item['unit_price'] * $item['Quantity'];
+            $calculated_total += $item_total;
+            
+            $full_items[] = [
+                'name' => $product_name,
+                'quantity' => $item['Quantity'],
+                'price' => $item['unit_price'],
+                'item_total' => $item_total,
+                'product_id' => $item['Product_ID']
+            ];
         }
+        
+        // Add shipping fee after the loop
+        $calculated_total += SHIPPING_FEE;
+        
+        // Ensure the order total matches the sum of item totals
+        $order['Total'] = $calculated_total;
         $order['products'] = implode(", ", $items);
+        $order['full_items'] = $full_items;
         $order_items[] = $order;
     }
 }
-
 
 $shopSettings = [];
 $settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
@@ -112,11 +169,15 @@ $conn->close();
     <title><?php echo $show_disabled ? 'Disabled Orders' : 'Order Management'; ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin_home.css">
     <style>
         .action-modal .modal-header {
             background-color: #4e73df;
+            color: white;
+        }
+        .delete-modal .modal-header {
+            background-color: #dc3545;
             color: white;
         }
         .disable-modal .modal-header {
@@ -129,43 +190,37 @@ $conn->close();
             background-color: #ffc107;
             color: #000;
         }
-        .order-details {
-            padding: 15px;
-        }
-        .order-details p {
-            margin-bottom: 10px;
-        }
-        .order-details strong {
-            display: inline-block;
-            width: 120px;
-        }
         .badge {
             font-size: 0.85em;
             padding: 0.35em 0.65em;
         }
+        .table-responsive {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
         .nav-tabs .nav-link.active {
             font-weight: bold;
         }
-                                            h1, h2, h3, h4, h5, h6 {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
-    }
-    .section-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        color: var(--dark);
-        position: relative;
-        display: inline-block;
-    }
-    .section-title:after {
-        content: '';
-        display: block;
-        height: 4px;
-        width: 70px;
-        background-color: var(--primary);
-        margin-top: 0.5rem;
-    }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            display: inline-block;
+        }
+        .section-title:after {
+            content: '';
+            display: block;
+            height: 4px;
+            width: 70px;
+            background-color: var(--primary);
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -292,6 +347,13 @@ $conn->close();
 
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2"><i class="fas fa-shopping-cart me-2"></i><?php echo $show_disabled ? 'Disabled Orders' : 'Order Management'; ?></h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
+                            <i class="fas fa-sync-alt me-1"></i> Refresh
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div class="card">
@@ -318,9 +380,18 @@ $conn->close();
                                         <tr>
                                             <td>#<?php echo htmlspecialchars($order['Order_ID']); ?></td>
                                             <td><?php echo htmlspecialchars($order['Customer_name']); ?></td>
-                                            <td><?php echo htmlspecialchars($order['products']); ?></td>
+                                            <td>
+                                                <?php 
+                                                $products = explode(", ", $order['products']);
+                                                if (count($products) > 2) {
+                                                    echo htmlspecialchars($products[0] . ', ' . $products[1] . '...');
+                                                } else {
+                                                    echo htmlspecialchars($order['products']);
+                                                }
+                                                ?>
+                                            </td>
                                             <td>RM<?php echo number_format($order['Total'], 2); ?></td>
-                                            <td><?php echo htmlspecialchars($order['Order_Date']); ?></td>
+                                            <td><?php echo date('M j, Y', strtotime($order['Order_Date'])); ?></td>
                                             <td>
                                                 <span class="badge bg-<?php 
                                                     echo $order['Status'] === 'Completed' ? 'success' : 
@@ -361,7 +432,7 @@ $conn->close();
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="7" class="text-center">No <?php echo $show_disabled ? 'disabled' : 'active'; ?> orders found</td>
+                                        <td colspan="7" class="text-center py-4">No <?php echo $show_disabled ? 'disabled' : 'active'; ?> orders found</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
@@ -392,6 +463,7 @@ $conn->close();
                             <option value="Processing">Processing</option>
                             <option value="Shipped">Shipped</option>
                             <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
                         </select>
                     </div>
                 </div>
@@ -457,6 +529,7 @@ $conn->close();
         </div>
     </div>
 </div>
+
 <!-- Footer Section -->
 <footer>
     <div class="container-fluid">
@@ -527,36 +600,56 @@ $conn->close();
 document.addEventListener('DOMContentLoaded', function() {
     // Update Status Modal Handler
     const updateStatusModal = document.getElementById('updateStatusModal');
-    updateStatusModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const orderId = button.getAttribute('data-order-id');
-        const currentStatus = button.getAttribute('data-current-status');
-        
-        document.getElementById('updateOrderId').value = orderId;
-        
-        const statusSelect = document.getElementById('statusSelect');
-        statusSelect.value = currentStatus;
-    });
+    if (updateStatusModal) {
+        updateStatusModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const orderId = button.getAttribute('data-order-id');
+            const currentStatus = button.getAttribute('data-current-status');
+            
+            document.getElementById('updateOrderId').value = orderId;
+            
+            // Set the current status as selected in the dropdown
+            const statusSelect = document.getElementById('statusSelect');
+            for (let i = 0; i < statusSelect.options.length; i++) {
+                if (statusSelect.options[i].value === currentStatus) {
+                    statusSelect.options[i].selected = true;
+                    break;
+                }
+            }
+        });
+    }
 
     // Disable Order Modal Handler
     const disableOrderModal = document.getElementById('disableOrderModal');
-    disableOrderModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const orderId = button.getAttribute('data-order-id');
-        document.getElementById('disableOrderId').value = orderId;
-        document.getElementById('displayDisableOrderId').textContent = orderId;
-        document.getElementById('disableCustomer').textContent = button.getAttribute('data-customer');
-    });
+    if (disableOrderModal) {
+        disableOrderModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const orderId = button.getAttribute('data-order-id');
+            document.getElementById('disableOrderId').value = orderId;
+            document.getElementById('displayDisableOrderId').textContent = '#' + orderId;
+            document.getElementById('disableCustomer').textContent = button.getAttribute('data-customer');
+        });
+    }
 
     // Enable Order Modal Handler
     const enableOrderModal = document.getElementById('enableOrderModal');
-    enableOrderModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const orderId = button.getAttribute('data-order-id');
-        document.getElementById('enableOrderId').value = orderId;
-        document.getElementById('displayEnableOrderId').textContent = orderId;
-        document.getElementById('enableCustomer').textContent = button.getAttribute('data-customer');
-    });
+    if (enableOrderModal) {
+        enableOrderModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const orderId = button.getAttribute('data-order-id');
+            document.getElementById('enableOrderId').value = orderId;
+            document.getElementById('displayEnableOrderId').textContent = '#' + orderId;
+            document.getElementById('enableCustomer').textContent = button.getAttribute('data-customer');
+        });
+    }
+
+    // Sidebar toggle functionality
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        });
+    }
 });
 </script>
 </body>
