@@ -196,7 +196,27 @@ $result = $settingsQuery->get_result();
 if ($result->num_rows > 0) {
     $shopSettings = $result->fetch_assoc();
 }
+// Fetch recent orders (last 5)
+$recentOrders = [];
+$recentQuery = $conn->query("SELECT 
+    orders.Order_ID as order_id, 
+    c.customer_name, 
+    orders.Total, 
+    orders.order_date, 
+    orders.status,
+    GROUP_CONCAT(CONCAT(p.product_name, ' (', oi.quantity, ')')) as products
+    FROM orders
+    JOIN customer c ON orders.Customer_ID = c.customer_id
+    JOIN order_items oi ON orders.Order_ID = oi.order_id
+    JOIN products p ON oi.product_id = p.product_id
+    $dateFilter
+    GROUP BY orders.Order_ID
+    ORDER BY orders.order_date DESC
+    LIMIT 5");
 
+if ($recentQuery && $recentQuery->num_rows > 0) {
+    $recentOrders = $recentQuery->fetch_all(MYSQLI_ASSOC);
+}
 
 $conn->close();
 ?>

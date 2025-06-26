@@ -160,7 +160,7 @@ $result = $conn->query($sql);
                         <div class="collapse" id="orderMenu">
                             <ul class="nav flex-column ps-4">
                                 <li class="nav-item">
-                                    <a class="nav-link text-light" href="staff_orders.php">
+                                    <a class="nav-link text-light" href="orders.php">
                                         <i class="fas fa-list me-2"></i>Current Orders
                                     </a>
                                 </li>
