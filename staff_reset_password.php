@@ -486,64 +486,77 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
     
-    // Calculate password strength
-    function calculatePasswordStrength(password) {
-        let score = 0;
-        let percentage = 0;
-        let color = '#ddd';
+// Calculate password strength
+function calculatePasswordStrength(password) {
+    let score = 0;
+    let percentage = 0;
+    let color = '#ddd';
+    
+    if (password.length > 0) {
+        // Start with 1 point for any entry
+        score = 1;
         
-        if (password.length > 0) {
-            // Start with 1 point for any entry
-            score = 1;
-            
-            // Add points for length
-            if (password.length >= 8) score++;
-            if (password.length >= 12) score++;
-            
-            // Add points for complexity
-            if (/[A-Z]/.test(password)) score++;
-            if (/[a-z]/.test(password)) score++;
-            if (/[0-9]/.test(password)) score++;
-            if (/[^A-Za-z0-9]/.test(password)) score++;
-            
-            // Calculate percentage (max score is 7)
-            percentage = Math.min(100, Math.round((score / 7) * 100));
-            
-            // Determine color based on score
-            if (score < 3) {
-                color = '#ff3333'; // Red (weak)
-            } else if (score < 5) {
-                color = '#ffa500'; // Orange (moderate)
-            } else if (score < 6) {
-                color = '#4e9f3d'; // Green (strong)
-            } else {
-                color = '#38761d'; // Dark green (very strong)
-            }
+        // Add points for length
+        if (password.length >= 8) score++;
+        if (password.length >= 12) score++;
+        
+        // Add points for complexity
+        if (/[A-Z]/.test(password)) score++;
+        if (/[a-z]/.test(password)) score++;
+        if (/[0-9]/.test(password)) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+        
+        // Calculate percentage (max score is 7)
+        percentage = Math.min(100, Math.round((score / 7) * 100));
+        
+        // If all requirements are met, set to 100%
+        if (checkPasswordLength(password) && 
+            checkPasswordUppercase(password) && 
+            checkPasswordNumber(password) && 
+            checkPasswordSymbol(password)) {
+            percentage = 100;
         }
         
-        return { score, percentage, color };
+        // Determine color based on score
+        if (score < 3) {
+            color = '#ff3333'; // Red (weak)
+        } else if (score < 5) {
+            color = '#ffa500'; // Orange (moderate)
+        } else if (score < 6) {
+            color = '#4e9f3d'; // Green (strong)
+        } else {
+            color = '#38761d'; // Dark green (very strong)
+        }
     }
     
-    // Validate password on input
-    passwordInput.addEventListener('input', function() {
-        const password = passwordInput.value;
-        
-        // Update strength meter
-        const strength = calculatePasswordStrength(password);
-        strengthMeter.style.width = strength.percentage + '%';
-        strengthMeter.style.backgroundColor = strength.color;
-        
-        // Check requirements
-        toggleIconVisibility(lengthCheck, checkPasswordLength(password));
-        toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
-        toggleIconVisibility(numberCheck, checkPasswordNumber(password));
-        toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
-        
-        // Update match status if confirm password has value
-        if (confirmPassword.value) {
-            updatePasswordMatch();
-        }
-    });
+    return { score, percentage, color };
+}
+
+// Validate password on input
+passwordInput.addEventListener('input', function() {
+    const password = passwordInput.value;
+    
+    // Check requirements
+    const hasLength = checkPasswordLength(password);
+    const hasUppercase = checkPasswordUppercase(password);
+    const hasNumber = checkPasswordNumber(password);
+    const hasSymbol = checkPasswordSymbol(password);
+    
+    toggleIconVisibility(lengthCheck, hasLength);
+    toggleIconVisibility(uppercaseCheck, hasUppercase);
+    toggleIconVisibility(numberCheck, hasNumber);
+    toggleIconVisibility(symbolCheck, hasSymbol);
+    
+    // Update strength meter
+    const strength = calculatePasswordStrength(password);
+    strengthMeter.style.width = strength.percentage + '%';
+    strengthMeter.style.backgroundColor = strength.color;
+    
+    // Update match status if confirm password has value
+    if (confirmPassword.value) {
+        updatePasswordMatch();
+    }
+});
     
     // Check password match
     function updatePasswordMatch() {

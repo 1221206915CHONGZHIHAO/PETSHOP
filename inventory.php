@@ -17,8 +17,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $imagePath = null;
             if (!empty($_FILES['product_image']['name'])) {
                 $targetDir = "uploads/";
-                $imagePath = $targetDir . basename($_FILES['product_image']['name']);
-                move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath);
+                // Create uploads directory if it doesn't exist
+                if (!file_exists($targetDir)) {
+                    mkdir($targetDir, 0777, true);
+                }
+                
+                // Generate unique filename to prevent overwrites
+                $fileExtension = pathinfo($_FILES['product_image']['name'], PATHINFO_EXTENSION);
+                $uniqueFilename = uniqid() . '.' . $fileExtension;
+                $imagePath = $targetDir . $uniqueFilename;
+                
+                if (move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath)) {
+                    // File uploaded successfully
+                } else {
+                    $imagePath = null; // Set to null if upload failed
+                }
             }
 
             $stmt = $conn->prepare("INSERT INTO products (product_name, description, price, image_url, stock_quantity, category) 
@@ -42,12 +55,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $imagePath = $currentImage;
             if (!empty($_FILES['product_image']['name'])) {
                 $targetDir = "uploads/";
-                $imagePath = $targetDir . basename($_FILES['product_image']['name']);
-                move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath);
+                // Create uploads directory if it doesn't exist
+                if (!file_exists($targetDir)) {
+                    mkdir($targetDir, 0777, true);
+                }
                 
-                // Delete old image if it exists
-                if ($currentImage && file_exists($currentImage)) {
-                    unlink($currentImage);
+                // Generate unique filename to prevent overwrites
+                $fileExtension = pathinfo($_FILES['product_image']['name'], PATHINFO_EXTENSION);
+                $uniqueFilename = uniqid() . '.' . $fileExtension;
+                $imagePath = $targetDir . $uniqueFilename;
+                
+                if (move_uploaded_file($_FILES['product_image']['tmp_name'], $imagePath)) {
+                    // File uploaded successfully - we don't delete the old image anymore
+                } else {
+                    $imagePath = $currentImage; // Keep old image if upload failed
                 }
             }
 
@@ -77,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param("i", $_POST['product_id']);
             $stmt->execute();
             
-            // We keep the image file for historical reference
+            // We keep the image file
         }
         
         // Redirect to prevent form resubmission
@@ -503,7 +524,6 @@ if ($result->num_rows > 0) {
             e.preventDefault();
             Swal.fire({
                 title: 'Are you sure?',
-                html: '<div class="delete-confirm-text">This will hide the product from the store but keep it in the database for order history.</div>',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',

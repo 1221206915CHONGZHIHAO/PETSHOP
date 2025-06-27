@@ -34,9 +34,9 @@ if ($settingsResult->num_rows > 0) {
 $stmt = $conn->prepare("
     SELECT o.Order_ID, o.order_date, o.PaymentMethod as payment_method, 
            o.status, o.Address as shipping_address,
-           oi.quantity, oi.unit_price, oi.subtotal,
+           oi.quantity, oi.unit_price, 
+           (oi.quantity * oi.unit_price) as item_subtotal,
            p.product_id, p.product_name, p.image_url,
-           (SELECT SUM(subtotal) FROM Order_Items WHERE order_id = o.Order_ID) as subtotal,
            CASE WHEN p.product_id IS NULL THEN 1 ELSE 0 END as is_removed
     FROM Orders o
     JOIN Order_Items oi ON o.Order_ID = oi.order_id
@@ -49,9 +49,11 @@ $result = $stmt->get_result();
 $order_items = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-// Calculate removed items count
+// Calculate order totals and removed items count
+$subtotal = 0;
 $removed_items_count = 0;
 foreach ($order_items as $item) {
+    $subtotal += $item['item_subtotal'];
     if ($item['is_removed']) {
         $removed_items_count++;
     }
@@ -59,12 +61,13 @@ foreach ($order_items as $item) {
 
 // Get basic order info if items exist
 if (!empty($order_items)) {
+    $shipping_fee = 4.90;
     $order = [
         'Order_ID' => $order_items[0]['Order_ID'],
         'order_date' => $order_items[0]['order_date'],
-        'subtotal' => $order_items[0]['subtotal'],
-        'shipping_fee' => 4.90,
-        'total' => $order_items[0]['subtotal'] + 4.90,
+        'subtotal' => $subtotal,
+        'shipping_fee' => $shipping_fee,
+        'total' => $subtotal + $shipping_fee,
         'payment_method' => $order_items[0]['payment_method'],
         'status' => $order_items[0]['status'],
         'shipping_address' => $order_items[0]['shipping_address'],
@@ -197,6 +200,23 @@ $conn->close();
       padding: 0.75rem 1.25rem;
       margin-bottom: 1rem;
       border-radius: 4px;
+    }
+     @media print, body.pdf-generation {
+        #pdf-content {
+            width: 100% !important;
+            max-width: none !important;
+            padding: 20px !important;
+        }
+        #pdf-content table {
+            width: 100% !important;
+        }
+        #pdf-content * {
+            color: #000 !important;
+            background: transparent !important;
+        }
+        .action-buttons, nav, footer {
+            display: none !important;
+        }
     }
   </style>
 </head>
@@ -340,7 +360,7 @@ $conn->close();
                 </td>
                 <td>RM<?php echo number_format($item['unit_price'], 2); ?></td>
                 <td><?php echo $item['quantity']; ?></td>
-                <td>RM<?php echo number_format($item['subtotal'], 2); ?></td>
+                <td>RM<?php echo number_format($item['item_subtotal'], 2); ?></td>
               </tr>
               <?php endforeach; ?>
               <tr>
@@ -448,17 +468,15 @@ $conn->close();
 <!-- PDF Export Script -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize jsPDF
     const { jsPDF } = window.jspdf;
     
     document.getElementById('downloadPdf').addEventListener('click', function() {
-        // Show loading indicator
         const button = this;
         const originalText = button.innerHTML;
         button.innerHTML = '<i class="bi bi-hourglass me-2"></i>Generating PDF...';
         button.disabled = true;
         
-        // Add PDF generation class to body
+        // Hide elements we don't want in the PDF
         document.body.classList.add('pdf-generation');
         
         // Options for PDF generation
@@ -468,9 +486,25 @@ document.addEventListener('DOMContentLoaded', function() {
             allowTaint: true,
             logging: true,
             backgroundColor: '#FFFFFF',
+            scrollX: 0,
+            scrollY: 0,
             onclone: function(clonedDoc) {
-                // This ensures buttons are hidden in the cloned version used for PDF
-                clonedDoc.body.classList.add('pdf-generation');
+                // Ensure all content is visible for PDF
+                clonedDoc.body.style.overflow = 'visible';
+                clonedDoc.getElementById('pdf-content').style.maxWidth = 'none';
+                
+                // Make sure tables are fully expanded
+                const tables = clonedDoc.querySelectorAll('table');
+                tables.forEach(table => {
+                    table.style.width = '100%';
+                });
+                
+                // Ensure all text is black for better PDF readability
+                const textElements = clonedDoc.querySelectorAll('*');
+                textElements.forEach(el => {
+                    el.style.color = '#000';
+                    el.style.boxShadow = 'none';
+                });
             }
         };
         
@@ -478,33 +512,30 @@ document.addEventListener('DOMContentLoaded', function() {
         html2canvas(document.getElementById('pdf-content'), options).then(canvas => {
             const pdf = new jsPDF('p', 'mm', 'a4');
             const imgData = canvas.toDataURL('image/png', 1.0);
+            
+            // Calculate dimensions to fit the content on A4
             const pdfWidth = pdf.internal.pageSize.getWidth() - 20;
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
             
-            // Add image to PDF
+            // Add content to PDF
             pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight);
             
             // Set document properties
             pdf.setProperties({
-                title: 'Order Confirmation #<?php echo $order['Order_ID']; ?>',
-                subject: 'Order Details from Hachi Pet Shop',
-                author: 'Hachi Pet Shop',
-                keywords: 'order, confirmation, receipt',
-                creator: 'Hachi Pet Shop'
+                title: `Order #<?php echo $order['Order_ID']; ?>`,
+                subject: 'Order Details',
+                author: 'Hachi Pet Shop'
             });
             
             // Save the PDF
-            pdf.save('Hachi_Order_<?php echo $order['Order_ID']; ?>.pdf');
+            pdf.save(`Hachi_Order_<?php echo $order['Order_ID']; ?>.pdf`);
             
-            // Remove PDF generation class
+            // Clean up
             document.body.classList.remove('pdf-generation');
-            
-            // Restore button
             button.innerHTML = originalText;
             button.disabled = false;
         }).catch(error => {
             console.error('Error generating PDF:', error);
-            // Remove PDF generation class on error
             document.body.classList.remove('pdf-generation');
             button.innerHTML = originalText;
             button.disabled = false;
