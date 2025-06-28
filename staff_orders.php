@@ -458,7 +458,6 @@ $conn->close();
                                 <option value="Processing" <?php echo (isset($_GET['status'])) && $_GET['status'] === 'Processing' ? 'selected' : ''; ?>>Processing</option>
                                 <option value="Shipped" <?php echo (isset($_GET['status'])) && $_GET['status'] === 'Shipped' ? 'selected' : ''; ?>>Shipped</option>
                                 <option value="Completed" <?php echo (isset($_GET['status'])) && $_GET['status'] === 'Completed' ? 'selected' : ''; ?>>Completed</option>
-                                <option value="Cancelled" <?php echo (isset($_GET['status'])) && $_GET['status'] === 'Cancelled' ? 'selected' : ''; ?>>Cancelled</option>
                             </select>
                         </div>
                         <?php endif; ?>

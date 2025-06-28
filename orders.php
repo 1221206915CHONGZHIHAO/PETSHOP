@@ -463,7 +463,6 @@ $conn->close();
                             <option value="Processing">Processing</option>
                             <option value="Shipped">Shipped</option>
                             <option value="Completed">Completed</option>
-                            <option value="Cancelled">Cancelled</option>
                         </select>
                     </div>
                 </div>
