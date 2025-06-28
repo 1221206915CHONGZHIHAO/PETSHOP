@@ -12,6 +12,25 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
+// Check if customer is logged in and account is active
+if (isset($_SESSION['customer_id'])) {
+    $customer_id = $_SESSION['customer_id'];
+    $check_active = $conn->prepare("SELECT is_active FROM customer WHERE customer_id = ?");
+    $check_active->bind_param("i", $customer_id);
+    $check_active->execute();
+    $check_active->bind_result($is_active);
+    $check_active->fetch();
+    $check_active->close();
+    
+    if ($is_active != 1) {
+        // Account is deactivated, clear session and redirect
+        session_unset();
+        session_destroy();
+        header("Location: login.php?error=account_deactivated");
+        exit();
+    }
+}
+
 // Fetch best sellers based on the 'best-selling' logic (most recently updated)
 $best_sellers = [];
 $best_sellers_sql = "SELECT * FROM products ORDER BY updated_at DESC LIMIT 4";

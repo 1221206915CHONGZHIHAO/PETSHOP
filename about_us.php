@@ -11,6 +11,25 @@ if ($result->num_rows > 0) {
     $shopSettings = $result->fetch_assoc();
 }
 
+// Check if customer is logged in and account is active
+if (isset($_SESSION['customer_id'])) {
+    $customer_id = $_SESSION['customer_id'];
+    $check_active = $conn->prepare("SELECT is_active FROM customer WHERE customer_id = ?");
+    $check_active->bind_param("i", $customer_id);
+    $check_active->execute();
+    $check_active->bind_result($is_active);
+    $check_active->fetch();
+    $check_active->close();
+    
+    if ($is_active != 1) {
+        // Account is deactivated, clear session and redirect
+        session_unset();
+        session_destroy();
+        header("Location: login.php?error=account_deactivated");
+        exit();
+    }
+}
+
 // Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset($_POST['password'])) {
     $username = $_POST['username'];

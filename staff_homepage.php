@@ -127,7 +127,7 @@ $summaryData['total_revenue'] = $result->fetch_assoc()['total_revenue'] ?? 0;
 $result = $db->query("SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending' $summaryWhere");
 $summaryData['pending_orders'] = $result->fetch_assoc()['pending_orders'];
 
-$result = $db->query("SELECT COUNT(*) as low_stock FROM products WHERE stock_quantity < 10");
+$result = $db->query("SELECT COUNT(*) as low_stock FROM products WHERE stock_quantity < 11 AND stock_quantity >= 1");
 $summaryData['low_stock'] = $result->fetch_assoc()['low_stock'];
 
 // Fetch data for sales chart (apply week filter if selected)
