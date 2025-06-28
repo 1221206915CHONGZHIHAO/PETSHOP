@@ -8,6 +8,23 @@ $username = "root";
 $password = "";
 $dbname = "petshop";
 
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$shopSettings = [];
+$settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
+$settingsQuery->execute();
+$result = $settingsQuery->get_result();
+
+if ($result->num_rows > 0) {
+    $shopSettings = $result->fetch_assoc();
+}
+
 // Check if customer is logged in and account is active
 if (isset($_SESSION['customer_id'])) {
     $customer_id = $_SESSION['customer_id'];
@@ -25,23 +42,6 @@ if (isset($_SESSION['customer_id'])) {
         header("Location: login.php?error=account_deactivated");
         exit();
     }
-}
-
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-$shopSettings = [];
-$settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
-$settingsQuery->execute();
-$result = $settingsQuery->get_result();
-
-if ($result->num_rows > 0) {
-    $shopSettings = $result->fetch_assoc();
 }
 
 // Function to get current cart count
