@@ -153,7 +153,7 @@ if (isset($_GET['week_filter'])) {
         SUM(Total) as amount 
         FROM orders 
         WHERE order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 DAY) 
-        AND order_date <= CURRENT_DATE()  // Added this condition to match admin
+        AND order_date <= CURRENT_DATE()  
         AND status != 'Disabled'
         GROUP BY DATE(order_date)
         ORDER BY day ASC");
