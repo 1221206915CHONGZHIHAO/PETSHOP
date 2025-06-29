@@ -159,36 +159,72 @@ if (isset($_GET['week_filter'])) {
             }
         }
     }
-} else {
-    // For all time view - manually set months in order
-    $salesData['labels'] = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    $salesData['data'] = array_fill(0, 6, 0);
+} else // Fetch data for sales chart (apply week filter if selected)
+$salesData = ['labels' => [], 'data' => []];
+
+if (isset($_GET['week_filter'])) {
+    // For week view - show days of current week
+    $days = [];
+    $dayNames = [];
+    for ($i = 6; $i >= 0; $i--) {
+        $timestamp = strtotime("today -$i days");
+        $days[] = date('Y-m-d', $timestamp);
+        $dayNames[] = date('D', $timestamp);
+    }
     
-    // Calculate date range for query (last 6 months)
-    $currentDate = new DateTime();
-    $startDate = (clone $currentDate)->modify('-5 months')->format('Y-m-01');
-    $endDate = $currentDate->format('Y-m-t'); // Last day of current month
+    // Initialize with zero values
+    $salesData['labels'] = $dayNames;
+    $salesData['data'] = array_fill(0, count($days), 0);
+    
+    // Get actual order data for the week
+    $result = $conn->query("SELECT 
+        DATE(order_date) as day,
+        SUM(Total) as amount 
+        FROM orders 
+        WHERE order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 DAY) 
+        AND order_date <= CURRENT_DATE()
+        AND status != 'Disabled'
+        GROUP BY DATE(order_date)
+        ORDER BY day ASC");
+    
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $dayIndex = array_search($row['day'], $days);
+            if ($dayIndex !== false) {
+                $salesData['data'][$dayIndex] = $row['amount'];
+            }
+        }
+    }
+} else {
+    // For all time view - show all 12 months
+    $salesData['labels'] = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    $salesData['data'] = array_fill(0, 12, 0);
+    
+    // Calculate date range for query (current year)
+    $currentYear = date('Y');
+    $startDate = "$currentYear-01-01";
+    $endDate = "$currentYear-12-31";
     
     $result = $conn->query("SELECT 
         DATE_FORMAT(order_date, '%b') as month_name,
+        MONTH(order_date) as month_num,
         SUM(Total) as amount 
         FROM orders 
         WHERE status != 'Disabled'
         AND order_date >= '$startDate'
         AND order_date <= '$endDate'
-        GROUP BY DATE_FORMAT(order_date, '%Y-%m')
-        ORDER BY DATE_FORMAT(order_date, '%Y-%m') ASC");
+        GROUP BY MONTH(order_date)
+        ORDER BY MONTH(order_date) ASC");
     
     if ($result && $result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
-            $monthIndex = array_search($row['month_name'], $salesData['labels']);
-            if ($monthIndex !== false) {
+            $monthIndex = $row['month_num'] - 1; // Convert month number to array index (0-11)
+            if ($monthIndex >= 0 && $monthIndex < 12) {
                 $salesData['data'][$monthIndex] = $row['amount'];
             }
         }
     }
 }
-
 // Fetch shop settings
 $shopSettings = [];
 $settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
