@@ -58,12 +58,12 @@ function getProducts($sort = 'newest', $category = '', $search = '') {
         $types .= 's';
     }
 
-    // UPDATED: Add search filter for product_name ONLY
+    // search filter for product_name only
     if (!empty($search)) {
-        $sql .= " AND product_name LIKE ?"; // 只搜索 product_name
+        $sql .= " AND product_name LIKE ?";
         $search_term = "%{$search}%"; 
-        $params[] = $search_term; // 只添加一次参数
-        $types .= 's'; // 只添加一个类型
+        $params[] = $search_term;
+        $types .= 's';
     }
     
     // Add sorting logic
@@ -77,7 +77,7 @@ function getProducts($sort = 'newest', $category = '', $search = '') {
         case 'best-selling':
             $sql .= " ORDER BY updated_at DESC";
             break;
-        default: // newest
+        default:
             $sql .= " ORDER BY created_at DESC";
             break;
     }
