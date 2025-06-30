@@ -33,7 +33,7 @@ if (isset($_SESSION['customer_id'])) {
 
 // Fetch best sellers based on the 'best-selling' logic (most recently updated)
 $best_sellers = [];
-$best_sellers_sql = "SELECT * FROM products ORDER BY updated_at DESC LIMIT 4";
+$best_sellers_sql = "SELECT * FROM products WHERE stock_quantity > 0 ORDER BY updated_at DESC LIMIT 4";
 $best_sellers_result = $conn->query($best_sellers_sql);
 if ($best_sellers_result && $best_sellers_result->num_rows > 0) {
     while($row = $best_sellers_result->fetch_assoc()) {
