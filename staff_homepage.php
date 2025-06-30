@@ -77,25 +77,25 @@ if (isset($_GET['export'])) {
     $dateFilter = isset($_GET['week_filter']) ? "WHERE orders.order_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK) AND orders.status != 'Disabled'" : "WHERE orders.status != 'Disabled'";
     
     $result = $db->query("SELECT 
-    orders.Order_ID as order_id, 
-    c.customer_name, 
-    orders.Total, 
-    orders.order_date, 
-    orders.status,
-    IFNULL(GROUP_CONCAT(
-        CASE 
-            WHEN p.product_name IS NULL THEN CONCAT('Deleted Product (', oi.quantity, ')')
-            ELSE CONCAT(p.product_name, ' (', oi.quantity, ')')
-        END
-    ), 'No products') as products
-    FROM orders
-    JOIN customer c ON orders.Customer_ID = c.customer_id
-    LEFT JOIN order_items oi ON orders.Order_ID = oi.order_id
-    LEFT JOIN products p ON oi.product_id = p.product_id
-    $dateFilter
-    GROUP BY orders.Order_ID
-    ORDER BY orders.order_date DESC
-    LIMIT 5");
+        orders.Order_ID as order_id, 
+        c.customer_name, 
+        orders.Total, 
+        orders.order_date, 
+        orders.status,
+        IFNULL(GROUP_CONCAT(
+            CASE 
+                WHEN p.product_name IS NULL THEN CONCAT('Deleted Product (', oi.quantity, ')')
+                ELSE CONCAT(p.product_name, ' (', oi.quantity, ')')
+            END
+        ), 'No products') as products
+        FROM orders
+        JOIN customer c ON orders.Customer_ID = c.customer_id
+        LEFT JOIN order_items oi ON orders.Order_ID = oi.order_id
+        LEFT JOIN products p ON oi.product_id = p.product_id
+        $dateFilter
+        GROUP BY orders.Order_ID
+        ORDER BY orders.order_date DESC
+        LIMIT 5");
     
     while ($row = $result->fetch_assoc()) {
         fputcsv($output, array(
@@ -130,7 +130,43 @@ $summaryData['pending_orders'] = $result->fetch_assoc()['pending_orders'];
 $result = $db->query("SELECT COUNT(*) as low_stock FROM products WHERE stock_quantity < 11 AND stock_quantity >= 1");
 $summaryData['low_stock'] = $result->fetch_assoc()['low_stock'];
 
-// Fetch data for sales chart (apply week filter if selected)
+// Fetch data for sales chart (apply week filter if selected) - UPDATED TO MATCH ADMIN
+$salesData = ['labels' => [], 'data' => []];
+
+if (isset($_GET['week_filter'])) {
+    // For week view - show days of current week (matches admin logic)
+    $days = [];
+    $dayNames = [];
+    for ($i = 6; $i >= 0; $i--) {
+        $timestamp = strtotime("today -$i days"); // Changed to match admin
+        $days[] = date('Y-m-d', $timestamp);
+        $dayNames[] = date('D', $timestamp);
+    }
+    
+    // Initialize with zero values
+    $salesData['labels'] = $dayNames;
+    $salesData['data'] = array_fill(0, count($days), 0);
+    
+    // Get actual order data for the week (matches admin query)
+    $result = $db->query("SELECT 
+        DATE(order_date) as day,
+        SUM(Total) as amount 
+        FROM orders 
+        WHERE order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 DAY) 
+        AND order_date <= CURRENT_DATE()  
+        AND status != 'Disabled'
+        GROUP BY DATE(order_date)
+        ORDER BY day ASC");
+    
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $dayIndex = array_search($row['day'], $days);
+            if ($dayIndex !== false) {
+                $salesData['data'][$dayIndex] = $row['amount'];
+            }
+        }
+    }
+} else // Fetch data for sales chart (apply week filter if selected)
 $salesData = ['labels' => [], 'data' => []];
 
 if (isset($_GET['week_filter'])) {
@@ -138,9 +174,9 @@ if (isset($_GET['week_filter'])) {
     $days = [];
     $dayNames = [];
     for ($i = 6; $i >= 0; $i--) {
-        $timestamp = strtotime("-$i days");
+        $timestamp = strtotime("today -$i days");
         $days[] = date('Y-m-d', $timestamp);
-        $dayNames[] = date('D', $timestamp); // Short day names (Mon, Tue, etc.)
+        $dayNames[] = date('D', $timestamp);
     }
     
     // Initialize with zero values
@@ -152,7 +188,8 @@ if (isset($_GET['week_filter'])) {
         DATE(order_date) as day,
         SUM(Total) as amount 
         FROM orders 
-        WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) 
+        WHERE order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 DAY) 
+        AND order_date <= CURRENT_DATE()
         AND status != 'Disabled'
         GROUP BY DATE(order_date)
         ORDER BY day ASC");
@@ -166,36 +203,35 @@ if (isset($_GET['week_filter'])) {
         }
     }
 } else {
-    // For all time view - show months (as before)
-    $months = [];
-    for ($i = 5; $i >= 0; $i--) {
-        $months[] = date('M', strtotime("-$i months"));
-    }
+    // For all time view - show all 12 months
+    $salesData['labels'] = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    $salesData['data'] = array_fill(0, 12, 0);
     
-    // Initialize with zero values
-    $salesData['labels'] = $months;
-    $salesData['data'] = array_fill(0, count($months), 0);
+    // Calculate date range for query (current year)
+    $currentYear = date('Y');
+    $startDate = "$currentYear-01-01";
+    $endDate = "$currentYear-12-31";
     
     $result = $db->query("SELECT 
-        DATE_FORMAT(order_date, '%b') as month,
+        DATE_FORMAT(order_date, '%b') as month_name,
         MONTH(order_date) as month_num,
         SUM(Total) as amount 
         FROM orders 
         WHERE status != 'Disabled'
-        AND order_date >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+        AND order_date >= '$startDate'
+        AND order_date <= '$endDate'
         GROUP BY MONTH(order_date)
-        ORDER BY order_date ASC");
+        ORDER BY MONTH(order_date) ASC");
     
     if ($result && $result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
-            $monthIndex = array_search($row['month'], $months);
-            if ($monthIndex !== false) {
+            $monthIndex = $row['month_num'] - 1; // Convert month number to array index (0-11)
+            if ($monthIndex >= 0 && $monthIndex < 12) {
                 $salesData['data'][$monthIndex] = $row['amount'];
             }
         }
     }
 }
-
 // Fetch shop settings
 $shopSettings = [];
 $settingsQuery = $db->prepare("SELECT * FROM shop_settings WHERE id = 1");
@@ -205,6 +241,7 @@ $result = $settingsQuery->get_result();
 if ($result->num_rows > 0) {
     $shopSettings = $result->fetch_assoc();
 }
+
 // Fetch recent orders (last 5)
 $recentOrders = [];
 $recentQuery = $db->query("SELECT 
