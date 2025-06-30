@@ -88,6 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!preg_match('/[^A-Za-z0-9]/', $new_password)) {
             $errors['new_password'] = "Password must contain at least one special character";
         }
+        
 
         // Confirm new password
         if ($new_password !== $confirm_password) {
@@ -639,6 +640,11 @@ $db->close();
                                             <i class="bi bi-check-circle text-success d-none"></i>
                                             <span>At least 1 special character</span>
                                         </div>
+                                        <div class="requirement" id="space-check">
+                                            <i class="bi bi-x-circle text-danger"></i>
+                                            <i class="bi bi-check-circle text-success d-none"></i>
+                                            <span>No spaces allowed</span>
+                                        </div>
                                     </div>
                                     <?php if (isset($errors['new_password'])): ?>
                                         <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['new_password']); ?></div>
@@ -890,17 +896,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Validate password on input
-    newPasswordInput.addEventListener('input', function() {
-        const password = newPasswordInput.value;
-        const confirmPassword = confirmPasswordInput.value;
-        
-        // Check all requirements
-        toggleIconVisibility(lengthCheck, checkPasswordLength(password));
-        toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
-        toggleIconVisibility(numberCheck, checkPasswordNumber(password));
-        toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
-        checkPasswordMatch(password, confirmPassword);
-    });
+   // Update the password validation code
+newPasswordInput.addEventListener('input', function() {
+    const password = newPasswordInput.value;
+    
+    // Check all requirements
+    toggleIconVisibility(lengthCheck, checkPasswordLength(password));
+    toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
+    toggleIconVisibility(numberCheck, checkPasswordNumber(password));
+    toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
+    toggleIconVisibility(spaceCheck, !/\s/.test(password)); // Add this line
+    
+    checkPasswordMatch(password, confirmPasswordInput.value);
+});
+
+// Add this variable at the top with others
+const spaceCheck = document.getElementById('space-check');
 
     // Validate confirm password on input
     confirmPasswordInput.addEventListener('input', function() {
@@ -1002,6 +1013,32 @@ function togglePassword(id, button) {
         icon.classList.add('bi-eye-slash');
     }
 }
+
+// Prevent space in password fields
+function preventSpace(event) {
+    if (event.key === ' ') {
+        event.preventDefault();
+        return false;
+    }
+}
+
+// Add event listeners to all password fields
+document.getElementById('current_password').addEventListener('keydown', preventSpace);
+document.getElementById('new_password').addEventListener('keydown', preventSpace);
+document.getElementById('confirm_password').addEventListener('keydown', preventSpace);
+
+// Also prevent pasting of text with spaces
+function preventPasteWithSpaces(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    if (/\s/.test(pastedText)) {
+        event.preventDefault();
+        alert('Password cannot contain spaces');
+        return false;
+    }
+}
+
+document.getElementById('new_password').addEventListener('paste', preventPasteWithSpaces);
+document.getElementById('confirm_password').addEventListener('paste', preventPasteWithSpaces);
 
 // Function to update initials display from username
 function updateInitials(name) {

@@ -25,29 +25,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($emailExists) {
         $error = "This email is already registered in our system. Please use a different email.";
     } 
-    // Password validation
-    elseif (strlen($password) < 8) {
-        $error = "Password must be at least 8 characters long.";
-    } elseif (!preg_match('/[A-Z]/', $password)) {
-        $error = "Password must contain at least one uppercase letter.";
-    } elseif (!preg_match('/[0-9]/', $password)) {
-        $error = "Password must contain at least one number.";
-    } elseif (!preg_match('/[^A-Za-z0-9]/', $password)) {
-        $error = "Password must contain at least one special character.";
+// Password validation
+elseif (strlen($password) < 8) {
+    $error = "Password must be at least 8 characters long.";
+} elseif (!preg_match('/[A-Z]/', $password)) {
+    $error = "Password must contain at least one uppercase letter.";
+} elseif (!preg_match('/[0-9]/', $password)) {
+    $error = "Password must contain at least one number.";
+} elseif (!preg_match('/[^A-Za-z0-9]/', $password)) {
+    $error = "Password must contain at least one special character.";
+} elseif (preg_match('/\s/', $password)) { 
+    $error = "Password cannot contain spaces.";
+} else {
+    $sql = "INSERT INTO Staff (Staff_name, Staff_Username, Staff_Email, Staff_Password, position, status) 
+            VALUES (?, ?, ?, ?, ?, ?)";
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ssssss", $name, $username, $email, $password, $position, $status);
+
+    if ($stmt->execute()) {
+        header("Location: manage_staff.php?success=1");
+        exit();
     } else {
-        $sql = "INSERT INTO Staff (Staff_name, Staff_Username, Staff_Email, Staff_Password, position, status) 
-                VALUES (?, ?, ?, ?, ?, ?)";
-
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ssssss", $name, $username, $email, $password, $position, $status);
-
-        if ($stmt->execute()) {
-            header("Location: manage_staff.php?success=1");
-            exit();
-        } else {
-            $error = "Error: " . $conn->error;
-        }
+        $error = "Error: " . $conn->error;
     }
+}
+
 }
 
 $shopSettings = [];

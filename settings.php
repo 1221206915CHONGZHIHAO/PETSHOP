@@ -550,6 +550,11 @@ $db->close();
                                             <i class="bi bi-check-circle text-success d-none"></i>
                                             <span>At least 1 special character</span>
                                         </div>
+                                        <div class="requirement" id="space-check">
+                                            <i class="bi bi-x-circle text-danger"></i>
+                                            <i class="bi bi-check-circle text-success d-none"></i>
+                                            <span>No spaces allowed</span>
+                                        </div>
                                     </div>
                                     <?php if (isset($errors['new_password'])): ?>
                                         <div class="invalid-feedback d-block"><?php echo htmlspecialchars($errors['new_password']); ?></div>
@@ -750,21 +755,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Validate password on input
-    newPasswordInput.addEventListener('input', function() {
-        const password = newPasswordInput.value;
-        
-        // Check length requirement
-        toggleIconVisibility(lengthCheck, checkPasswordLength(password));
-        
-        // Check uppercase requirement
-        toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
-        
-        // Check number requirement
-        toggleIconVisibility(numberCheck, checkPasswordNumber(password));
-        
-        // Check symbol requirement
-        toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
-    });
+    // Update the password validation code
+newPasswordInput.addEventListener('input', function() {
+    const password = newPasswordInput.value;
+    
+    // Check all requirements
+    toggleIconVisibility(lengthCheck, checkPasswordLength(password));
+    toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
+    toggleIconVisibility(numberCheck, checkPasswordNumber(password));
+    toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
+    toggleIconVisibility(spaceCheck, !/\s/.test(password)); // Add this line
+    
+    checkPasswordMatch(password, confirmPasswordInput.value);
+});
+
+// Add this variable at the top with others
+const spaceCheck = document.getElementById('space-check');
 
     // Also validate when the page loads in case form was submitted with errors
     if (newPasswordInput.value) {
@@ -806,6 +812,32 @@ function toggleAccountPassword() {
         passwordToggleIcon.classList.add('bi-eye');
     }
 }
+
+// Prevent space in password fields
+function preventSpace(event) {
+    if (event.key === ' ') {
+        event.preventDefault();
+        return false;
+    }
+}
+
+// Add event listeners to all password fields
+document.getElementById('currentPassword').addEventListener('keydown', preventSpace);
+document.getElementById('newPassword').addEventListener('keydown', preventSpace);
+document.getElementById('confirmPassword').addEventListener('keydown', preventSpace);
+
+// Also prevent pasting of text with spaces
+function preventPasteWithSpaces(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    if (/\s/.test(pastedText)) {
+        event.preventDefault();
+        alert('Password cannot contain spaces');
+        return false;
+    }
+}
+
+document.getElementById('newPassword').addEventListener('paste', preventPasteWithSpaces);
+document.getElementById('confirmPassword').addEventListener('paste', preventPasteWithSpaces);
 </script>
 </body>
 </html>

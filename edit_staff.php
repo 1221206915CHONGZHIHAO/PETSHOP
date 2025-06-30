@@ -32,19 +32,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $newPassword = $_POST['newPassword'] ?? '';
 
     // Validate password if reset is requested
-    if ($resetPassword) {
-        if (empty($newPassword)) {
-            $password_error = "Please enter a new password";
-        } elseif (strlen($newPassword) < 8) {
-            $password_error = "Password must be at least 8 characters long";
-        } elseif (!preg_match('/[A-Z]/', $newPassword)) {
-            $password_error = "Password must contain at least one uppercase letter";
-        } elseif (!preg_match('/[0-9]/', $newPassword)) {
-            $password_error = "Password must contain at least one number";
-        } elseif (!preg_match('/[^A-Za-z0-9]/', $newPassword)) {
-            $password_error = "Password must contain at least one special character";
-        }
-    }
+if ($resetPassword) {
+    if (empty($newPassword)) {
+        $password_error = "Please enter a new password";
+    } elseif (strlen($newPassword) < 8) {
+        $password_error = "Password must be at least 8 characters long";
+    } elseif (!preg_match('/[A-Z]/', $newPassword)) {
+        $password_error = "Password must contain at least one uppercase letter";
+    } elseif (!preg_match('/[0-9]/', $newPassword)) {
+        $password_error = "Password must contain at least one number";
+    } elseif (!preg_match('/[^A-Za-z0-9]/', $newPassword)) {
+        $password_error = "Password must contain at least one special character";
+    } elseif (preg_match('/\s/', $newPassword)) {
+    $password_error = "Password cannot contain spaces";
+}
+
+}
+
 
     // Only proceed if no password errors
     if (!$resetPassword || empty($password_error)) {
@@ -380,6 +384,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                         <i class="fas fa-check-circle text-success"></i>
                                         <span>At least 1 special character</span>
                                     </div>
+                                    <div class="requirement" id="space-check">
+                                        <i class="fas fa-check-circle text-success"></i>
+                                        <span>No spaces allowed</span>
+                                    </div>
                                 </div>
                                 <small class="text-muted password-note">
                                     <i class="fas fa-info-circle me-1"></i>
@@ -563,6 +571,40 @@ document.querySelector('form').addEventListener('submit', function(e) {
     }
 });
 
+// Prevent space in password field
+document.getElementById('newPassword').addEventListener('keydown', function(e) {
+    if (e.key === ' ') {
+        e.preventDefault();
+        return false;
+    }
+});
+
+// Also prevent pasting of text with spaces
+document.getElementById('newPassword').addEventListener('paste', function(e) {
+    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+    if (/\s/.test(pastedText)) {
+        e.preventDefault();
+        
+        // Show error message
+        const alertHTML = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Password cannot contain spaces
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        
+        // Insert alert before the form
+        const form = document.querySelector('form');
+        form.insertAdjacentHTML('beforebegin', alertHTML);
+        
+        // Scroll to the alert
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        return false;
+    }
+});
+
 // Password validation
 document.getElementById('newPassword').addEventListener('input', function() {
     const password = this.value;
@@ -591,6 +633,9 @@ document.getElementById('newPassword').addEventListener('input', function() {
     
     // Check symbol requirement
     toggleIconVisibility(document.getElementById('symbol-check'), /[^A-Za-z0-9]/.test(password));
+    
+    // Check space requirement
+    toggleIconVisibility(document.getElementById('space-check'), !/\s/.test(password));
 });
 
 function toggleIconVisibility(element, isValid) {
