@@ -73,7 +73,22 @@ if (isset($_GET['export'])) {
     $output = fopen('php://output', 'w');
     fputcsv($output, array('Order ID', 'Customer', 'Products', 'Total', 'Date', 'Status'));
     
-    $dateFilter = isset($_GET['week_filter']) ? "WHERE orders.order_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK) AND orders.status != 'Disabled'" : "WHERE orders.status != 'Disabled'";
+    // Determine the date filter based on week_filter parameter
+    if (isset($_GET['week_filter'])) {
+        // For week view - calculate Monday to Sunday of current week
+        $currentDate = new DateTime();
+        $currentDayOfWeek = $currentDate->format('N'); // 1 (Monday) to 7 (Sunday)
+        $monday = clone $currentDate;
+        $monday->modify('-' . ($currentDayOfWeek - 1) . ' days');
+        $sunday = clone $monday;
+        $sunday->modify('+6 days');
+        
+        $dateFilter = "WHERE orders.order_date >= '{$monday->format('Y-m-d')}' 
+                      AND orders.order_date <= '{$sunday->format('Y-m-d')}' 
+                      AND orders.status != 'Disabled'";
+    } else {
+        $dateFilter = "WHERE orders.status != 'Disabled'";
+    }
     
     $result = $conn->query("SELECT 
         orders.Order_ID as order_id, 
@@ -81,15 +96,19 @@ if (isset($_GET['export'])) {
         orders.Total, 
         orders.order_date, 
         orders.status,
-        GROUP_CONCAT(CONCAT(p.product_name, ' (', oi.quantity, ')')) as products
+        IFNULL(GROUP_CONCAT(
+            CASE 
+                WHEN p.product_name IS NULL THEN CONCAT('Deleted Product (', oi.quantity, ')')
+                ELSE CONCAT(p.product_name, ' (', oi.quantity, ')')
+            END
+        ), 'No products') as products
         FROM orders
         JOIN customer c ON orders.Customer_ID = c.customer_id
-        JOIN order_items oi ON orders.Order_ID = oi.order_id
-        JOIN products p ON oi.product_id = p.product_id
+        LEFT JOIN order_items oi ON orders.Order_ID = oi.order_id
+        LEFT JOIN products p ON oi.product_id = p.product_id
         $dateFilter
         GROUP BY orders.Order_ID
-        ORDER BY orders.order_date DESC
-        LIMIT 5");
+        ORDER BY orders.order_date DESC");
     
     while ($row = $result->fetch_assoc()) {
         fputcsv($output, array(
@@ -106,11 +125,29 @@ if (isset($_GET['export'])) {
     exit;
 }
 
-// Handle week filter
-$dateFilter = isset($_GET['week_filter']) ? "WHERE orders.order_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK) AND orders.status != 'Disabled'" : "WHERE orders.status != 'Disabled'";
-$summaryWhere = isset($_GET['week_filter']) ? "AND order_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK) AND status != 'Disabled'" : "AND status != 'Disabled'";
+// Calculate date range for week filter if selected
+if (isset($_GET['week_filter'])) {
+    // For week view - calculate Monday to Sunday of current week
+    $currentDate = new DateTime();
+    $currentDayOfWeek = $currentDate->format('N'); // 1 (Monday) to 7 (Sunday)
+    $monday = clone $currentDate;
+    $monday->modify('-' . ($currentDayOfWeek - 1) . ' days');
+    $sunday = clone $monday;
+    $sunday->modify('+6 days');
+    
+    $dateFilter = "WHERE orders.order_date >= '{$monday->format('Y-m-d')}' 
+                  AND orders.order_date <= '{$sunday->format('Y-m-d')}' 
+                  AND orders.status != 'Disabled'";
+    $summaryWhere = "AND order_date >= '{$monday->format('Y-m-d')}' 
+                    AND order_date <= '{$sunday->format('Y-m-d')}' 
+                    AND status != 'Disabled'";
+} else {
+    $dateFilter = "WHERE orders.status != 'Disabled'";
+    $summaryWhere = "AND status != 'Disabled'";
+}
 
 // Fetch data for summary cards
+$summaryData = [];
 $result = $conn->query("SELECT COUNT(*) as total_orders FROM orders $dateFilter");
 $summaryData['total_orders'] = $result->fetch_assoc()['total_orders'];
 
@@ -120,78 +157,45 @@ $summaryData['total_revenue'] = $result->fetch_assoc()['total_revenue'] ?? 0;
 $result = $conn->query("SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending' $summaryWhere");
 $summaryData['pending_orders'] = $result->fetch_assoc()['pending_orders'];
 
+// Low stock is not affected by time filter
 $result = $conn->query("SELECT COUNT(*) as low_stock FROM products WHERE stock_quantity < 11 AND stock_quantity >= 1");
 $summaryData['low_stock'] = $result->fetch_assoc()['low_stock'];
 
-// Fetch data for sales chart (apply week filter if selected)
+// Fetch data for sales chart
 $salesData = ['labels' => [], 'data' => []];
 
 if (isset($_GET['week_filter'])) {
-    // For week view - show days of current week
+    // For week view - show days from Monday to Sunday of the current week
     $days = [];
     $dayNames = [];
-    for ($i = 6; $i >= 0; $i--) {
-        $timestamp = strtotime("today -$i days");
-        $days[] = date('Y-m-d', $timestamp);
-        $dayNames[] = date('D', $timestamp);
+    for ($i = 0; $i < 7; $i++) {
+        $day = clone $monday;
+        $day->modify("+$i days");
+        $days[] = $day->format('Y-m-d');
+        $dayNames[] = $day->format('D');
     }
     
-    // Initialize with zero values
+    // Set labels (day names)
     $salesData['labels'] = $dayNames;
-    $salesData['data'] = array_fill(0, count($days), 0);
     
-    // Get actual order data for the week
+    // Initialize data with zeros
+    $salesData['data'] = array_fill(0, 7, 0);
+    
+    // Query orders for the current week
     $result = $conn->query("SELECT 
         DATE(order_date) as day,
         SUM(Total) as amount 
         FROM orders 
-        WHERE order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 DAY) 
-        AND order_date <= CURRENT_DATE()
+        WHERE order_date >= '{$monday->format('Y-m-d')}' 
+        AND order_date <= '{$sunday->format('Y-m-d')}'
         AND status != 'Disabled'
-        GROUP BY DATE(order_date)
-        ORDER BY day ASC");
+        GROUP BY DATE(order_date)");
     
     if ($result && $result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
             $dayIndex = array_search($row['day'], $days);
             if ($dayIndex !== false) {
-                $salesData['data'][$dayIndex] = $row['amount'];
-            }
-        }
-    }
-} else // Fetch data for sales chart (apply week filter if selected)
-$salesData = ['labels' => [], 'data' => []];
-
-if (isset($_GET['week_filter'])) {
-    // For week view - show days of current week
-    $days = [];
-    $dayNames = [];
-    for ($i = 6; $i >= 0; $i--) {
-        $timestamp = strtotime("today -$i days");
-        $days[] = date('Y-m-d', $timestamp);
-        $dayNames[] = date('D', $timestamp);
-    }
-    
-    // Initialize with zero values
-    $salesData['labels'] = $dayNames;
-    $salesData['data'] = array_fill(0, count($days), 0);
-    
-    // Get actual order data for the week
-    $result = $conn->query("SELECT 
-        DATE(order_date) as day,
-        SUM(Total) as amount 
-        FROM orders 
-        WHERE order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 DAY) 
-        AND order_date <= CURRENT_DATE()
-        AND status != 'Disabled'
-        GROUP BY DATE(order_date)
-        ORDER BY day ASC");
-    
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $dayIndex = array_search($row['day'], $days);
-            if ($dayIndex !== false) {
-                $salesData['data'][$dayIndex] = $row['amount'];
+                $salesData['data'][$dayIndex] = (float)$row['amount'];
             }
         }
     }
@@ -220,11 +224,12 @@ if (isset($_GET['week_filter'])) {
         while ($row = $result->fetch_assoc()) {
             $monthIndex = $row['month_num'] - 1; // Convert month number to array index (0-11)
             if ($monthIndex >= 0 && $monthIndex < 12) {
-                $salesData['data'][$monthIndex] = $row['amount'];
+                $salesData['data'][$monthIndex] = (float)$row['amount'];
             }
         }
     }
 }
+
 // Fetch shop settings
 $shopSettings = [];
 $settingsQuery = $conn->prepare("SELECT * FROM shop_settings WHERE id = 1");
@@ -237,6 +242,14 @@ if ($result->num_rows > 0) {
 
 // Fetch recent orders (last 5)
 $recentOrders = [];
+if (isset($_GET['week_filter'])) {
+    $recentWhere = "WHERE orders.order_date >= '{$monday->format('Y-m-d')}' 
+                   AND orders.order_date <= '{$sunday->format('Y-m-d')}' 
+                   AND orders.status != 'Disabled'";
+} else {
+    $recentWhere = "WHERE orders.status != 'Disabled'";
+}
+
 $recentQuery = $conn->query("SELECT 
     orders.Order_ID as order_id, 
     c.customer_name, 
@@ -253,7 +266,7 @@ $recentQuery = $conn->query("SELECT
     JOIN customer c ON orders.Customer_ID = c.customer_id
     LEFT JOIN order_items oi ON orders.Order_ID = oi.order_id
     LEFT JOIN products p ON oi.product_id = p.product_id
-    $dateFilter
+    $recentWhere
     GROUP BY orders.Order_ID
     ORDER BY orders.order_date DESC
     LIMIT 5");
