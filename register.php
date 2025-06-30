@@ -103,6 +103,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $error_message = "Password must contain at least one uppercase letter.";
         } elseif (!preg_match('/[0-9]/', $password)) {
             $error_message = "Password must contain at least one number.";
+        } elseif (preg_match('/\s/', $password)) {
+            $error_message = "Password cannot contain spaces.";
         } elseif (!preg_match('/[^A-Za-z0-9]/', $password)) {
             $error_message = "Password must contain at least one special character.";
         } else {
@@ -662,6 +664,7 @@ $conn->close();
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirm_password');
     const lengthCheck = document.getElementById('length-check');
     const uppercaseCheck = document.getElementById('uppercase-check');
     const numberCheck = document.getElementById('number-check');
@@ -702,36 +705,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Validate password on input
-    passwordInput.addEventListener('input', function() {
-        const password = passwordInput.value;
+  passwordInput.addEventListener('input', function() {
+        this.value = this.value.replace(/\s/g, '');
+        const password = this.value;
         
-        // Check length requirement
         toggleIconVisibility(lengthCheck, checkPasswordLength(password));
-        
-        // Check uppercase requirement
         toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
-        
-        // Check number requirement
         toggleIconVisibility(numberCheck, checkPasswordNumber(password));
-        
-        // Check symbol requirement
         toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
     });
 
-    // Also validate when the page loads in case form was submitted with errors
+    if (confirmPasswordInput) {
+        confirmPasswordInput.addEventListener('input', function() {
+            this.value = this.value.replace(/\s/g, '');
+        });
+    }
+
     if (passwordInput.value) {
-        const password = passwordInput.value;
-        toggleIconVisibility(lengthCheck, checkPasswordLength(password));
-        toggleIconVisibility(uppercaseCheck, checkPasswordUppercase(password));
-        toggleIconVisibility(numberCheck, checkPasswordNumber(password));
-        toggleIconVisibility(symbolCheck, checkPasswordSymbol(password));
+        passwordInput.dispatchEvent(new Event('input'));
     }
 
     <?php if ($redirect): ?>
     setTimeout(function () {
         window.location.href = "login.php";
-    }, 3000); // Redirect after 3 seconds
+    }, 3000);
     <?php endif; ?>
 });
 

@@ -578,6 +578,13 @@ document.getElementById('togglePassword').addEventListener('click', function () 
     }
 });
 
+const passwordInput = document.getElementById('password');
+if (passwordInput) {
+    passwordInput.addEventListener('input', function() {
+        this.value = this.value.replace(/\s/g, '');
+    });
+}
+
 // Guest button functionality
 document.getElementById('guestBtn').addEventListener('click', function() {
     window.location.href = 'userhomepage.php?guest=true';

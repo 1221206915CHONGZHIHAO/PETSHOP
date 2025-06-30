@@ -20,6 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = "Password must contain at least one uppercase letter.";
     } elseif (!preg_match('/[0-9]/', $new_password)) {
         $error = "Password must contain at least one number.";
+    } elseif (preg_match('/\s/', $new_password)) { 
+        $error = "Password cannot contain spaces.";
     } elseif (!preg_match('/[^A-Za-z0-9]/', $new_password)) {
         $error = "Password must contain at least one special character.";
     } else {

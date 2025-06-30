@@ -54,7 +54,7 @@ if ($result->num_rows > 0) {
 
 // Handle form submissions
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Update profile information - CHANGED TO UPDATE USERNAME INSTEAD OF EMAIL
+    // Update profile information
     if (isset($_POST['update_profile'])) {
         $username = $_POST['username'];
         
@@ -64,7 +64,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (isset($_FILES['profile_image']) && $_FILES['profile_image']['size'] > 0) {
             $upload_dir = 'uploads/profile_images/';
             
-            // Create directory if it doesn't exist
             if (!file_exists($upload_dir)) {
                 mkdir($upload_dir, 0777, true);
             }
@@ -73,18 +72,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $new_filename = 'profile_' . $customer_id . '_' . time() . '.' . $file_extension;
             $upload_file = $upload_dir . $new_filename;
             
-            // Check file type
             $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
             if (!in_array($_FILES['profile_image']['type'], $allowed_types)) {
                 $error_message = "Only JPEG, PNG and GIF images are allowed.";
             } 
-            // Check file size (max 2MB)
             else if ($_FILES['profile_image']['size'] > 2 * 1024 * 1024) {
                 $error_message = "Image size should not exceed 2MB.";
             }
-            // Try to upload the file
             else if (move_uploaded_file($_FILES['profile_image']['tmp_name'], $upload_file)) {
-                // Delete old image if exists
                 if (!empty($customer['profile_image']) && file_exists($upload_dir . $customer['profile_image'])) {
                     unlink($upload_dir . $customer['profile_image']);
                 }
@@ -100,13 +95,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             if ($stmt->execute()) {
                 $success_message = "Profile updated successfully!";
-                // Refresh customer data
                 $stmt = $conn->prepare("SELECT * FROM customer WHERE Customer_ID = ?");
                 $stmt->bind_param("i", $customer_id);
                 $stmt->execute();
                 $result = $stmt->get_result();
                 $customer = $result->fetch_assoc();
-                // Update session with new username
                 $_SESSION['customer_name'] = $customer['Customer_name'];
             } else {
                 $error_message = "Failed to update profile: " . $conn->error;
@@ -114,25 +107,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
     
-    // Change password - UPDATED WITH VALIDATION
+    // Change password
     if (isset($_POST['change_password'])) {
         $current_password = $_POST['current_password'];
         $new_password = $_POST['new_password'];
         $confirm_password = $_POST['confirm_password'];
         
-        // Verify current password
         if ($current_password != $customer['Customer_password']) {
             $password_error = "Current password is incorrect";
         } elseif ($new_password != $confirm_password) {
             $password_error = "New passwords do not match";
         } 
-        // Add password strength validation (same as register.php)
         elseif (strlen($new_password) < 8) {
             $password_error = "Password must be at least 8 characters long.";
         } elseif (!preg_match('/[A-Z]/', $new_password)) {
             $password_error = "Password must contain at least one uppercase letter.";
         } elseif (!preg_match('/[0-9]/', $new_password)) {
             $password_error = "Password must contain at least one number.";
+        } elseif (preg_match('/\s/', $new_password)) { 
+            $password_error = "Password cannot contain spaces.";
         } elseif (!preg_match('/[^A-Za-z0-9]/', $new_password)) {
             $password_error = "Password must contain at least one special character.";
         } else {
@@ -409,7 +402,6 @@ $masked_password = str_repeat('*', strlen($actual_password));
       color: #6c757d;
     }
     
-    /* Dashboard menu styling */
     .dashboard-menu .active {
       background-color: var(--primary) !important;
       color: white !important;
@@ -426,7 +418,6 @@ $masked_password = str_repeat('*', strlen($actual_password));
       color: #dc3545 !important;
     }
     
-    /* User dropdown menu styling */
     .user-dropdown .active-dropdown-item {
       background-color: var(--primary) !important;
       color: white !important;
@@ -442,7 +433,6 @@ $masked_password = str_repeat('*', strlen($actual_password));
       color: white;
     }
     
-    /* Password validation styling */
     .password-requirements {
       font-size: 13px;
       color: var(--gray);
@@ -801,8 +791,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
     <i class="bi bi-arrow-up"></i>
   </a>
 
-<!-- Edit Profile Modal - UPDATED TO EDIT USERNAME INSTEAD OF EMAIL -->
-  <div id="edit-profile-modal" class="modal">
+<div id="edit-profile-modal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
         <h4>Edit Profile Information</h4>
@@ -954,13 +943,14 @@ $masked_password = str_repeat('*', strlen($actual_password));
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize AOS Animation (if you use it on this page)
+  // Initialize AOS Animation
   AOS.init({
     once: true,
     duration: 800,
     offset: 100
   });
 
+  // Navbar Scroll Effect
   const navbar = document.querySelector('.custom-nav');
   window.addEventListener('scroll', () => {
     if (window.scrollY > 50) {
@@ -970,6 +960,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
+  // Back to Top Button
   const backToTopButton = document.getElementById('backToTop');
   window.addEventListener('scroll', () => {
     if (window.scrollY > 300) {
@@ -979,6 +970,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  // Modal Elements
   const modals = document.querySelectorAll('.modal');
   const closeButtons = document.querySelectorAll('.close-button, .close-modal-btn');
   const editProfileBtn = document.getElementById('edit-profile-btn');
@@ -991,7 +983,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const profileImageInput = document.getElementById('profile_image');
   const imagePreview = document.getElementById('image-preview');
 
-  // Password validation variables
+  // Password validation elements
+  const currentPasswordInput = document.getElementById('current_password'); // UPDATED: Get current password input
   const newPasswordInput = document.getElementById('new_password');
   const confirmPasswordInput = document.getElementById('confirm_password');
   const lengthCheck = document.getElementById('length-check');
@@ -1002,6 +995,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const passwordMatchIndicator = document.getElementById('password-match-indicator');
   const changePasswordSubmit = document.getElementById('change-password-submit');
 
+  // Function to reset password form on open
   function resetPasswordForm() {
     const passwordForm = changePasswordModal.querySelector('form');
     if (passwordForm) {
@@ -1010,6 +1004,7 @@ document.addEventListener('DOMContentLoaded', function() {
     validatePassword();
   }
 
+  // Event listeners to open modals
   editProfileBtn.addEventListener('click', function() {
     editProfileModal.style.display = 'block';
   });
@@ -1035,6 +1030,7 @@ document.addEventListener('DOMContentLoaded', function() {
     addressModal.style.display = 'block';
   });
 
+  // Profile image preview
   if (profileImageInput) {
     profileImageInput.addEventListener('change', function() {
       imagePreview.innerHTML = '';
@@ -1052,6 +1048,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // --- Password Validation Logic ---
   function checkPasswordLength(password) { return password.length >= 8; }
   function checkPasswordUppercase(password) { return /[A-Z]/.test(password); }
   function checkPasswordNumber(password) { return /[0-9]/.test(password); }
@@ -1099,12 +1096,32 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const allValid = lengthValid && uppercaseValid && numberValid && symbolValid && matchValid;
     changePasswordSubmit.disabled = !allValid;
+    
     return allValid;
   }
   
-  if (newPasswordInput) newPasswordInput.addEventListener('input', validatePassword);
-  if (confirmPasswordInput) confirmPasswordInput.addEventListener('input', validatePassword);
+  // UPDATED: Event listeners for ALL password fields to filter spaces
+  if (currentPasswordInput) {
+    currentPasswordInput.addEventListener('input', function() {
+      this.value = this.value.replace(/\s/g, '');
+    });
+  }
 
+  if (newPasswordInput) {
+    newPasswordInput.addEventListener('input', function() {
+      this.value = this.value.replace(/\s/g, '');
+      validatePassword();
+    });
+  }
+  
+  if (confirmPasswordInput) {
+    confirmPasswordInput.addEventListener('input', function() {
+      this.value = this.value.replace(/\s/g, '');
+      validatePassword();
+    });
+  }
+
+  // --- Modal Closing Logic ---
   closeButtons.forEach(function(btn) {
     btn.addEventListener('click', function() {
       modals.forEach(function(modal) {
@@ -1121,6 +1138,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   
+  // --- Edit Address Logic ---
   const editAddressBtns = document.querySelectorAll('.edit-address-btn');
   editAddressBtns.forEach(function(btn) {
     btn.addEventListener('click', function() {
