@@ -44,32 +44,26 @@ if (isset($_SESSION['customer_id'])) {
     }
 }
 
-// Function to get current cart count
-function getCartCount() {
-  if (isset($_SESSION['cart_count'])) {
-      return (int)$_SESSION['cart_count'];
-  } else if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
-      return count($_SESSION['cart']); // Count items, not quantities
-  }
-  return 0;
-}
-
-// Get products from database with search functionality
 function getProducts($sort = 'newest', $category = '', $search = '') {
     global $conn;
     
-    $sql = "SELECT * FROM products WHERE stock_quantity >= 0"; // Only show products with non-negative stock
-    
-    // Add search filter if provided
-    if (!empty($search)) {
-        $search = $conn->real_escape_string($search);
-        $sql .= " AND (product_name LIKE '%$search%' OR description LIKE '%$search%')";
-    }
-    
+    $sql = "SELECT * FROM products WHERE stock_quantity >= 0";
+    $params = [];
+    $types = '';
+
     // Add category filter if provided
     if (!empty($category)) {
-        $category = $conn->real_escape_string($category);
-        $sql .= " AND category = '$category'";
+        $sql .= " AND category = ?";
+        $params[] = $category;
+        $types .= 's';
+    }
+
+    // UPDATED: Add search filter for product_name ONLY
+    if (!empty($search)) {
+        $sql .= " AND product_name LIKE ?"; // 只搜索 product_name
+        $search_term = "%{$search}%"; 
+        $params[] = $search_term; // 只添加一次参数
+        $types .= 's'; // 只添加一个类型
     }
     
     // Add sorting logic
@@ -87,8 +81,16 @@ function getProducts($sort = 'newest', $category = '', $search = '') {
             $sql .= " ORDER BY created_at DESC";
             break;
     }
+
+    $stmt = $conn->prepare($sql);
+
+    // Bind parameters if any exist
+    if (!empty($types) && count($params) > 0) {
+        $stmt->bind_param($types, ...$params);
+    }
     
-    $result = $conn->query($sql);
+    $stmt->execute();
+    $result = $stmt->get_result();
     $products = [];
     
     if ($result && $result->num_rows > 0) {
@@ -97,35 +99,32 @@ function getProducts($sort = 'newest', $category = '', $search = '') {
         }
     }
     
+    $stmt->close();
     return $products;
 }
+
 // Get categories for sidebar from the 'pet_categories' table
 function getCategories() {
     global $conn;
-    
-    // UPDATED: Query now selects from 'pet_categories' table
     $sql = "SELECT category_name FROM pet_categories ORDER BY category_name ASC";
     $result = $conn->query($sql);
     $categories = [];
-    
     if ($result && $result->num_rows > 0) {
-        // UPDATED: Changed from $row['category'] to $row['category_name']
         while($row = $result->fetch_assoc()) {
             $categories[] = $row['category_name'];
         }
     }
-    
     return $categories;
 }
 
+// Get search parameter
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+// UPDATED: If a search is active, ignore the category to perform a global search
+$category = !empty($search) ? '' : (isset($_GET['category']) ? $_GET['category'] : '');
+
 // Get sort parameter
 $sort = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
-
-// Get category parameter
-$category = isset($_GET['category']) ? $_GET['category'] : '';
-
-// Get search parameter
-$search = isset($_GET['search']) ? $_GET['search'] : '';
 
 // Get products and categories
 $products = getProducts($sort, $category, $search);
@@ -181,7 +180,7 @@ if (!empty($search)) {
             </a>
             <ul class="dropdown-menu dropdown-menu-end search-dropdown" aria-labelledby="searchDropdown">
               <form class="d-flex search-form" action="products.php" method="GET">
-                <input class="form-control me-2" type="search" name="search" placeholder="Search products..." aria-label="Search" required>
+                <input class="form-control me-2" type="search" name="search" placeholder="Search products..." aria-label="Search" required value="<?php echo htmlspecialchars($search); ?>">
                 <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
               </form>
             </ul>
@@ -471,7 +470,6 @@ addToCartButtons.forEach(button => {
       this.innerHTML = originalText;
       
       if (data.success) {
-        // Success notification (existing code)
         const toastContainer = document.createElement('div');
         toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
         toastContainer.style.zIndex = '9999';
@@ -501,7 +499,6 @@ addToCartButtons.forEach(button => {
         });
         toast.show();
         
-        // Update cart badge
         const cartLink = document.querySelector('.nav-link[href="cart.php"]');
         let cartBadge = cartLink.querySelector('.badge');
         
@@ -520,14 +517,13 @@ addToCartButtons.forEach(button => {
           document.body.removeChild(toastContainer);
         });
       } else if (data.require_login) {
-        // NEW: Show login required notification before redirecting
         const loginToastContainer = document.createElement('div');
         loginToastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
         loginToastContainer.style.zIndex = '9999';
         
         const loginToastElement = document.createElement('div');
         loginToastElement.classList.add('toast', 'align-items-center', 'text-white', 'border-0');
-        loginToastElement.style.backgroundColor = '#dc3545'; // Red color for warning
+        loginToastElement.style.backgroundColor = '#dc3545';
         loginToastElement.setAttribute('role', 'alert');
         loginToastElement.setAttribute('aria-live', 'assertive');
         loginToastElement.setAttribute('aria-atomic', 'true');
@@ -546,21 +542,18 @@ addToCartButtons.forEach(button => {
         
         const loginToast = new bootstrap.Toast(loginToastElement, {
           autohide: true,
-          delay: 3000 // Show for 3 seconds
+          delay: 3000
         });
         loginToast.show();
         
-        // Redirect to login page after 3 seconds
         setTimeout(() => {
           window.location.href = 'login.php';
         }, 3000);
         
-        // Clean up toast container after it's hidden
         loginToastElement.addEventListener('hidden.bs.toast', function () {
           document.body.removeChild(loginToastContainer);
         });
       } else {
-        // Error notification
         alert(data.message || 'Failed to add item to cart');
         console.error('Failed to add item to cart:', data.message);
       }
@@ -570,7 +563,6 @@ addToCartButtons.forEach(button => {
       this.innerHTML = originalText;
       console.error('Error:', error);
       
-      // Show error notification
       const errorToastContainer = document.createElement('div');
       errorToastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
       errorToastContainer.style.zIndex = '9999';
