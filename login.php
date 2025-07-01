@@ -46,7 +46,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $stmt->fetch();
 
                 if ($db_is_active != 1) {
-                    $error_message = "Account is deactivated. Please contact administrator.";
+                    $error_message = "Account is deactivated. Please contact staff.";
                 }
                 elseif ($password === $db_password) {
                     $_SESSION['role'] = "customer";
