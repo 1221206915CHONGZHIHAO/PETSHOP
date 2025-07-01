@@ -910,7 +910,7 @@ $masked_password = str_repeat('*', strlen($actual_password));
           <input type="text" class="form-control" id="city" name="city" required>
         </div>
         <div class="form-group">
-          <label for="state" class="form-label">State/Province</label>
+          <label for="state" class="form-label">State/Province (Optional)</label>
           <input type="text" class="form-control" id="state" name="state">
         </div>
       </div>
