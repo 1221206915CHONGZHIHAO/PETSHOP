@@ -515,12 +515,8 @@ if (isset($_SESSION['customer_id']) && $product_id > 0) {
         </div>
         <!-- Thumbnail Gallery -->
         <div class="thumbnail-gallery">
-          <!-- 假设有多个图片，这里用相同的图片占位 -->
           <div class="thumbnail active" onclick="changeImage('<?php echo htmlspecialchars($product['image_url']); ?>')">
             <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="Thumbnail 1">
-          </div>
-          <div class="thumbnail" onclick="changeImage('<?php echo htmlspecialchars($product['image_url']); ?>')">
-            <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="Thumbnail 2">
           </div>
         </div>
       </div>
