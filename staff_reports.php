@@ -392,6 +392,24 @@ $conn->close();
                         </div>
                     </div>
                 </div>
+                <div class="col-md-4">
+                    <div class="card text-white bg-success h-100 report-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">AVERAGE ORDER VALUE</h6>
+                                    <h2 class="mb-0">
+                                        RM<?php 
+                                            $avg_order = $total_orders > 0 ? $total_sales / $total_orders : 0;
+                                            echo number_format($avg_order, 2); 
+                                        ?>
+                                    </h2>
+                                </div>
+                                <i class="fas fa-calculator fa-3x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Sales Chart -->
